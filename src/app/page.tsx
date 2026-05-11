@@ -1,253 +1,231 @@
 import Link from 'next/link'
-import { ArrowRight, Sparkles, Shield, TrendingUp, Camera, BookOpen, Star } from 'lucide-react'
+import Image from 'next/image'
 
-export default function LandingPage() {
+export default function Home() {
   return (
-    <div className="min-h-screen bg-skin-50 overflow-hidden">
-      {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-50 px-6 py-4 flex items-center justify-between bg-skin-50/80 backdrop-blur-md border-b border-skin-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-skin-500 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display text-2xl font-medium text-charcoal-900">SkinProof</span>
+    <div style={{fontFamily:"'Outfit',sans-serif",background:'#fdf9f6',color:'#3a2420',overflowX:'hidden'}}>
+
+      {/* NAV */}
+      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,padding:'16px 48px',display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(253,249,246,0.92)',backdropFilter:'blur(20px)',borderBottom:'1px solid rgba(224,144,128,0.12)'}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:'22px',color:'#3a2420'}}>
+          Skin<span style={{color:'#e09080',fontStyle:'italic'}}>Proof</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/auth" className="text-sm font-body text-charcoal-700 hover:text-skin-600 transition-colors">
-            Sign in
-          </Link>
-          <Link
-            href="/auth?mode=signup"
-            className="text-sm bg-charcoal-900 text-skin-50 px-4 py-2 rounded-full hover:bg-charcoal-800 transition-colors font-medium"
-          >
-            Get started
-          </Link>
+        <div style={{display:'flex',gap:'28px',alignItems:'center'}}>
+          <a href="#how" style={{fontSize:'13px',color:'#7a4a40',textDecoration:'none',letterSpacing:'0.06em',textTransform:'uppercase'}}>How it works</a>
+          <a href="#results" style={{fontSize:'13px',color:'#7a4a40',textDecoration:'none',letterSpacing:'0.06em',textTransform:'uppercase'}}>Results</a>
+          <Link href="/auth" style={{background:'#3a2420',color:'#fdf9f6',padding:'10px 24px',borderRadius:'100px',fontSize:'13px',fontWeight:500,textDecoration:'none'}}>Start free</Link>
         </div>
-      </header>
+      </nav>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6 relative">
-        {/* Background blob */}
-        <div className="absolute top-20 right-0 w-96 h-96 bg-skin-200 rounded-full blur-3xl opacity-40 -translate-y-1/4 translate-x-1/3" />
-        <div className="absolute top-40 left-10 w-64 h-64 bg-sage-200 rounded-full blur-3xl opacity-30" />
+      {/* HERO */}
+      <section style={{paddingTop:'64px',background:'linear-gradient(160deg,#fdf9f6 0%,#fdf0ec 55%,#fce8e8 100%)',minHeight:'100vh',display:'grid',gridTemplateColumns:'1fr 1fr'}}>
 
-        <div className="max-w-lg mx-auto relative">
-          <div className="inline-flex items-center gap-2 bg-cream-100 border border-cream-300 text-charcoal-700 text-xs font-medium px-3 py-1.5 rounded-full mb-6 animate-fade-in">
-            <Shield className="w-3 h-3 text-skin-500" />
-            Not medical diagnosis · For tracking only
+        {/* Photo side */}
+        <div style={{position:'relative',overflow:'hidden',display:'flex',alignItems:'stretch'}}>
+          <Image
+            src="/landing page pic.webp"
+            alt="Glass skin portrait"
+            fill
+            style={{objectFit:'cover',objectPosition:'center 10%',filter:'brightness(1.04) saturate(1.06)'}}
+            priority
+          />
+          {/* Glow overlay */}
+          <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 50% 40% at 42% 28%,rgba(255,255,255,0.2) 0%,transparent 60%)',pointerEvents:'none'}}/>
+          {/* Left fade */}
+          <div style={{position:'absolute',top:0,left:0,bottom:0,width:'80px',background:'linear-gradient(to right,#fdf0ec,transparent)',pointerEvents:'none'}}/>
+          {/* Bottom fade */}
+          <div style={{position:'absolute',bottom:0,left:0,right:0,height:'160px',background:'linear-gradient(to top,#fce8e8 0%,transparent 100%)',pointerEvents:'none'}}/>
+
+          {/* AI badge */}
+          <div style={{position:'absolute',top:'7%',right:'5%',background:'#3a2420',color:'#fdf9f6',borderRadius:'100px',padding:'8px 16px',fontSize:'11px',fontWeight:500,display:'flex',alignItems:'center',gap:'6px',boxShadow:'0 6px 20px rgba(58,36,32,0.28)'}}>
+            <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#90e090'}}/>
+            AI Scanning...
           </div>
 
-          <h1 className="font-display text-5xl md:text-6xl font-light leading-tight text-charcoal-900 mb-6 animate-fade-up">
-            Your skin story,{' '}
-            <em className="text-skin-500 font-light">clearly told</em>
+          {/* Floating cards */}
+          <div style={{position:'absolute',top:'12%',left:'5%',background:'rgba(255,255,255,0.9)',backdropFilter:'blur(16px)',border:'1px solid rgba(224,144,128,0.2)',borderRadius:'18px',padding:'13px 17px',boxShadow:'0 8px 28px rgba(58,36,32,0.1)'}}>
+            <div style={{fontSize:'10px',fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',color:'#7a4a40',marginBottom:'4px'}}>Hydration</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:'24px',fontWeight:500,color:'#3a2420'}}>87 <span style={{fontSize:'11px',color:'#e09080'}}>/ 100</span></div>
+            <div style={{height:'3px',background:'#fce8e0',borderRadius:'2px',marginTop:'7px',overflow:'hidden'}}>
+              <div style={{width:'87%',height:'100%',borderRadius:'2px',background:'linear-gradient(90deg,#f0c4b4,#e09080)'}}/>
+            </div>
+            <div style={{fontSize:'11px',color:'#8fa888',fontWeight:600,marginTop:'5px'}}>↑ +12 this week</div>
+          </div>
+
+          <div style={{position:'absolute',top:'42%',right:'5%',background:'rgba(255,255,255,0.9)',backdropFilter:'blur(16px)',border:'1px solid rgba(224,144,128,0.2)',borderRadius:'18px',padding:'13px 17px',boxShadow:'0 8px 28px rgba(58,36,32,0.1)'}}>
+            <div style={{fontSize:'10px',fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',color:'#7a4a40',marginBottom:'4px'}}>Texture</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:'24px',fontWeight:500,color:'#3a2420'}}>92 <span style={{fontSize:'11px',color:'#e09080'}}>/ 100</span></div>
+            <div style={{height:'3px',background:'#fce8e0',borderRadius:'2px',marginTop:'7px',overflow:'hidden'}}>
+              <div style={{width:'92%',height:'100%',borderRadius:'2px',background:'linear-gradient(90deg,#f0c4b4,#e09080)'}}/>
+            </div>
+            <div style={{fontSize:'11px',color:'#8fa888',fontWeight:600,marginTop:'5px'}}>↑ +8 · 30 days</div>
+          </div>
+
+          <div style={{position:'absolute',bottom:'22%',left:'5%',background:'rgba(255,255,255,0.9)',backdropFilter:'blur(16px)',border:'1px solid rgba(224,144,128,0.2)',borderRadius:'18px',padding:'13px 17px',boxShadow:'0 8px 28px rgba(58,36,32,0.1)'}}>
+            <div style={{fontSize:'10px',fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',color:'#7a4a40',marginBottom:'4px'}}>Radiance</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:'24px',fontWeight:500,color:'#3a2420'}}>79 <span style={{fontSize:'11px',color:'#e09080'}}>/ 100</span></div>
+            <div style={{height:'3px',background:'#fce8e0',borderRadius:'2px',marginTop:'7px',overflow:'hidden'}}>
+              <div style={{width:'79%',height:'100%',borderRadius:'2px',background:'linear-gradient(90deg,#f0c4b4,#e09080)'}}/>
+            </div>
+            <div style={{fontSize:'11px',color:'#8fa888',fontWeight:600,marginTop:'5px'}}>↑ +21 · 60 days</div>
+          </div>
+        </div>
+
+        {/* Text side */}
+        <div style={{display:'flex',flexDirection:'column',justifyContent:'center',padding:'60px 72px 60px 48px'}}>
+          <div style={{display:'inline-flex',alignItems:'center',gap:'10px',fontSize:'11px',fontWeight:500,letterSpacing:'0.14em',textTransform:'uppercase',color:'#e09080',marginBottom:'24px'}}>
+            <span style={{width:'28px',height:'1px',background:'#e09080',display:'inline-block'}}/>
+            AI-powered skin tracking
+          </div>
+          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:'62px',lineHeight:1.1,color:'#3a2420',marginBottom:'20px'}}>
+            Your skin story,<br/>
+            <em style={{fontStyle:'italic',color:'#e09080'}}>clearly proven</em>
           </h1>
-
-          <p className="text-charcoal-700 text-lg leading-relaxed mb-8 animate-fade-up delay-100 font-body">
-            Track daily skin changes, build your product diary, and discover
-            what actually works for your unique skin — powered by AI insights.
+          <p style={{fontSize:'16px',fontWeight:300,lineHeight:1.75,color:'#7a4a40',maxWidth:'400px',marginBottom:'40px'}}>
+            Track your skin every day, log your products, and discover what <em>actually</em> works for skin like yours — backed by real data, not marketing claims.
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 animate-fade-up delay-200">
-            <Link
-              href="/auth?mode=signup"
-              className="flex items-center justify-center gap-2 bg-skin-500 text-white px-6 py-3.5 rounded-xl font-medium hover:bg-skin-600 transition-all hover:shadow-lg hover:shadow-skin-200 active:scale-95"
-            >
-              Start tracking free
-              <ArrowRight className="w-4 h-4" />
+          <div style={{display:'flex',gap:'14px',alignItems:'center',marginBottom:'44px',flexWrap:'wrap'}}>
+            <Link href="/auth" style={{background:'#3a2420',color:'#fdf9f6',padding:'15px 32px',borderRadius:'100px',fontSize:'14px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(58,36,32,0.2)'}}>
+              Start tracking free →
             </Link>
-            <Link
-              href="#features"
-              className="flex items-center justify-center gap-2 border border-skin-200 text-charcoal-700 px-6 py-3.5 rounded-xl font-medium hover:bg-skin-50 hover:border-skin-300 transition-all"
-            >
-              See how it works
-            </Link>
+            <a href="#how" style={{color:'#3a2420',fontSize:'14px',textDecoration:'none',display:'flex',alignItems:'center',gap:'8px'}}>
+              See how it works →
+            </a>
           </div>
-
-          {/* Social proof */}
-          <div className="flex items-center gap-3 mt-8 animate-fade-up delay-300">
-            <div className="flex -space-x-2">
-              {['A', 'B', 'C', 'D'].map((l, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full border-2 border-white bg-gradient-to-br from-skin-300 to-skin-400 flex items-center justify-center text-xs text-white font-medium"
-                >
-                  {l}
-                </div>
+          <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+            <div style={{display:'flex'}}>
+              {['🌸','✨','🌿','💎'].map((e,i)=>(
+                <div key={i} style={{width:'34px',height:'34px',borderRadius:'50%',border:'2px solid white',marginLeft:i===0?0:'-10px',background:'linear-gradient(135deg,#fce8e0,#f0c4b4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px'}}>{e}</div>
               ))}
             </div>
-            <div className="text-sm text-charcoal-600">
-              <span className="font-medium text-charcoal-800">4,200+</span> users tracking their skin
-            </div>
-          </div>
-        </div>
-
-        {/* Phone mockup */}
-        <div className="max-w-xs mx-auto mt-12 animate-fade-up delay-400">
-          <div className="bg-white rounded-3xl shadow-2xl shadow-skin-200 border border-skin-100 overflow-hidden">
-            {/* Phone header */}
-            <div className="bg-skin-500 px-4 py-5 text-white">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-xs opacity-80 font-body">Today's Check-in</p>
-                  <p className="font-display text-xl font-medium">May 10, 2026</p>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <span className="font-display text-2xl font-semibold">82</span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {['Hydration', 'Texture', 'Glow'].map(label => (
-                  <div key={label} className="bg-white/15 px-2.5 py-1 rounded-full text-xs">
-                    {label} ✓
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Mock content */}
-            <div className="p-4 space-y-3">
-              <div className="flex gap-3">
-                <div className="w-14 h-14 rounded-xl skeleton" />
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-3 skeleton w-3/4" />
-                  <div className="h-2.5 skeleton w-1/2" />
-                  <div className="flex gap-1 mt-2">
-                    {[1,2,3,4,5].map(s => (
-                      <Star key={s} className="w-3 h-3 fill-cream-400 text-cream-400" />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="h-px bg-skin-100" />
-              <div className="flex gap-3">
-                <div className="w-14 h-14 rounded-xl skeleton" />
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-3 skeleton w-2/3" />
-                  <div className="h-2.5 skeleton w-2/5" />
-                </div>
-              </div>
-              <div className="bg-sage-50 rounded-xl p-3 border border-sage-100">
-                <p className="text-xs text-sage-700 font-medium">💡 AI Insight</p>
-                <p className="text-xs text-sage-600 mt-1">Your skin improved 8% this week after adding the niacinamide serum.</p>
-              </div>
-            </div>
+            <div style={{fontSize:'13px',color:'#7a4a40'}}><strong style={{color:'#3a2420'}}>4,200+</strong> people tracking their skin journey</div>
           </div>
         </div>
       </section>
 
-      {/* Disclaimer Banner */}
-      <div className="bg-cream-100 border-y border-cream-300 px-6 py-3">
-        <p className="text-center text-xs text-charcoal-600 max-w-2xl mx-auto">
-          <span className="font-semibold">Medical Disclaimer:</span> SkinProof provides AI-assisted skin tracking for personal use only.
-          Results are not medical diagnoses. Always consult a licensed dermatologist for skin conditions.
-        </p>
-      </div>
-
-      {/* Features */}
-      <section id="features" className="px-6 py-16 max-w-2xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="font-display text-4xl font-light text-charcoal-900 mb-3">
-            Everything your skin journal{' '}
-            <em className="text-skin-500">deserves</em>
-          </h2>
-          <p className="text-charcoal-600 font-body">
-            From photo tracking to ingredient analysis — all in one place.
-          </p>
+      {/* HOW IT WORKS */}
+      <section id="how" style={{padding:'100px 72px',maxWidth:'1200px',margin:'0 auto'}}>
+        <div style={{fontSize:'11px',fontWeight:500,letterSpacing:'0.14em',textTransform:'uppercase',color:'#e09080',marginBottom:'14px',display:'flex',alignItems:'center',gap:'10px'}}>
+          <span style={{width:'20px',height:'1px',background:'#e09080',display:'inline-block'}}/>
+          The process
         </div>
-
-        <div className="grid gap-4">
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:'50px',lineHeight:1.15,color:'#3a2420',marginBottom:'14px'}}>
+          Three steps to <em style={{fontStyle:'italic',color:'#e09080'}}>glass skin clarity</em>
+        </h2>
+        <p style={{fontSize:'15px',fontWeight:300,color:'#7a4a40',maxWidth:'440px',lineHeight:1.75,marginBottom:'60px'}}>
+          No guesswork. No marketing noise. Just your skin, your products, and what the data actually shows.
+        </p>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'24px'}}>
           {[
-            {
-              icon: Camera,
-              title: 'Daily Photo Tracking',
-              desc: 'Upload skin photos with AI quality scoring. Track changes over time with consistent, comparable images.',
-              color: 'bg-skin-100 text-skin-600',
-            },
-            {
-              icon: Sparkles,
-              title: 'AI Skin Analysis',
-              desc: 'Get instant feedback on hydration, texture, redness, and more. For tracking purposes — not medical diagnosis.',
-              color: 'bg-sage-100 text-sage-600',
-            },
-            {
-              icon: BookOpen,
-              title: 'Product Diary',
-              desc: 'Log every product you use. Track reactions, ratings, and discover what combinations work for your skin.',
-              color: 'bg-cream-100 text-cream-500',
-            },
-            {
-              icon: TrendingUp,
-              title: 'Progress Tracker',
-              desc: 'Visualize your skin journey with charts. See correlations between products, habits, and skin health.',
-              color: 'bg-skin-100 text-skin-600',
-            },
-            {
-              icon: Shield,
-              title: 'Transparent Recommendations',
-              desc: 'Product recommendations ranked by skin compatibility — never by affiliate commission. Fully disclosed.',
-              color: 'bg-sage-100 text-sage-600',
-            },
-          ].map(({ icon: Icon, title, desc, color }, i) => (
-            <div
-              key={i}
-              className="flex gap-4 p-5 bg-white rounded-2xl border border-skin-100 hover:border-skin-200 hover:shadow-sm transition-all animate-fade-up"
-              style={{ animationDelay: `${i * 100}ms` }}
-            >
-              <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center shrink-0 mt-0.5`}>
-                <Icon className="w-5 h-5" />
+            {num:'01',icon:'📸',title:'Daily skin check-in',desc:'Upload a photo each day. AI scores 7 metrics — hydration, texture, radiance, redness, acne, pores, and pigmentation. Photo quality is tracked so your data stays reliable.'},
+            {num:'02',icon:'🧴',title:'Log your products',desc:'Record every product you use — when, how often, how your skin reacts. We cross-check ingredients and flag potential irritants before they cause trouble.'},
+            {num:'03',icon:'📊',title:'See what works',desc:'After 30, 60, 90 days — your data tells the real story. Which products moved the needle. What people with similar skin are achieving. Honest numbers, not promises.'},
+          ].map((s)=>(
+            <div key={s.num} style={{padding:'38px 30px',background:'#f8f2eb',borderRadius:'22px',borderTop:'3px solid #f0c4b4'}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:'56px',color:'#f0c4b4',lineHeight:1,marginBottom:'18px'}}>{s.num}</div>
+              <div style={{fontSize:'28px',marginBottom:'12px'}}>{s.icon}</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:'20px',color:'#3a2420',marginBottom:'10px'}}>{s.title}</div>
+              <p style={{fontSize:'13px',fontWeight:300,color:'#7a4a40',lineHeight:1.7}}>{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* RESULTS */}
+      <section id="results" style={{background:'linear-gradient(135deg,#2e1c18,#3a2420)',padding:'100px 72px'}}>
+        <div style={{maxWidth:'1200px',margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'64px',alignItems:'center'}}>
+          <div>
+            <div style={{fontSize:'11px',fontWeight:500,letterSpacing:'0.14em',textTransform:'uppercase',color:'#f0c4b4',marginBottom:'14px',display:'flex',alignItems:'center',gap:'10px'}}>
+              <span style={{width:'20px',height:'1px',background:'#f0c4b4',display:'inline-block'}}/>
+              Real outcomes
+            </div>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:'46px',lineHeight:1.15,color:'#fdf9f6',marginBottom:'16px'}}>
+              What <em style={{fontStyle:'italic',color:'#f0c4b4'}}>skin like yours</em><br/>is achieving
+            </h2>
+            <p style={{fontSize:'15px',fontWeight:300,color:'rgba(253,249,246,0.55)',lineHeight:1.75,marginBottom:'32px'}}>
+              Anonymous aggregated data from users with similar skin types. Not testimonials — actual outcome averages.
+            </p>
+            <Link href="/auth" style={{background:'#e09080',color:'#fdf9f6',padding:'14px 30px',borderRadius:'100px',fontSize:'14px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(224,144,128,0.3)'}}>
+              See your potential →
+            </Link>
+          </div>
+          <div>
+            {[
+              {emoji:'🌸',name:'Combination skin · 25–32',concern:'Acne + uneven tone · Seoul',delta:'+34',days:'60-day avg'},
+              {emoji:'✨',name:'Dry sensitive · 28–35',concern:'Redness + dehydration · Taipei',delta:'+28',days:'30-day avg'},
+              {emoji:'💎',name:'Oily skin · 20–28',concern:'Large pores + shine · HK',delta:'+41',days:'90-day avg'},
+            ].map((r)=>(
+              <div key={r.name} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.09)',borderRadius:'16px',padding:'20px 24px',display:'flex',alignItems:'center',gap:'16px',marginBottom:'12px'}}>
+                <div style={{width:'46px',height:'46px',borderRadius:'50%',flexShrink:0,background:'linear-gradient(135deg,#fce8e0,#f0c4b4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'18px'}}>{r.emoji}</div>
+                <div>
+                  <div style={{fontSize:'13px',fontWeight:500,color:'#fdf9f6',marginBottom:'3px'}}>{r.name}</div>
+                  <div style={{fontSize:'11px',color:'rgba(253,249,246,0.45)'}}>{r.concern}</div>
+                </div>
+                <div style={{marginLeft:'auto',textAlign:'right'}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:'22px',fontWeight:500,color:'#f0c4b4'}}>{r.delta}</div>
+                  <div style={{fontSize:'10px',color:'rgba(253,249,246,0.35)'}}>{r.days}</div>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium text-charcoal-900 mb-1 font-body">{title}</h3>
-                <p className="text-sm text-charcoal-600 leading-relaxed">{desc}</p>
-              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TRUST */}
+      <section style={{padding:'100px 72px',maxWidth:'1200px',margin:'0 auto'}}>
+        <div style={{fontSize:'11px',fontWeight:500,letterSpacing:'0.14em',textTransform:'uppercase',color:'#e09080',marginBottom:'14px',display:'flex',alignItems:'center',gap:'10px'}}>
+          <span style={{width:'20px',height:'1px',background:'#e09080',display:'inline-block'}}/>
+          Why trust us
+        </div>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:'46px',lineHeight:1.15,color:'#3a2420',marginBottom:'56px'}}>
+          Built on <em style={{fontStyle:'italic',color:'#e09080'}}>transparency</em>
+        </h2>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'20px'}}>
+          {[
+            {icon:'🛡️',title:'Commission-free rankings',desc:'Rankings based purely on your skin data. We never accept payment to influence recommendations.'},
+            {icon:'📊',title:'Real outcome data',desc:'When evidence is limited, we say so. Every recommendation shows confidence level and sample size.'},
+            {icon:'🔒',title:'Private by design',desc:'Your photos are encrypted. Your data is yours. Only anonymised data is used for statistics.'},
+            {icon:'⚕️',title:'Not medical advice',desc:'SkinProof is a personal tracking tool. Always consult a dermatologist for medical concerns.'},
+          ].map((t)=>(
+            <div key={t.title} style={{padding:'32px 24px',background:'#f8f2eb',borderRadius:'20px'}}>
+              <div style={{fontSize:'26px',marginBottom:'12px'}}>{t.icon}</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:'16px',color:'#3a2420',marginBottom:'8px'}}>{t.title}</div>
+              <p style={{fontSize:'13px',fontWeight:300,color:'#7a4a40',lineHeight:1.7}}>{t.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* CTA */}
-      <section className="px-6 py-16">
-        <div className="max-w-md mx-auto bg-charcoal-900 rounded-3xl p-8 text-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-skin-500 rounded-full blur-3xl opacity-20" />
-          <div className="relative">
-            <div className="w-14 h-14 rounded-2xl bg-skin-500 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-7 h-7 text-white" />
-            </div>
-            <h2 className="font-display text-3xl font-light text-white mb-3">
-              Start your skin journey
-            </h2>
-            <p className="text-charcoal-400 text-sm mb-6 font-body">
-              Free forever. No hidden fees. No affiliate-ranked products.
-            </p>
-            <Link
-              href="/auth?mode=signup"
-              className="inline-flex items-center gap-2 bg-skin-500 text-white px-8 py-3.5 rounded-xl font-medium hover:bg-skin-400 transition-all hover:shadow-lg hover:shadow-skin-500/30 active:scale-95"
-            >
-              Create free account
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
+      <section style={{padding:'100px 72px 120px',textAlign:'center',background:'linear-gradient(to bottom,#fdf9f6,#fce8e0)'}}>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:'58px',lineHeight:1.15,color:'#3a2420',marginBottom:'16px'}}>
+          Your skin deserves<br/><em style={{fontStyle:'italic',color:'#e09080'}}>better evidence</em>
+        </h2>
+        <p style={{fontSize:'16px',fontWeight:300,color:'#7a4a40',marginBottom:'40px',maxWidth:'380px',marginLeft:'auto',marginRight:'auto',lineHeight:1.75}}>
+          Start your free skin journal today. No credit card. No commitment. Just clarity.
+        </p>
+        <Link href="/auth" style={{background:'#3a2420',color:'#fdf9f6',padding:'16px 44px',borderRadius:'100px',fontSize:'15px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(58,36,32,0.2)'}}>
+          Begin your skin story →
+        </Link>
+        <p style={{marginTop:'20px',fontSize:'12px',color:'rgba(122,74,64,0.45)'}}>
+          ⓘ AI analysis is for personal tracking only — not medical diagnosis.
+        </p>
       </section>
 
-      {/* Footer */}
-      <footer className="px-6 py-8 border-t border-skin-100">
-        <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-skin-500 flex items-center justify-center">
-              <Sparkles className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-display text-lg font-medium text-charcoal-700">SkinProof</span>
-          </div>
-          <p className="text-xs text-charcoal-500 text-center">
-            Not a medical device. AI analysis is for personal tracking only.
-            Always consult a dermatologist for medical advice.
-          </p>
-          <div className="flex gap-4 text-xs text-charcoal-500">
-            <Link href="/privacy" className="hover:text-skin-500">Privacy</Link>
-            <Link href="/terms" className="hover:text-skin-500">Terms</Link>
-          </div>
+      {/* FOOTER */}
+      <footer style={{borderTop:'1px solid rgba(224,144,128,0.15)',padding:'32px 72px',display:'flex',alignItems:'center',justifyContent:'space-between',background:'#fdf9f6'}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:'17px',color:'#3a2420'}}>
+          Skin<span style={{color:'#e09080',fontStyle:'italic'}}>Proof</span>
         </div>
+        <div style={{display:'flex',gap:'22px'}}>
+          <Link href="/privacy" style={{fontSize:'12px',color:'#7a4a40',textDecoration:'none',letterSpacing:'0.06em',textTransform:'uppercase'}}>Privacy</Link>
+          <Link href="/terms" style={{fontSize:'12px',color:'#7a4a40',textDecoration:'none',letterSpacing:'0.06em',textTransform:'uppercase'}}>Terms</Link>
+        </div>
+        <p style={{fontSize:'11px',color:'rgba(122,74,64,0.4)',maxWidth:'260px',textAlign:'right',lineHeight:1.5}}>
+          Not a medical device. AI analysis for personal tracking only.
+        </p>
       </footer>
+
     </div>
   )
 }
