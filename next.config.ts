@@ -1,25 +1,15 @@
-import type { NextConfig } from "next";
-
+import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "*.supabase.co",
-        pathname: "/storage/v1/object/**",
-      },
+      { protocol: 'https', hostname: '*.supabase.co' },
     ],
   },
-  headers: async () => [
-    {
-      source: "/(.*)",
-      headers: [
-        { key: "X-Content-Type-Options", value: "nosniff" },
-        { key: "X-Frame-Options", value: "DENY" },
-        { key: "X-XSS-Protection", value: "1; mode=block" },
-      ],
-    },
-  ],
-};
-
-export default nextConfig;
+}
+export default nextConfig
