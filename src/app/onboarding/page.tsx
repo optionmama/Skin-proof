@@ -71,6 +71,7 @@ export default function OnboardingPage() {
         known_sensitivities: sensitivities ? sensitivities.split(',').map(s => s.trim()).filter(Boolean) : [],
         fitzpatrick_scale: fitzpatrick || undefined,
         dermatologist_care: dermatologist,
+        onboarding_completed_at: new Date().toISOString(),
       })
 
       // Mark onboarding complete
@@ -337,6 +338,7 @@ export default function OnboardingPage() {
             </button>
           )}
         </div>
+
       </div>
     </div>
   )
