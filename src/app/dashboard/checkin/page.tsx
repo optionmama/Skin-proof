@@ -4,32 +4,21 @@ import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Camera, Upload, Check, Loader2, AlertTriangle, Sparkles,
-  Droplets, Zap, Flame, Cloud, Moon, Heart
+  Camera, Check, Loader2, AlertTriangle, Sparkles,
+  Droplets, Cloud, Moon
 } from 'lucide-react'
-import { DISCLAIMER_TEXT } from '@/lib/utils'
-
-type PhotoAngle = 'front' | 'left' | 'right' | 'forehead' | 'chin'
 
 export default function CheckinPage() {
   const router = useRouter()
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [step, setStep] = useState<'photo' | 'feelings' | 'habits' | 'submitting' | 'done'>('photo')
+  const [step, setStep] = useState<'photo' | 'habits' | 'submitting' | 'done'>('photo')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [photoAngle, setPhotoAngle] = useState<PhotoAngle>('front')
   const [disclaimerAck, setDisclaimerAck] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  // Feelings
-  const [overallFeeling, setOverallFeeling] = useState(5)
-  const [hydration, setHydration] = useState(5)
-  const [oiliness, setOiliness] = useState(5)
-  const [redness, setRedness] = useState(3)
-  const [breakouts, setBreakouts] = useState(0)
 
   // Habits
   const [stressLevel, setStressLevel] = useState(5)
@@ -72,11 +61,6 @@ export default function CheckinPage() {
         .upsert({
           user_id: user.id,
           checkin_date: today,
-          overall_feeling: overallFeeling,
-          hydration_level: hydration,
-          oiliness_level: oiliness,
-          redness_level: redness,
-          breakout_count: breakouts,
           stress_level: stressLevel,
           sleep_hours: sleepHours,
           water_intake_ml: waterIntake,
@@ -90,7 +74,7 @@ export default function CheckinPage() {
       // Upload photo if provided
       if (photoFile && checkin) {
         const ext = photoFile.name.split('.').pop() || 'jpg'
-        const path = `${user.id}/${today}/${photoAngle}-${Date.now()}.${ext}`
+        const path = `${user.id}/${today}/front-${Date.now()}.${ext}`
 
         const { error: uploadError } = await supabase.storage
           .from('skin-photos')
@@ -98,13 +82,23 @@ export default function CheckinPage() {
 
         if (uploadError) throw uploadError
 
-        await supabase.from('skin_photos').insert({
+        // Insert photo record and trigger AI analysis
+        const { data: photoRecord } = await supabase.from('skin_photos').insert({
           user_id: user.id,
           checkin_id: checkin.id,
           storage_path: path,
-          photo_angle: photoAngle,
+          photo_angle: 'front',
           user_acknowledged_disclaimer: disclaimerAck,
-        })
+        }).select().single()
+
+        // Trigger AI analysis
+        if (photoRecord) {
+          await fetch('/api/analyze-skin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photoId: photoRecord.id }),
+          })
+        }
       }
 
       setStep('done')
@@ -124,8 +118,9 @@ export default function CheckinPage() {
           <div className="w-16 h-16 rounded-2xl bg-skin-500 flex items-center justify-center mx-auto mb-4 animate-pulse-soft">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <h2 className="font-display text-2xl font-light text-charcoal-900 mb-2">Saving your check-in…</h2>
-          <p className="text-charcoal-500 text-sm font-body">Uploading photo and syncing data</p>
+          <h2 className="font-display text-2xl font-light text-charcoal-900 mb-2">AI is analysing your skin...</h2>
+          <p className="text-charcoal-500 text-sm font-body">請稍候，通常需要 15–30 秒</p>
+          <p className="text-charcoal-400 text-xs font-body mt-1">Please wait, this takes 15–30 seconds</p>
         </div>
       </div>
     )
@@ -148,16 +143,16 @@ export default function CheckinPage() {
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div>
-          <h1 className="font-display text-3xl font-light text-charcoal-900">Today's check-in</h1>
-          <p className="text-charcoal-500 text-sm font-body">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="font-display text-3xl font-light text-charcoal-900">Today's check-in</h1>
+        <p className="text-charcoal-500 text-sm font-body">
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        </p>
       </div>
 
       {/* Step tabs */}
       <div className="flex gap-1 bg-skin-100 rounded-xl p-1 mb-6">
-        {(['photo', 'feelings', 'habits'] as const).map((s, i) => (
+        {(['photo', 'habits'] as const).map((s, i) => (
           <button
             key={s}
             onClick={() => setStep(s)}
@@ -180,8 +175,6 @@ export default function CheckinPage() {
               onClick={() => fileInputRef.current?.click()}
               onDrop={handleDrop}
               onDragOver={e => e.preventDefault()}
-              onDragEnter={e => (e.currentTarget.classList.add('drag-over'))}
-              onDragLeave={e => (e.currentTarget.classList.remove('drag-over'))}
             >
               <div className="w-14 h-14 rounded-2xl bg-skin-100 flex items-center justify-center mx-auto mb-3">
                 <Camera className="w-7 h-7 text-skin-500" />
@@ -199,9 +192,6 @@ export default function CheckinPage() {
               >
                 ✕
               </button>
-              <div className="absolute bottom-3 left-3 bg-charcoal-900/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur font-body">
-                📸 {photoFile?.name}
-              </div>
             </div>
           )}
 
@@ -213,26 +203,6 @@ export default function CheckinPage() {
             className="hidden"
             onChange={handleFileSelect}
           />
-
-          {/* Photo angle selector */}
-          <div>
-            <label className="block text-sm font-medium text-charcoal-700 mb-2">Photo angle</label>
-            <div className="flex gap-2 flex-wrap">
-              {(['front', 'left', 'right', 'forehead', 'chin'] as PhotoAngle[]).map(angle => (
-                <button
-                  key={angle}
-                  onClick={() => setPhotoAngle(angle)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${
-                    photoAngle === angle
-                      ? 'bg-skin-500 text-white border-skin-500'
-                      : 'bg-white text-charcoal-700 border-skin-200 hover:border-skin-300'
-                  }`}
-                >
-                  {angle}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Tips */}
           <div className="bg-cream-50 border border-cream-200 rounded-xl p-4">
@@ -269,60 +239,8 @@ export default function CheckinPage() {
           )}
 
           <button
-            onClick={() => setStep('feelings')}
-            className="w-full bg-skin-500 text-white py-3.5 rounded-xl font-medium hover:bg-skin-600 transition-all active:scale-95"
-          >
-            Continue to feelings →
-          </button>
-        </div>
-      )}
-
-      {/* FEELINGS STEP */}
-      {step === 'feelings' && (
-        <div className="space-y-5 animate-fade-in">
-          {[
-            { label: 'Overall feeling', icon: Heart, value: overallFeeling, setter: setOverallFeeling, color: 'skin' },
-            { label: 'Hydration', icon: Droplets, value: hydration, setter: setHydration, color: 'sage' },
-            { label: 'Oiliness', icon: Zap, value: oiliness, setter: setOiliness, color: 'cream' },
-            { label: 'Redness', icon: Flame, value: redness, setter: setRedness, color: 'skin' },
-          ].map(({ label, icon: Icon, value, setter, color }) => (
-            <div key={label}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4 text-charcoal-500" />
-                  <span className="text-sm font-medium text-charcoal-800">{label}</span>
-                </div>
-                <span className={`font-display text-lg font-medium text-${color}-500`}>{value}</span>
-              </div>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={value}
-                onChange={e => setter(Number(e.target.value))}
-                className="w-full accent-skin-500"
-              />
-              <div className="flex justify-between text-xs text-charcoal-400 mt-1 font-body">
-                <span>Low</span>
-                <span>High</span>
-              </div>
-            </div>
-          ))}
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-charcoal-800">Active breakouts</span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setBreakouts(Math.max(0, breakouts - 1))} className="w-7 h-7 rounded-full border border-skin-200 flex items-center justify-center text-charcoal-600 hover:bg-skin-50">−</button>
-                <span className="font-display text-lg w-6 text-center text-skin-500">{breakouts}</span>
-                <button onClick={() => setBreakouts(breakouts + 1)} className="w-7 h-7 rounded-full border border-skin-200 flex items-center justify-center text-charcoal-600 hover:bg-skin-50">+</button>
-              </div>
-            </div>
-          </div>
-
-          <button
             onClick={() => setStep('habits')}
-            className="w-full bg-skin-500 text-white py-3.5 rounded-xl font-medium hover:bg-skin-600 transition-all"
+            className="w-full bg-skin-500 text-white py-3.5 rounded-xl font-medium hover:bg-skin-600 transition-all active:scale-95"
           >
             Continue to habits →
           </button>
@@ -332,21 +250,26 @@ export default function CheckinPage() {
       {/* HABITS STEP */}
       {step === 'habits' && (
         <div className="space-y-5 animate-fade-in">
-          {[
-            { label: 'Stress level', icon: Cloud, value: stressLevel, setter: setStressLevel },
-          ].map(({ label, icon: Icon, value, setter }) => (
-            <div key={label}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4 text-charcoal-500" />
-                  <span className="text-sm font-medium text-charcoal-800">{label}</span>
-                </div>
-                <span className="font-display text-lg font-medium text-skin-500">{value}</span>
+          {/* Stress */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Cloud className="w-4 h-4 text-charcoal-500" />
+                <span className="text-sm font-medium text-charcoal-800">Stress level</span>
               </div>
-              <input type="range" min={1} max={10} value={value} onChange={e => setter(Number(e.target.value))} className="w-full accent-skin-500" />
+              <span className="font-display text-lg font-medium text-skin-500">{stressLevel}</span>
             </div>
-          ))}
+            <input
+              type="range" min={1} max={10} value={stressLevel}
+              onChange={e => setStressLevel(Number(e.target.value))}
+              className="w-full accent-skin-500"
+            />
+            <div className="flex justify-between text-xs text-charcoal-400 mt-1 font-body">
+              <span>Low</span><span>High</span>
+            </div>
+          </div>
 
+          {/* Sleep */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -355,9 +278,14 @@ export default function CheckinPage() {
               </div>
               <span className="font-display text-lg font-medium text-skin-500">{sleepHours}h</span>
             </div>
-            <input type="range" min={0} max={12} step={0.5} value={sleepHours} onChange={e => setSleepHours(Number(e.target.value))} className="w-full accent-skin-500" />
+            <input
+              type="range" min={0} max={12} step={0.5} value={sleepHours}
+              onChange={e => setSleepHours(Number(e.target.value))}
+              className="w-full accent-skin-500"
+            />
           </div>
 
+          {/* Water */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -366,15 +294,22 @@ export default function CheckinPage() {
               </div>
               <span className="font-display text-lg font-medium text-skin-500">{waterIntake}ml</span>
             </div>
-            <input type="range" min={0} max={4000} step={250} value={waterIntake} onChange={e => setWaterIntake(Number(e.target.value))} className="w-full accent-skin-500" />
+            <input
+              type="range" min={0} max={4000} step={250} value={waterIntake}
+              onChange={e => setWaterIntake(Number(e.target.value))}
+              className="w-full accent-skin-500"
+            />
           </div>
 
+          {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-charcoal-700 mb-2">Notes <span className="text-charcoal-400 font-normal">(optional)</span></label>
+            <label className="block text-sm font-medium text-charcoal-700 mb-2">
+              Notes <span className="text-charcoal-400 font-normal">(optional)</span>
+            </label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Anything notable about today? New product, weather, diet changes…"
+              placeholder="Anything notable today? New product, weather, diet changes…"
               rows={3}
               className="w-full px-4 py-3 bg-white border border-skin-200 rounded-xl text-charcoal-900 placeholder:text-charcoal-400 focus:outline-none focus:border-skin-400 font-body text-sm resize-none"
             />
