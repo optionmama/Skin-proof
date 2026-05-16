@@ -45,6 +45,21 @@ export default function CheckinPage() {
     }
   }, [])
 
+  // Convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        // Remove the data:image/xxx;base64, prefix
+        const base64 = result.split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
   const handleSubmit = async () => {
     setLoading(true)
     setStep('submitting')
@@ -71,7 +86,7 @@ export default function CheckinPage() {
 
       if (checkinError) throw checkinError
 
-      // Upload photo if provided
+      // Upload photo and trigger AI analysis
       if (photoFile && checkin) {
         const ext = photoFile.name.split('.').pop() || 'jpg'
         const path = `${user.id}/${today}/front-${Date.now()}.${ext}`
@@ -82,21 +97,33 @@ export default function CheckinPage() {
 
         if (uploadError) throw uploadError
 
-        // Insert photo record and trigger AI analysis
-        const { data: photoRecord } = await supabase.from('skin_photos').insert({
-          user_id: user.id,
-          checkin_id: checkin.id,
-          storage_path: path,
-          photo_angle: 'front',
-          user_acknowledged_disclaimer: disclaimerAck,
-        }).select().single()
+        // Insert photo record
+        const { data: photoRecord, error: photoInsertError } = await supabase
+          .from('skin_photos')
+          .insert({
+            user_id: user.id,
+            checkin_id: checkin.id,
+            storage_path: path,
+            photo_angle: 'front',
+            user_acknowledged_disclaimer: disclaimerAck,
+          })
+          .select()
+          .single()
 
-        // Trigger AI analysis
-        if (photoRecord) {
+        if (photoInsertError) throw photoInsertError
+
+        // Convert image to base64 for AI analysis
+        if (photoRecord && disclaimerAck) {
+          const image_base64 = await fileToBase64(photoFile)
+
           await fetch('/api/analyze-skin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ photoId: photoRecord.id }),
+            body: JSON.stringify({
+              photo_id: photoRecord.id,
+              image_base64,
+              acknowledged_disclaimer: true,
+            }),
           })
         }
       }
@@ -168,7 +195,6 @@ export default function CheckinPage() {
       {/* PHOTO STEP */}
       {step === 'photo' && (
         <div className="space-y-4 animate-fade-in">
-          {/* Upload area */}
           {!photoPreview ? (
             <div
               className="upload-zone rounded-2xl p-8 text-center cursor-pointer"
