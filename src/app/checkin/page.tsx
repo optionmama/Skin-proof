@@ -98,7 +98,7 @@ export default function CheckinPage() {
           body: JSON.stringify({ photo_id: photoId, image_base64: imageBase64, acknowledged_disclaimer: true }),
         })
       }
-      router.push(`/checkin/result?checkin_id=${checkin.id}`)
+      router.push(`/dashboard/checkin/result?checkin_id=${checkin.id}`)
     } catch (err: any) {
       setError(err.message ?? '提交失敗，請稍後再試')
       setSubmitting(false)
