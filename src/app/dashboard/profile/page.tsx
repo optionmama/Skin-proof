@@ -6,15 +6,12 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   User, Shield, Bell, ChevronRight, LogOut,
-  Edit2, Moon, Sun, ExternalLink, AlertTriangle, CheckCircle2
+  Edit2, Moon, Sun, ExternalLink, AlertTriangle, CheckCircle2, Sparkles
 } from 'lucide-react'
 
 const SKIN_TYPE_LABELS: Record<string, string> = {
-  normal: 'Normal',
-  dry: 'Dry',
-  oily: 'Oily',
-  combination: 'Combination',
-  sensitive: 'Sensitive',
+  normal: 'Normal', dry: 'Dry', oily: 'Oily',
+  combination: 'Combination', sensitive: 'Sensitive',
 }
 
 const FITZPATRICK_LABELS: Record<number, string> = {
@@ -45,6 +42,7 @@ export default function ProfilePage() {
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [skinProfile, setSkinProfile] = useState<SkinProfile | null>(null)
+  const [routineCount, setRoutineCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [signingOut, setSigningOut] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -56,9 +54,10 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
 
-      const [{ data: userData }, { data: skinData }] = await Promise.all([
+      const [{ data: userData }, { data: skinData }, { count }] = await Promise.all([
         supabase.from('users').select('display_name, is_admin').eq('id', user.id).single(),
         supabase.from('skin_profiles').select('skin_type, primary_concerns, known_allergies, fitzpatrick_scale').eq('user_id', user.id).single(),
+        supabase.from('user_products').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
       ])
 
       setUserProfile({
@@ -68,6 +67,7 @@ export default function ProfilePage() {
       })
       setNewName(userData?.display_name || '')
       setSkinProfile(skinData)
+      setRoutineCount(count ?? 0)
       setLoading(false)
     }
     fetchProfile()
@@ -120,11 +120,8 @@ export default function ProfilePage() {
                 className="bg-white/20 border border-white/40 rounded-xl px-3 py-1.5 text-white placeholder:text-white/60 text-center text-sm focus:outline-none focus:bg-white/30"
                 placeholder="Your name"
               />
-              <button
-                onClick={handleSaveName}
-                disabled={savingName}
-                className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl transition-colors"
-              >
+              <button onClick={handleSaveName} disabled={savingName}
+                className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl transition-colors">
                 {savingName ? '…' : 'Save'}
               </button>
             </div>
@@ -148,6 +145,25 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-lg mx-auto px-4 -mt-8 space-y-4 pb-8">
+
+        {/* ── 我的保養品 Routine（新增區塊）── */}
+        <Link
+          href="/routine/setup"
+          className="flex items-center justify-between bg-white border border-skin-100 rounded-2xl px-5 py-4 hover:bg-skin-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+              <Sparkles size={16} className="text-rose-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-charcoal-800">我的保養品 Routine</p>
+              <p className="text-xs text-charcoal-400 mt-0.5">
+                {routineCount > 0 ? `已加入 ${routineCount} 個產品` : '還沒有設定，點此開始'}
+              </p>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-charcoal-300" />
+        </Link>
 
         {/* Skin Profile */}
         <div className="bg-white border border-skin-100 rounded-2xl overflow-hidden">
@@ -205,12 +221,11 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Settings list */}
+        {/* Settings */}
         <div className="bg-white border border-skin-100 rounded-2xl overflow-hidden divide-y divide-skin-50">
           <div className="px-5 py-3">
             <h2 className="text-sm font-semibold text-charcoal-700">Settings</h2>
           </div>
-
           <button className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
             <div className="flex items-center gap-3">
               <Bell size={16} className="text-charcoal-400" />
@@ -218,7 +233,6 @@ export default function ProfilePage() {
             </div>
             <ChevronRight size={16} className="text-charcoal-300" />
           </button>
-
           <button className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
             <div className="flex items-center gap-3">
               <Moon size={16} className="text-charcoal-400" />
@@ -228,7 +242,6 @@ export default function ProfilePage() {
               <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm" />
             </div>
           </button>
-
           <button className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
             <div className="flex items-center gap-3">
               <Shield size={16} className="text-charcoal-400" />
@@ -240,10 +253,8 @@ export default function ProfilePage() {
 
         {/* Admin */}
         {userProfile?.is_admin && (
-          <Link
-            href="/admin"
-            className="flex items-center justify-between bg-skin-600 text-white px-5 py-4 rounded-2xl hover:bg-skin-700 transition-colors"
-          >
+          <Link href="/admin"
+            className="flex items-center justify-between bg-skin-600 text-white px-5 py-4 rounded-2xl hover:bg-skin-700 transition-colors">
             <div className="flex items-center gap-3">
               <Shield size={16} />
               <span className="text-sm font-medium">Admin Dashboard</span>
@@ -252,19 +263,13 @@ export default function ProfilePage() {
           </Link>
         )}
 
-        {/* Legal links */}
+        {/* Legal */}
         <div className="bg-white border border-skin-100 rounded-2xl overflow-hidden divide-y divide-skin-50">
-          <Link
-            href="/privacy"
-            className="flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors"
-          >
+          <Link href="/privacy" className="flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
             <span className="text-sm text-charcoal-700">Privacy Policy</span>
             <ExternalLink size={14} className="text-charcoal-300" />
           </Link>
-          <Link
-            href="/terms"
-            className="flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors"
-          >
+          <Link href="/terms" className="flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
             <span className="text-sm text-charcoal-700">Terms of Service</span>
             <ExternalLink size={14} className="text-charcoal-300" />
           </Link>
@@ -279,18 +284,14 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        {/* App info */}
         <div className="text-center space-y-1 pb-2">
           <p className="text-xs text-charcoal-400">SkinProof v1.0.0</p>
           <p className="text-xs text-charcoal-300">© 2025 SkinProof. All rights reserved.</p>
         </div>
 
         {/* Sign out */}
-        <button
-          onClick={handleSignOut}
-          disabled={signingOut}
-          className="w-full py-3.5 border border-red-200 text-red-500 hover:bg-red-50 font-medium text-sm rounded-2xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-        >
+        <button onClick={handleSignOut} disabled={signingOut}
+          className="w-full py-3.5 border border-red-200 text-red-500 hover:bg-red-50 font-medium text-sm rounded-2xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
           <LogOut size={16} />
           {signingOut ? 'Signing out…' : 'Sign Out'}
         </button>
