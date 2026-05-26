@@ -1,10 +1,9 @@
-// app/routine/setup/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, Trash2, GripVertical, ChevronRight, Loader2, CheckCircle2, Sparkles } from 'lucide-react'
+import { Plus, Trash2, GripVertical, ChevronRight, Loader2, CheckCircle2, Sparkles, Copy } from 'lucide-react'
 
 type Category =
   | 'cleanser' | 'toner' | 'serum' | 'moisturizer'
@@ -29,6 +28,7 @@ interface ProductDraft {
   name: string
   category: Category | ''
   routineType: 'am' | 'pm' | 'both'
+  copiedFromAm?: boolean // 標記是從 AM 複製過來的
 }
 
 export default function RoutineSetupPage() {
@@ -51,6 +51,23 @@ export default function RoutineSetupPage() {
       if (data.user) setUserId(data.user.id)
     })
   }, [])
+
+  // ── 與早上相同：把 AM 產品全部複製到 PM ──
+  const copyAmToPm = () => {
+    if (amProducts.length === 0) return
+    const copied: ProductDraft[] = amProducts.map(p => ({
+      ...p,
+      id: `tmp-copy-${Date.now()}-${p.id}`,
+      routineType: 'pm',
+      copiedFromAm: true,
+    }))
+    // 只加入 PM 裡還沒有的（用 brand+name 判斷）
+    setPmProducts(prev => {
+      const existing = new Set(prev.map(p => `${p.brand}|${p.name}`))
+      const toAdd = copied.filter(p => !existing.has(`${p.brand}|${p.name}`))
+      return [...prev, ...toAdd]
+    })
+  }
 
   const handleAddProduct = () => {
     if (!draft.brand.trim() || !draft.name.trim()) return
@@ -93,27 +110,18 @@ export default function RoutineSetupPage() {
       for (const p of allProducts) {
         const { data: inserted, error } = await supabase
           .from('user_products')
-          .insert({
-            user_id: userId,
-            brand: p.brand,
-            name: p.name,
-            category: p.category || null,
-            is_active: true,
-          })
-          .select('id')
-          .single()
+          .insert({ user_id: userId, brand: p.brand, name: p.name, category: p.category || null, is_active: true })
+          .select('id').single()
         if (error || !inserted) continue
         await supabase.from('user_routines').upsert({
           user_id: userId,
           product_id: inserted.id,
           routine_type: p.routineType,
-          step_order: (p.routineType === 'am' ? amProducts : pmProducts)
-            .findIndex(x => x.id === p.id),
+          step_order: (p.routineType === 'am' ? amProducts : pmProducts).findIndex(x => x.id === p.id),
           is_active: true,
         }, { onConflict: 'user_id,product_id,routine_type' })
       }
-      await supabase
-        .from('skin_profiles')
+      await supabase.from('skin_profiles')
         .update({ routine_setup_completed_at: new Date().toISOString() })
         .eq('user_id', userId)
       setSaved(true)
@@ -130,6 +138,7 @@ export default function RoutineSetupPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col">
+      {/* Header */}
       <div className="bg-white border-b border-stone-100 px-4 py-5 text-center">
         <div className="flex items-center justify-center gap-2 mb-1">
           <Sparkles className="w-4 h-4 text-rose-400" />
@@ -139,6 +148,7 @@ export default function RoutineSetupPage() {
         <p className="text-sm text-stone-500 mt-1">加入你每天早晚使用的保養品，之後 check-in 只需快速勾選</p>
       </div>
 
+      {/* Tab Selector */}
       <div className="flex mx-4 mt-4 bg-stone-100 rounded-xl p-1 gap-1">
         {(['am', 'pm'] as const).map(tab => (
           <button
@@ -159,12 +169,36 @@ export default function RoutineSetupPage() {
         ))}
       </div>
 
+      {/* 「與早上相同」提示區塊（只在 PM tab 且 AM 有產品時顯示） */}
+      {activeTab === 'pm' && amProducts.length > 0 && (
+        <div className="mx-4 mt-3">
+          <button
+            onClick={copyAmToPm}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-left transition-all hover:bg-amber-100 active:scale-[0.98]"
+          >
+            <Copy className="w-4 h-4 text-amber-500 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-700">與早上相同</p>
+              <p className="text-xs text-amber-500 mt-0.5">
+                複製早上 {amProducts.length} 個產品，再自行新增晚上專用的
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-amber-400 flex-shrink-0" />
+          </button>
+        </div>
+      )}
+
+      {/* Product List */}
       <div className="flex-1 px-4 mt-4 space-y-2">
         {currentList.length === 0 && !showAddForm && (
           <div className="text-center py-12 text-stone-400">
-            <div className="text-4xl mb-3">🧴</div>
+            <div className="text-4xl mb-3">{activeTab === 'am' ? '☀️' : '🌙'}</div>
             <p className="text-sm">還沒有加入任何產品</p>
-            <p className="text-xs mt-1">點下方「新增產品」開始設定</p>
+            <p className="text-xs mt-1">
+              {activeTab === 'pm' && amProducts.length > 0
+                ? '點上方「與早上相同」快速複製，或手動新增'
+                : '點下方「新增產品」開始設定'}
+            </p>
           </div>
         )}
 
@@ -181,9 +215,14 @@ export default function RoutineSetupPage() {
           >
             <GripVertical className="w-4 h-4 text-stone-300 cursor-grab flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-1.5">
+              <div className="flex items-center gap-1.5">
                 <span className="text-xs text-stone-400">{product.brand}</span>
                 <span className="text-sm font-medium text-stone-800 truncate">{product.name}</span>
+                {product.copiedFromAm && (
+                  <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                    早上
+                  </span>
+                )}
               </div>
               {product.category && (
                 <span className="text-xs text-stone-400 mt-0.5 block">
@@ -201,9 +240,12 @@ export default function RoutineSetupPage() {
           </div>
         ))}
 
+        {/* Add Form */}
         {showAddForm && (
           <div className="bg-white rounded-xl p-4 border border-rose-200 space-y-3">
-            <p className="text-sm font-medium text-stone-700">新增產品</p>
+            <p className="text-sm font-medium text-stone-700">
+              新增{activeTab === 'am' ? '早上' : '晚上'}產品
+            </p>
             <div className="space-y-2">
               <input
                 type="text"
@@ -255,11 +297,12 @@ export default function RoutineSetupPage() {
             className="w-full py-3 border-2 border-dashed border-stone-200 rounded-xl text-sm text-stone-400 flex items-center justify-center gap-2 hover:border-rose-300 hover:text-rose-400 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            新增產品
+            新增{activeTab === 'pm' ? '晚上專用' : ''}產品
           </button>
         )}
       </div>
 
+      {/* Footer CTA */}
       <div className="px-4 py-6 space-y-3">
         {saved ? (
           <div className="flex items-center justify-center gap-2 py-4 text-emerald-500">
