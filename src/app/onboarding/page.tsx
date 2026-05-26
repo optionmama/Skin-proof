@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react'
 import { SKIN_CONCERNS, skinConcernLabel } from '@/lib/utils'
+import { redirectAfterOnboarding } from '@/lib/onboarding-complete'
 import type { SkinType } from '@/types/database'
 
 type Step = 'welcome' | 'skin_type' | 'concerns' | 'allergies' | 'fitzpatrick' | 'disclaimer' | 'done'
@@ -35,7 +36,6 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Form state
   const [skinType, setSkinType] = useState<SkinType | ''>('')
   const [concerns, setConcerns] = useState<string[]>([])
   const [allergies, setAllergies] = useState('')
@@ -62,7 +62,6 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      // Save skin profile
       await supabase.from('skin_profiles').upsert({
         user_id: user.id,
         skin_type: skinType || undefined,
@@ -74,10 +73,9 @@ export default function OnboardingPage() {
         onboarding_completed_at: new Date().toISOString(),
       })
 
-      // Mark onboarding complete
       await supabase.from('users').update({ onboarding_completed: true }).eq('id', user.id)
 
-      router.push('/dashboard')
+      await redirectAfterOnboarding(router)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -87,7 +85,6 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-skin-50 flex flex-col">
-      {/* Progress */}
       <div className="fixed top-0 inset-x-0 z-50 bg-skin-50/80 backdrop-blur-md px-6 pt-4 pb-3">
         <div className="flex items-center gap-3 max-w-lg mx-auto">
           <div className="flex items-center gap-2 shrink-0">
@@ -106,7 +103,6 @@ export default function OnboardingPage() {
 
       <div className="flex-1 flex flex-col max-w-lg mx-auto w-full px-6 pt-20 pb-8">
 
-        {/* WELCOME */}
         {step === 'welcome' && (
           <div className="flex-1 flex flex-col justify-center animate-fade-up">
             <div className="w-16 h-16 rounded-2xl bg-skin-500 flex items-center justify-center mb-6">
@@ -127,7 +123,6 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* SKIN TYPE */}
         {step === 'skin_type' && (
           <div className="flex-1 animate-fade-up">
             <h2 className="font-display text-3xl font-light text-charcoal-900 mb-2">What's your skin type?</h2>
@@ -148,16 +143,13 @@ export default function OnboardingPage() {
                     <p className="font-medium text-charcoal-900">{label}</p>
                     <p className="text-xs text-charcoal-500 font-body">{desc}</p>
                   </div>
-                  {skinType === value && (
-                    <Check className="w-5 h-5 text-skin-500 shrink-0" />
-                  )}
+                  {skinType === value && <Check className="w-5 h-5 text-skin-500 shrink-0" />}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* CONCERNS */}
         {step === 'concerns' && (
           <div className="flex-1 animate-fade-up">
             <h2 className="font-display text-3xl font-light text-charcoal-900 mb-2">What are your main concerns?</h2>
@@ -185,7 +177,6 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ALLERGIES */}
         {step === 'allergies' && (
           <div className="flex-1 animate-fade-up">
             <h2 className="font-display text-3xl font-light text-charcoal-900 mb-2">Known allergies &amp; sensitivities</h2>
@@ -197,35 +188,23 @@ export default function OnboardingPage() {
                 <label className="block text-sm font-medium text-charcoal-700 mb-2">
                   Known allergies <span className="text-charcoal-400 font-normal">(optional)</span>
                 </label>
-                <input
-                  type="text"
-                  value={allergies}
-                  onChange={e => setAllergies(e.target.value)}
+                <input type="text" value={allergies} onChange={e => setAllergies(e.target.value)}
                   placeholder="e.g. fragrance, lanolin, latex"
-                  className="w-full px-4 py-3 bg-white border border-skin-200 rounded-xl text-charcoal-900 placeholder:text-charcoal-400 focus:outline-none focus:border-skin-400 font-body text-sm"
-                />
+                  className="w-full px-4 py-3 bg-white border border-skin-200 rounded-xl text-charcoal-900 placeholder:text-charcoal-400 focus:outline-none focus:border-skin-400 font-body text-sm" />
                 <p className="text-xs text-charcoal-400 mt-1">Separate with commas</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-charcoal-700 mb-2">
                   Sensitivities <span className="text-charcoal-400 font-normal">(optional)</span>
                 </label>
-                <input
-                  type="text"
-                  value={sensitivities}
-                  onChange={e => setSensitivities(e.target.value)}
+                <input type="text" value={sensitivities} onChange={e => setSensitivities(e.target.value)}
                   placeholder="e.g. retinol, AHA, essential oils"
-                  className="w-full px-4 py-3 bg-white border border-skin-200 rounded-xl text-charcoal-900 placeholder:text-charcoal-400 focus:outline-none focus:border-skin-400 font-body text-sm"
-                />
+                  className="w-full px-4 py-3 bg-white border border-skin-200 rounded-xl text-charcoal-900 placeholder:text-charcoal-400 focus:outline-none focus:border-skin-400 font-body text-sm" />
               </div>
               <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-skin-100">
-                <input
-                  type="checkbox"
-                  id="derm"
-                  checked={dermatologist}
+                <input type="checkbox" id="derm" checked={dermatologist}
                   onChange={e => setDermatologist(e.target.checked)}
-                  className="w-4 h-4 rounded accent-skin-500"
-                />
+                  className="w-4 h-4 rounded accent-skin-500" />
                 <label htmlFor="derm" className="text-sm text-charcoal-700 font-body">
                   I'm currently under dermatologist care
                 </label>
@@ -234,25 +213,18 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* FITZPATRICK */}
         {step === 'fitzpatrick' && (
           <div className="flex-1 animate-fade-up">
             <h2 className="font-display text-3xl font-light text-charcoal-900 mb-2">Fitzpatrick skin tone</h2>
             <p className="text-charcoal-500 text-sm mb-1 font-body">
               This helps calibrate AI analysis accuracy for your skin tone.
             </p>
-            <p className="text-xs text-charcoal-400 mb-6 font-body">
-              Optional — skip if unsure
-            </p>
+            <p className="text-xs text-charcoal-400 mb-6 font-body">Optional — skip if unsure</p>
             <div className="grid grid-cols-2 gap-2">
               {FITZPATRICK.map(({ scale, label, desc, color }) => (
-                <button
-                  key={scale}
-                  onClick={() => setFitzpatrick(scale === fitzpatrick ? 0 : scale)}
+                <button key={scale} onClick={() => setFitzpatrick(scale === fitzpatrick ? 0 : scale)}
                   className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                    fitzpatrick === scale
-                      ? 'border-skin-400 bg-skin-50'
-                      : 'border-skin-100 bg-white hover:border-skin-200'
+                    fitzpatrick === scale ? 'border-skin-400 bg-skin-50' : 'border-skin-100 bg-white hover:border-skin-200'
                   }`}
                 >
                   <div className="w-8 h-8 rounded-full shrink-0 border-2 border-white shadow-sm" style={{ backgroundColor: color }} />
@@ -266,12 +238,9 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* DISCLAIMER */}
         {step === 'disclaimer' && (
           <div className="flex-1 animate-fade-up">
-            <h2 className="font-display text-3xl font-light text-charcoal-900 mb-4">
-              Before we continue
-            </h2>
+            <h2 className="font-display text-3xl font-light text-charcoal-900 mb-4">Before we continue</h2>
             <div className="bg-white rounded-2xl border border-skin-200 p-5 mb-4 space-y-3">
               {[
                 'SkinProof is a personal skin tracking tool, not a medical device.',
@@ -290,49 +259,34 @@ export default function OnboardingPage() {
               ))}
             </div>
             <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={disclaimerAck}
-                onChange={e => setDisclaimerAck(e.target.checked)}
-                className="w-4 h-4 rounded accent-skin-500 mt-0.5"
-              />
+              <input type="checkbox" checked={disclaimerAck} onChange={e => setDisclaimerAck(e.target.checked)}
+                className="w-4 h-4 rounded accent-skin-500 mt-0.5" />
               <span className="text-sm text-charcoal-700 font-body leading-relaxed">
                 I understand and acknowledge that SkinProof is not a medical tool.
                 I will consult a healthcare professional for any medical skin concerns.
               </span>
             </label>
-            {error && (
-              <p className="text-red-600 text-sm mt-3 font-body">{error}</p>
-            )}
+            {error && <p className="text-red-600 text-sm mt-3 font-body">{error}</p>}
           </div>
         )}
 
-        {/* Navigation */}
         <div className="flex gap-3 mt-6">
           {stepIndex > 0 && step !== 'done' && (
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl border border-skin-200 text-charcoal-700 font-medium hover:bg-skin-50 transition-colors"
-            >
+            <button onClick={handleBack}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl border border-skin-200 text-charcoal-700 font-medium hover:bg-skin-50 transition-colors">
               <ChevronLeft className="w-4 h-4" />
               Back
             </button>
           )}
-
           {step === 'disclaimer' ? (
-            <button
-              onClick={handleComplete}
-              disabled={loading || !disclaimerAck}
-              className="flex-1 flex items-center justify-center gap-2 bg-skin-500 text-white py-3 rounded-xl font-medium hover:bg-skin-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            <button onClick={handleComplete} disabled={loading || !disclaimerAck}
+              className="flex-1 flex items-center justify-center gap-2 bg-skin-500 text-white py-3 rounded-xl font-medium hover:bg-skin-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               Complete setup
             </button>
           ) : step !== 'done' && (
-            <button
-              onClick={handleNext}
-              className="flex-1 flex items-center justify-center gap-2 bg-skin-500 text-white py-3 rounded-xl font-medium hover:bg-skin-600 transition-all"
-            >
+            <button onClick={handleNext}
+              className="flex-1 flex items-center justify-center gap-2 bg-skin-500 text-white py-3 rounded-xl font-medium hover:bg-skin-600 transition-all">
               {step === 'welcome' ? "Let's go" : 'Continue'}
               <ChevronRight className="w-4 h-4" />
             </button>
