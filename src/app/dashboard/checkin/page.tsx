@@ -44,7 +44,7 @@ export default function CheckinPage() {
       if (!uploadError) {
         const { data: photo } = await supabase
           .from('skin_photos')
-          .insert({ user_id: user.id, storage_path: path, photo_date: new Date().toISOString() })
+          .insert({ user_id: user.id, storage_path: path })
           .select('id').single()
         if (photo) setPhotoId(photo.id)
       }
@@ -67,15 +67,15 @@ export default function CheckinPage() {
         .from('skin_checkins')
         .insert({
           user_id: user.id,
-          photo_id: photoId,
+          photo_id: photoId,           // 剛加的欄位（migration 已補上）
           sleep_hours: habits.sleep_hours,
           water_intake_ml: habits.water_intake_ml,
           stress_level: habits.stress_level,
           notes: habits.notes,
-          checked_in_at: new Date().toISOString(),
+          checked_in_at: new Date().toISOString(),  // 剛加的欄位
         })
         .select('id').single()
-      if (checkinError || !checkin) throw checkinError
+      if (checkinError || !checkin) throw new Error(checkinError?.message ?? '建立 check-in 失敗')
       if (finalProducts.length > 0) {
         await supabase.from('checkin_products').insert(
           finalProducts.map(p => ({
@@ -92,13 +92,14 @@ export default function CheckinPage() {
         )
       }
       if (photoId && imageBase64) {
-        fetch('/api/analyze-skin', {
+        // 等待 AI 分析完成再跳頁，讓使用者看到結果
+        await fetch('/api/analyze-skin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ photo_id: photoId, image_base64: imageBase64, acknowledged_disclaimer: true }),
         })
       }
-      router.push(`/dashboard/checkin/result?checkin_id=${checkin.id}`)
+      router.push('/dashboard/scan')
     } catch (err: any) {
       setError(err.message ?? '提交失敗，請稍後再試')
       setSubmitting(false)
@@ -152,8 +153,8 @@ export default function CheckinPage() {
       {submitting && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-50">
           <Loader2 className="w-8 h-8 animate-spin text-rose-400" />
-          <p className="text-stone-600 font-medium">正在分析中...</p>
-          <p className="text-stone-400 text-sm">AI 正在分析你的膚況</p>
+          <p className="text-stone-600 font-medium">AI 正在分析你的膚況</p>
+          <p className="text-stone-400 text-sm">大約需要 10–20 秒，請稍候...</p>
         </div>
       )}
       {error && (

@@ -44,16 +44,20 @@ export default function RoutineSetupPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       setUserId(user.id)
-      const { data } = await supabase
+
+      // 1. 先嘗試載入已設定的 routine
+      const { data: routineData } = await supabase
         .from('user_routines')
         .select('id, product_id, routine_type, step_order, user_products(id, brand, name, category)')
         .eq('user_id', user.id)
         .eq('is_active', true)
         .order('routine_type').order('step_order')
-      if (data && data.length > 0) {
+
+      if (routineData && routineData.length > 0) {
+        // 有 routine：載入已儲存的 AM / PM 產品
         const am: ProductDraft[] = []
         const pm: ProductDraft[] = []
-        data.forEach((r: any) => {
+        routineData.forEach((r: any) => {
           const p: ProductDraft = {
             id: `existing-${r.id}`,
             dbId: r.product_id,
@@ -63,12 +67,51 @@ export default function RoutineSetupPage() {
             routineType: r.routine_type,
             isExisting: true,
           }
-          if (r.routine_type === 'am') am.push(p)
-          else pm.push(p)
+          if (r.routine_type === 'am' || r.routine_type === 'both') am.push(p)
+          if (r.routine_type === 'pm' || r.routine_type === 'both') pm.push({ ...p, id: `existing-pm-${r.id}` })
         })
         setAmProducts(am)
         setPmProducts(pm)
+      } else {
+        // 2. 沒有 routine：從產品日記（user_product_logs）自動建議
+        const { data: diaryData } = await supabase
+          .from('user_product_logs')
+          .select('id, products(name, brand, category)')
+          .eq('user_id', user.id)
+          .eq('is_current', true)
+          .order('created_at', { ascending: false })
+          .limit(30)
+
+        if (diaryData && diaryData.length > 0) {
+          // category 對照表（日記的 category 可能與 routine 的不完全一樣）
+          const categoryMap: Record<string, Category | ''> = {
+            cleanser: 'cleanser', toner: 'toner', serum: 'serum',
+            moisturizer: 'moisturizer', eye_cream: 'eye_cream', sunscreen: 'sunscreen',
+            treatment: 'treatment', mask: 'treatment', exfoliant: 'treatment',
+            oil: 'serum', mist: 'toner', balm: 'moisturizer', spf_makeup: 'sunscreen', other: 'other',
+          }
+          const suggestions: ProductDraft[] = diaryData
+            .filter((log: any) => log.products?.name)
+            .map((log: any) => ({
+              id: `diary-${log.id}`,
+              brand: log.products?.brand ?? '',
+              name: log.products?.name ?? '',
+              category: categoryMap[log.products?.category ?? ''] ?? '',
+              routineType: 'both' as const,
+              isExisting: false,
+            }))
+          // 去重（同品牌+名稱只留一筆）
+          const seen = new Set<string>()
+          const unique = suggestions.filter(p => {
+            const key = `${p.brand}|${p.name}`
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+          })
+          setAmProducts(unique)
+        }
       }
+
       setLoading(false)
     }
     load()

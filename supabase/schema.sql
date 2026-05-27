@@ -259,6 +259,74 @@ CREATE TABLE public.recommendations (
 );
 
 -- =============================================
+-- USER PRODUCTS (personal product list for routines)
+-- =============================================
+CREATE TABLE public.user_products (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  brand TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL,
+  category TEXT CHECK (category IN (
+    'cleanser','toner','serum','moisturizer','eye_cream',
+    'sunscreen','treatment','other'
+  )),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.user_products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "user_products_own" ON public.user_products FOR ALL USING (auth.uid() = user_id);
+CREATE INDEX idx_user_products_user ON public.user_products(user_id, is_active);
+
+-- =============================================
+-- USER ROUTINES (AM / PM product order)
+-- =============================================
+CREATE TABLE public.user_routines (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES public.user_products(id) ON DELETE CASCADE,
+  routine_type TEXT NOT NULL CHECK (routine_type IN ('am','pm','both')),
+  step_order INT NOT NULL DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, product_id, routine_type)
+);
+
+ALTER TABLE public.user_routines ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "user_routines_own" ON public.user_routines FOR ALL USING (auth.uid() = user_id);
+CREATE INDEX idx_user_routines_user ON public.user_routines(user_id, is_active);
+
+-- Also add skin_profiles column for routine setup tracking
+ALTER TABLE public.skin_profiles
+  ADD COLUMN IF NOT EXISTS routine_setup_completed_at TIMESTAMPTZ;
+
+-- =============================================
+-- CHECKIN PRODUCTS (products used during check-in)
+-- =============================================
+CREATE TABLE public.checkin_products (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  checkin_id UUID NOT NULL REFERENCES public.skin_checkins(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_product_id UUID REFERENCES public.user_products(id) ON DELETE SET NULL,
+  brand TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL,
+  category TEXT,
+  is_temporary BOOLEAN DEFAULT FALSE,
+  used_am BOOLEAN DEFAULT FALSE,
+  used_pm BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.checkin_products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "checkin_products_own" ON public.checkin_products FOR ALL USING (auth.uid() = user_id);
+
+-- Also add missing columns to skin_checkins
+ALTER TABLE public.skin_checkins
+  ADD COLUMN IF NOT EXISTS photo_id UUID REFERENCES public.skin_photos(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ DEFAULT NOW();
+
+-- =============================================
 -- INDEXES
 -- =============================================
 CREATE INDEX idx_skin_checkins_user_date ON public.skin_checkins(user_id, checkin_date DESC);

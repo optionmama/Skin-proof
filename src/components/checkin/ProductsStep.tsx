@@ -67,15 +67,31 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
         .order('routine_type')
         .order('step_order')
       if (!error && data && data.length > 0) {
-        const items: RoutineItem[] = data.map((r: any) => ({
-          routine_id: r.id,
-          product_id: r.product_id,
-          brand: r.user_products?.brand ?? '',
-          name: r.user_products?.name ?? '',
-          category: r.user_products?.category ?? null,
-          routine_type: r.routine_type as 'am' | 'pm' | 'both',
-          step_order: r.step_order,
-        }))
+        // 以 brand+name 去重，避免同名產品重複出現；合併 AM/PM 成 'both'
+        const seen = new Map<string, RoutineItem>()
+        data.forEach((r: any) => {
+          const brand = r.user_products?.brand ?? ''
+          const name  = r.user_products?.name  ?? ''
+          const key   = `${brand}|${name}`
+          const rType = r.routine_type as 'am' | 'pm' | 'both'
+          if (seen.has(key)) {
+            const existing = seen.get(key)!
+            if (existing.routine_type !== rType && existing.routine_type !== 'both') {
+              existing.routine_type = 'both'
+            }
+          } else {
+            seen.set(key, {
+              routine_id: r.id,
+              product_id: r.product_id,
+              brand,
+              name,
+              category: r.user_products?.category ?? null,
+              routine_type: rType,
+              step_order: r.step_order,
+            })
+          }
+        })
+        const items: RoutineItem[] = Array.from(seen.values())
         setRoutine(items)
         setHasRoutine(true)
         const initialChecked: Record<string, { am: boolean; pm: boolean }> = {}
@@ -204,22 +220,18 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {(item.routine_type === 'am' || item.routine_type === 'both') && (
-                      <button onClick={() => toggle(item.product_id, 'am')}
-                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${
-                          isAmChecked ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-400'
-                        }`}>
-                        <Sun className="w-3 h-3" /> AM
-                      </button>
-                    )}
-                    {(item.routine_type === 'pm' || item.routine_type === 'both') && (
-                      <button onClick={() => toggle(item.product_id, 'pm')}
-                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${
-                          isPmChecked ? 'bg-indigo-100 text-indigo-700' : 'bg-stone-100 text-stone-400'
-                        }`}>
-                        <Moon className="w-3 h-3" /> PM
-                      </button>
-                    )}
+                    <button onClick={() => toggle(item.product_id, 'am')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${
+                        isAmChecked ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-400'
+                      }`}>
+                      <Sun className="w-3 h-3" /> AM
+                    </button>
+                    <button onClick={() => toggle(item.product_id, 'pm')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${
+                        isPmChecked ? 'bg-indigo-100 text-indigo-700' : 'bg-stone-100 text-stone-400'
+                      }`}>
+                      <Moon className="w-3 h-3" /> PM
+                    </button>
                   </div>
                 </div>
               </div>
