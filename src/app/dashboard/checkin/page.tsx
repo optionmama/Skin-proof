@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Camera, Droplets, Moon, Zap, CheckCircle2, Loader2 } from 'lucide-react'
@@ -54,26 +55,32 @@ export default function CheckinPage() {
   }
 
   const handleProductsComplete = (selectedProducts: CheckinProduct[]) => {
+    // flushSync 強制在進入 async 工作前先同步渲染 loading 畫面
+    flushSync(() => {
+      setSubmitting(true)
+      setError(null)
+    })
     handleSubmit(selectedProducts)
   }
 
   const handleSubmit = async (finalProducts: CheckinProduct[]) => {
-    setSubmitting(true)
-    setError(null)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      if (!user) throw new Error('尚未登入，請重新整理頁面')
+      const today = new Date().toISOString().split('T')[0]
+      // upsert 避免同一天重複 check-in 時 UNIQUE 衝突
       const { data: checkin, error: checkinError } = await supabase
         .from('skin_checkins')
-        .insert({
+        .upsert({
           user_id: user.id,
-          photo_id: photoId,           // 剛加的欄位（migration 已補上）
+          checkin_date: today,
+          photo_id: photoId,
           sleep_hours: habits.sleep_hours,
           water_intake_ml: habits.water_intake_ml,
           stress_level: habits.stress_level,
           notes: habits.notes,
-          checked_in_at: new Date().toISOString(),  // 剛加的欄位
-        })
+          checked_in_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,checkin_date' })
         .select('id').single()
       if (checkinError || !checkin) throw new Error(checkinError?.message ?? '建立 check-in 失敗')
       if (finalProducts.length > 0) {
@@ -158,8 +165,9 @@ export default function CheckinPage() {
         </div>
       )}
       {error && (
-        <div className="fixed bottom-4 left-4 right-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
-          {error}
+        <div className="fixed bottom-4 left-4 right-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-start gap-2 z-50">
+          <span className="flex-1">❌ {error}</span>
+          <button onClick={() => setError(null)} className="text-red-400 font-bold shrink-0">✕</button>
         </div>
       )}
     </div>
