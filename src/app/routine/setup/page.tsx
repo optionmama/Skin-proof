@@ -37,82 +37,68 @@ export default function RoutineSetupPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
-      setUserId(user.id)
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) { setLoading(false); return }
+        setUserId(user.id)
 
-      // 1. 先嘗試載入已設定的 routine
-      const { data: routineData } = await supabase
-        .from('user_routines')
-        .select('id, product_id, routine_type, step_order, user_products(id, brand, name, category)')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('routine_type').order('step_order')
-
-      if (routineData && routineData.length > 0) {
-        // 有 routine：載入已儲存的 AM / PM 產品
-        const am: ProductDraft[] = []
-        const pm: ProductDraft[] = []
-        routineData.forEach((r: any) => {
-          const p: ProductDraft = {
-            id: `existing-${r.id}`,
-            dbId: r.product_id,
-            brand: r.user_products?.brand ?? '',
-            name: r.user_products?.name ?? '',
-            category: r.user_products?.category ?? '',
-            routineType: r.routine_type,
-            isExisting: true,
-          }
-          if (r.routine_type === 'am' || r.routine_type === 'both') am.push(p)
-          if (r.routine_type === 'pm' || r.routine_type === 'both') pm.push({ ...p, id: `existing-pm-${r.id}` })
-        })
-        setAmProducts(am)
-        setPmProducts(pm)
-      } else {
-        // 2. 沒有 routine：從產品日記（user_product_logs）自動建議
-        const { data: diaryData } = await supabase
-          .from('user_product_logs')
-          .select('id, products(name, brand, category)')
+        // Step 1：獨立查詢 user_routines（不使用 embedded join，避免 RLS 靜默失敗）
+        const { data: routines, error: routineErr } = await supabase
+          .from('user_routines')
+          .select('id, product_id, routine_type, step_order')
           .eq('user_id', user.id)
-          .eq('is_current', true)
-          .order('created_at', { ascending: false })
-          .limit(30)
+          .eq('is_active', true)
+          .order('routine_type')
+          .order('step_order')
 
-        if (diaryData && diaryData.length > 0) {
-          // category 對照表（日記的 category 可能與 routine 的不完全一樣）
-          const categoryMap: Record<string, Category | ''> = {
-            cleanser: 'cleanser', toner: 'toner', serum: 'serum',
-            moisturizer: 'moisturizer', eye_cream: 'eye_cream', sunscreen: 'sunscreen',
-            treatment: 'treatment', mask: 'treatment', exfoliant: 'treatment',
-            oil: 'serum', mist: 'toner', balm: 'moisturizer', spf_makeup: 'sunscreen', other: 'other',
-          }
-          const suggestions: ProductDraft[] = diaryData
-            .filter((log: any) => log.products?.name)
-            .map((log: any) => ({
-              id: `diary-${log.id}`,
-              brand: log.products?.brand ?? '',
-              name: log.products?.name ?? '',
-              category: categoryMap[log.products?.category ?? ''] ?? '',
-              routineType: 'both' as const,
-              isExisting: false,
-            }))
-          // 去重（同品牌+名稱只留一筆）
-          const seen = new Set<string>()
-          const unique = suggestions.filter(p => {
-            const key = `${p.brand}|${p.name}`
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
+        if (routineErr) throw new Error(`載入 routine 失敗：${routineErr.message}`)
+
+        if (routines && routines.length > 0) {
+          // Step 2：用 product_id 清單查詢 user_products
+          const productIds = [...new Set(routines.map((r: any) => r.product_id))]
+          const { data: products, error: productErr } = await supabase
+            .from('user_products')
+            .select('id, brand, name, category')
+            .in('id', productIds)
+
+          if (productErr) throw new Error(`載入產品資料失敗：${productErr.message}`)
+
+          // 建立 id → product 對照表
+          const productMap = new Map<string, any>((products ?? []).map((p: any) => [p.id, p]))
+
+          const am: ProductDraft[] = []
+          const pm: ProductDraft[] = []
+
+          routines.forEach((r: any) => {
+            const prod = productMap.get(r.product_id)
+            if (!prod) return
+            const base: ProductDraft = {
+              id: `existing-${r.id}`,
+              dbId: r.product_id,
+              brand: prod.brand ?? '',
+              name: prod.name ?? '',
+              category: (prod.category ?? '') as Category | '',
+              routineType: r.routine_type,
+              isExisting: true,
+            }
+            if (r.routine_type === 'am' || r.routine_type === 'both') am.push(base)
+            if (r.routine_type === 'pm' || r.routine_type === 'both') pm.push({ ...base, id: `existing-pm-${r.id}` })
           })
-          setAmProducts(unique)
-        }
-      }
 
-      setLoading(false)
+          setAmProducts(am)
+          setPmProducts(pm)
+        }
+        // （沒有 routine 時頁面保持空白，讓使用者從頭設定）
+      } catch (err: any) {
+        setLoadError(err.message ?? '載入失敗')
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
@@ -200,7 +186,21 @@ export default function RoutineSetupPage() {
     return (
       <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center gap-3">
         <Loader2 className="w-5 h-5 animate-spin text-rose-300" />
-        <span className="text-sm text-stone-400">載入中...</span>
+        <span className="text-sm text-stone-400">載入你的保養品...</span>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center gap-4 px-6">
+        <div className="text-3xl">😵</div>
+        <p className="text-sm font-medium text-stone-700 text-center">載入失敗</p>
+        <p className="text-xs text-red-400 text-center">{loadError}</p>
+        <button onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-rose-400 text-white rounded-xl text-sm font-medium">
+          重新載入
+        </button>
       </div>
     )
   }
