@@ -112,12 +112,6 @@ export default function ProgressPage() {
         <p className="text-charcoal-500 text-sm font-body">{checkins.length} check-ins tracked</p>
       </div>
 
-      {/* Disclaimer */}
-      <div className="disclaimer-box mb-5">
-        <p className="font-semibold text-charcoal-700 mb-0.5">⚠️ Tracking tool only</p>
-        <p>Scores reflect personal tracking, not medical assessment. Consult a dermatologist for concerns.</p>
-      </div>
-
       {/* Period selector */}
       <div className="flex gap-1 bg-skin-100 rounded-xl p-1 mb-5">
         {(['14d', '30d', '90d'] as Period[]).map(p => (

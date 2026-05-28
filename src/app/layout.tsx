@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: 'SkinProof — AI Skin Tracker',
     template: '%s | SkinProof',
   },
-  description: 'Track your skin health, log products, and get AI-powered insights. Not a medical diagnosis.',
+  description: 'Track your skin daily, log products, and discover what actually works for your skin. Track. Discover. Glow.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

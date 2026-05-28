@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Camera, TrendingUp, BookOpen, Sparkles, ChevronRight, Plus } from 'lucide-react'
-import { formatDate, SHORT_DISCLAIMER } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -162,11 +162,6 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Disclaimer */}
-      <div className="disclaimer-box">
-        <p className="font-semibold text-charcoal-700 mb-0.5">⚠️ {SHORT_DISCLAIMER}</p>
-        <p>AI skin scores are for personal tracking only, not medical diagnosis.</p>
-      </div>
     </div>
   )
 }

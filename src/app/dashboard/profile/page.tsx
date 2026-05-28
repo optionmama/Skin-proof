@@ -275,15 +275,6 @@ export default function ProfilePage() {
           </Link>
         </div>
 
-        {/* Disclaimer */}
-        <div className="flex gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-          <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700">
-            SkinProof is not a medical device and does not provide medical advice, diagnosis, or treatment.
-            Always consult a qualified dermatologist for skin concerns.
-          </p>
-        </div>
-
         <div className="text-center space-y-1 pb-2">
           <p className="text-xs text-charcoal-400">SkinProof v1.0.0</p>
           <p className="text-xs text-charcoal-300">© 2025 SkinProof. All rights reserved.</p>

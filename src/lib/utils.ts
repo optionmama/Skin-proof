@@ -59,10 +59,3 @@ export const SKIN_CONCERNS = [
   'redness', 'pores', 'dark_circles', 'texture', 'sensitivity', 'dullness', 'blackheads'
 ]
 
-export const DISCLAIMER_TEXT = `⚠️ IMPORTANT DISCLAIMER: SkinProof is a personal skin tracking and product diary tool. 
-AI analysis results are for informational and tracking purposes only and do NOT constitute medical diagnosis, 
-medical advice, or professional dermatological assessment. Always consult a licensed dermatologist or 
-healthcare professional for any skin conditions or medical concerns. Results may vary and should not 
-be used to replace professional medical advice.`
-
-export const SHORT_DISCLAIMER = 'Not a medical diagnosis. For tracking purposes only.'

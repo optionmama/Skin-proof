@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { AlertTriangle, Sparkles, TrendingUp, ChevronRight, Camera } from 'lucide-react'
-import { scoreToLabel, DISCLAIMER_TEXT } from '@/lib/utils'
+import { scoreToLabel } from '@/lib/utils'
 
 function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
   const radius = (size - 12) / 2
@@ -82,10 +82,6 @@ export default async function ScanPage() {
     return (
       <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
         <h1 className="font-display text-3xl font-light text-charcoal-900 mb-4">AI Skin Analysis</h1>
-        <div className="disclaimer-box mb-6">
-          <p className="font-semibold text-charcoal-800 mb-1">⚠️ Not a medical diagnosis</p>
-          <p>AI analysis is for personal tracking only.</p>
-        </div>
         <div className="bg-white rounded-2xl border border-skin-200 p-8 text-center">
           <div className="w-14 h-14 rounded-2xl bg-skin-100 flex items-center justify-center mx-auto mb-4">
             <Camera className="w-7 h-7 text-skin-500" />
@@ -128,19 +124,6 @@ export default async function ScanPage() {
           <Camera className="w-4 h-4" />
           New
         </Link>
-      </div>
-
-      {/* DISCLAIMER - prominent */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex gap-3">
-        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-semibold text-amber-800 mb-1">Not a medical diagnosis</p>
-          <p className="text-xs text-amber-700 font-body leading-relaxed">
-            This AI analysis is for personal tracking purposes only.
-            It does not constitute medical advice or professional diagnosis.
-            Consult a licensed dermatologist for any skin health concerns.
-          </p>
-        </div>
       </div>
 
       {/* Photo + Score */}
@@ -221,9 +204,6 @@ export default async function ScanPage() {
               </span>
             ))}
           </div>
-          <p className="text-xs text-charcoal-500 font-body italic">
-            These are AI-detected patterns for tracking purposes only, not diagnoses.
-          </p>
         </div>
       )}
 
@@ -270,15 +250,6 @@ export default async function ScanPage() {
         </Link>
       </div>
 
-      {/* Full disclaimer */}
-      <details className="mb-4">
-        <summary className="text-xs text-charcoal-500 cursor-pointer hover:text-charcoal-700 font-body">
-          Read full disclaimer
-        </summary>
-        <div className="disclaimer-box mt-2 text-xs text-charcoal-600">
-          {DISCLAIMER_TEXT}
-        </div>
-      </details>
     </div>
   )
 }

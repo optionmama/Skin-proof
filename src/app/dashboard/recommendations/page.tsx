@@ -234,12 +234,6 @@ export default async function RecommendationsPage() {
         </div>
       )}
 
-      {/* Disclaimer */}
-      <div className="disclaimer-box mt-5">
-        <p className="font-semibold text-charcoal-700 mb-0.5">⚠️ Not medical advice</p>
-        <p>Recommendations are based on skin profile data and ingredient analysis for personal reference only.
-        Consult a dermatologist before changing your skincare routine if you have medical skin conditions.</p>
-      </div>
     </div>
   )
 }

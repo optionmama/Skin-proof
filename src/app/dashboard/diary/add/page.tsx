@@ -538,14 +538,6 @@ export default function AddToDiaryPage() {
               />
             </div>
 
-            {/* Disclaimer */}
-            <div className="flex gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-              <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700 font-body">
-                Product logs are for personal tracking only. Consult a dermatologist for medical advice.
-              </p>
-            </div>
-
             {/* Save */}
             <button
               onClick={handleSave}

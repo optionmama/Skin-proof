@@ -267,14 +267,6 @@ export default function DiaryEntryPage() {
           </Link>
         )}
 
-        {/* Disclaimer */}
-        <div className="flex gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-          <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700">
-            Product logs are for personal tracking only and do not constitute medical advice.
-          </p>
-        </div>
-
         {/* Actions */}
         <div className="space-y-2 pt-2">
           {!log.stopped_using_at && (

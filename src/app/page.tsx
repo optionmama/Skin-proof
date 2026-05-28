@@ -273,7 +273,7 @@ export default function Home() {
             {icon:'🛡️',title:'Commission-free rankings',desc:'Rankings based purely on your skin data. We never accept payment to influence recommendations.'},
             {icon:'📊',title:'Real outcome data',desc:'When evidence is limited, we say so. Every recommendation shows confidence level and sample size.'},
             {icon:'🔒',title:'Private by design',desc:'Your photos are encrypted. Your data is yours. Only anonymised data is used for statistics.'},
-            {icon:'⚕️',title:'Not medical advice',desc:'SkinProof is a personal tracking tool. Always consult a dermatologist for medical concerns.'},
+            {icon:'🔬',title:'Evidence-based',desc:'Every recommendation shows confidence level and sample size. When data is limited, we say so.'},
           ].map((t)=>(
             <div key={t.title} style={{padding:'32px 24px',background:'#f8f2eb',borderRadius:'20px'}}>
               <div style={{fontSize:'26px',marginBottom:'12px'}}>{t.icon}</div>
@@ -295,9 +295,6 @@ export default function Home() {
         <Link href="/auth" style={{background:'#3a2420',color:'#fdf9f6',padding:'16px 44px',borderRadius:'100px',fontSize:'15px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(58,36,32,0.2)'}}>
           Begin your skin story →
         </Link>
-        <p style={{marginTop:'20px',fontSize:'12px',color:'rgba(122,74,64,0.45)'}}>
-          ⓘ AI analysis is for personal tracking only — not medical diagnosis.
-        </p>
       </section>
 
       {/* FOOTER */}
@@ -309,9 +306,6 @@ export default function Home() {
           <Link href="/privacy" style={{fontSize:'12px',color:'#7a4a40',textDecoration:'none',letterSpacing:'0.06em',textTransform:'uppercase'}}>Privacy</Link>
           <Link href="/terms" style={{fontSize:'12px',color:'#7a4a40',textDecoration:'none',letterSpacing:'0.06em',textTransform:'uppercase'}}>Terms</Link>
         </div>
-        <p className="footer-disclaimer" style={{fontSize:'11px',color:'rgba(122,74,64,0.4)',maxWidth:'260px',textAlign:'right',lineHeight:1.5}}>
-          Not a medical device. AI analysis for personal tracking only.
-        </p>
       </footer>
 
     </div>

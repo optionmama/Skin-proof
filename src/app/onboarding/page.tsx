@@ -115,11 +115,6 @@ export default function OnboardingPage() {
             <p className="text-charcoal-600 font-body leading-relaxed mb-6">
               We'll ask a few questions to personalise your experience. This takes about 2 minutes.
             </p>
-            <div className="disclaimer-box mb-6">
-              <p className="font-semibold text-charcoal-800 mb-1">⚠️ Please read</p>
-              <p>SkinProof is a personal skin tracking tool, not a medical device. AI analysis does not constitute
-              medical diagnosis. Always consult a licensed dermatologist for skin health concerns.</p>
-            </div>
           </div>
         )}
 
@@ -240,15 +235,13 @@ export default function OnboardingPage() {
 
         {step === 'disclaimer' && (
           <div className="flex-1 animate-fade-up">
-            <h2 className="font-display text-3xl font-light text-charcoal-900 mb-4">Before we continue</h2>
+            <h2 className="font-display text-3xl font-light text-charcoal-900 mb-4">One last thing ✨</h2>
             <div className="bg-white rounded-2xl border border-skin-200 p-5 mb-4 space-y-3">
               {[
-                'SkinProof is a personal skin tracking tool, not a medical device.',
-                'AI skin analysis results are for informational tracking purposes only.',
-                'Results do not constitute a medical diagnosis or professional assessment.',
-                'Always consult a licensed dermatologist or healthcare provider for medical advice.',
-                'Product recommendations are ranked by skin compatibility, never by affiliate commission.',
-                'Affiliate relationships with retailers are clearly disclosed.',
+                'SkinProof is your personal skin diary — track, compare, and discover what works.',
+                'AI analysis helps you spot patterns in your skin over time.',
+                'Product recommendations are ranked by skin compatibility — never by affiliate commission.',
+                'Affiliate relationships with retailers are clearly disclosed on each link.',
               ].map((point, i) => (
                 <div key={i} className="flex gap-3">
                   <div className="w-5 h-5 rounded-full bg-skin-100 flex items-center justify-center shrink-0 mt-0.5">
@@ -262,8 +255,7 @@ export default function OnboardingPage() {
               <input type="checkbox" checked={disclaimerAck} onChange={e => setDisclaimerAck(e.target.checked)}
                 className="w-4 h-4 rounded accent-skin-500 mt-0.5" />
               <span className="text-sm text-charcoal-700 font-body leading-relaxed">
-                I understand and acknowledge that SkinProof is not a medical tool.
-                I will consult a healthcare professional for any medical skin concerns.
+                Got it — I&apos;m using SkinProof as a personal skin tracking tool.
               </span>
             </label>
             {error && <p className="text-red-600 text-sm mt-3 font-body">{error}</p>}

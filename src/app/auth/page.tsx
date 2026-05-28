@@ -176,13 +176,6 @@ function AuthForm() {
               </div>
             )}
 
-            {mode === 'signup' && (
-              <p className="text-xs text-charcoal-500 font-body leading-relaxed">
-                By creating an account, you agree that SkinProof provides skin tracking tools only —
-                not medical advice or diagnosis.
-              </p>
-            )}
-
             <button
               type="submit"
               disabled={loading}
@@ -211,12 +204,6 @@ function AuthForm() {
             </div>
           )}
 
-          {/* Disclaimer */}
-          <div className="mt-8 disclaimer-box text-xs text-charcoal-600">
-            <p className="font-semibold text-charcoal-800 mb-1">⚠️ Important Notice</p>
-            <p>SkinProof is a personal tracking tool. AI skin analysis does not constitute medical diagnosis.
-            Consult a licensed dermatologist for any skin health concerns.</p>
-          </div>
         </div>
       </div>
     </div>
