@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'claude-opus-4-5',
         max_tokens: 1024,
-        system: `You are a skin analysis assistant. Analyze facial skin photos and return structured JSON data only. Return ONLY valid JSON, no other text.`,
+        system: `You are a skin analysis assistant. Return ONLY valid JSON — no markdown, no explanation.`,
         messages: [
           {
             role: 'user',
@@ -69,40 +69,36 @@ export async function POST(request: NextRequest) {
               },
               {
                 type: 'text',
-                text: `Analyze this facial skin photo and return a JSON object with the following structure.
-Be precise and vary your scores based on what you actually observe — do NOT return the same score every time.
+                text: `Analyze this facial skin photo carefully. You must evaluate what you ACTUALLY see in this specific photo — do not return generic or average scores.
 
-Return ONLY valid JSON, no other text:
+Return ONLY valid JSON with no other text:
 
 {
-  "overall_score": <number 40-95>,
+  "overall_score": <integer 40-95, weighted average of dimensions below>,
   "dimensions": {
-    "redness": <0-100, higher = more redness>,
-    "breakouts": <0-100, higher = more pimples/acne>,
-    "hydration": <0-100, higher = better hydrated>,
-    "oiliness": <0-100, higher = more oily>,
-    "pores": <0-100, higher = more visible pores>,
-    "evenness": <0-100, higher = more even skin tone>
+    "redness": <0-100, 0=no redness, 100=very red/inflamed>,
+    "breakouts": <0-100, 0=clear, 100=severe acne>,
+    "hydration": <0-100, 0=very dry/flaky, 100=plump and dewy>,
+    "oiliness": <0-100, 0=matte/dry, 100=very oily/shiny>,
+    "pores": <0-100, 0=invisible, 100=very enlarged>,
+    "evenness": <0-100, 0=very uneven/patchy, 100=perfectly even>
   },
-  "makeup_detected": <true or false>,
-  "visible_observations": [
-    <string: specific observation 1>,
-    <string: specific observation 2>,
-    <string: specific observation 3>
-  ],
-  "main_concern": <"redness" | "breakouts" | "dryness" | "oiliness" | "pores" | "none">,
+  "makeup_detected": <true|false>,
+  "visible_observations": [<specific observation 1>, <specific observation 2>, <specific observation 3>],
+  "main_concern": <"redness"|"breakouts"|"dryness"|"oiliness"|"pores"|"none">,
   "photo_quality_score": <0-100>,
   "quality_flags": <array of "blurry"|"poor_lighting"|"obstructed"|"off_angle"|"too_dark"|"overexposed", empty if fine>,
   "acne_severity": <"clear"|"mild"|"moderate"|"severe">
 }
 
-Scoring rules:
-- overall_score = (hydration*0.20) + ((100-breakouts)*0.25) + ((100-redness)*0.20) + ((100-oiliness)*0.15) + ((100-pores)*0.10) + (evenness*0.10)
-- Realistic range: 40 (severe issues) to 95 (very clear skin). NEVER cluster near 72-75 regardless of input.
-- If makeup is detected, set makeup_detected true and score only visible skin areas
-- visible_observations must describe SPECIFIC things you see (e.g. "2 small pimples on left cheek", "mild redness around nose bridge", "T-zone appears oily")
-- main_concern = the single worst dimension: if breakouts>60 then "breakouts", redness>60 then "redness", oiliness>70 then "oiliness", hydration<40 then "dryness", pores>60 then "pores", else "none"
-- Every photo must be evaluated independently — never return a generic score`,
+Overall score formula:
+(hydration × 0.20) + ((100 - breakouts) × 0.25) + ((100 - redness) × 0.20) + ((100 - oiliness) × 0.15) + ((100 - pores) × 0.10) + (evenness × 0.10)
+
+Rules:
+- Every photo must be evaluated independently — never return 72 or 75 by default
+- visible_observations must name specific things (e.g. "3 small pimples on forehead", "dry patches on cheeks", "T-zone appears oily")
+- If makeup detected, add "Makeup detected" to observations and score visible areas only
+- Score range MUST vary: a clear skin photo should score 80+, a breakout photo 45-60`,
               },
             ],
           },

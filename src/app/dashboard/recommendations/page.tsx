@@ -1,16 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Sparkles, Package, ExternalLink, Star, Info } from 'lucide-react'
+import { Sparkles, Package, ExternalLink, Star } from 'lucide-react'
 import type { Recommendation } from '@/types/database'
+import ForYouEmptyState from '@/components/ForYouEmptyState'
 
 function ConfidenceBadge({ communityScore, type }: { communityScore?: number; type?: string }) {
   if (type === 'community' || (communityScore && communityScore >= 60)) {
-    return <span className="inline-flex items-center gap-1 bg-sage-100 text-sage-700 text-xs px-2 py-0.5 rounded-full font-medium">🟢 社群驗證</span>
+    return <span className="inline-flex items-center gap-1 bg-sage-100 text-sage-700 text-xs px-2 py-0.5 rounded-full font-medium">🟢 Community Verified</span>
   }
   if (communityScore && communityScore >= 30) {
-    return <span className="inline-flex items-center gap-1 bg-cream-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium">🟡 社群資料成長中</span>
+    return <span className="inline-flex items-center gap-1 bg-cream-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium">🟡 Community: Growing</span>
   }
-  return <span className="inline-flex items-center gap-1 bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium">🔴 AI 推估</span>
+  return <span className="inline-flex items-center gap-1 bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium">🔴 AI Estimate</span>
 }
 
 export default async function RecommendationsPage() {
@@ -41,26 +42,14 @@ export default async function RecommendationsPage() {
       .single(),
   ])
 
+  const hasRecommendations = recommendations && recommendations.length > 0
+
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
-      <div className="mb-3">
+      <div className="mb-5">
         <h1 className="font-display text-3xl font-light text-charcoal-900">For You</h1>
         <p className="text-charcoal-500 text-sm font-body">
-          看看和你膚質相似的人在用什麼 ✨
-        </p>
-      </div>
-
-      {/* Ranking transparency */}
-      <p className="text-xs text-charcoal-400 font-body mb-4">
-        推薦排序依據：成分匹配度、真實膚況改善數據、刺激風險。與佣金無關。
-      </p>
-
-      {/* Commission-free notice */}
-      <div className="bg-sage-50 border border-sage-200 rounded-xl p-4 mb-5 flex gap-3">
-        <Info className="w-5 h-5 text-sage-600 shrink-0 mt-0.5" />
-        <p className="text-xs text-sage-700 font-body leading-relaxed">
-          Products ranked by skin compatibility &amp; ingredient analysis.
-          <strong> Affiliate commission never influences rankings.</strong>
+          What&apos;s working for people with skin like yours ✨
         </p>
       </div>
 
@@ -78,20 +67,8 @@ export default async function RecommendationsPage() {
         </div>
       )}
 
-      {!recommendations || recommendations.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-14 h-14 rounded-2xl bg-skin-100 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-7 h-7 text-skin-400" />
-          </div>
-          <h3 className="font-display text-xl font-light text-charcoal-800 mb-2">還沒有推薦</h3>
-          <p className="text-charcoal-500 text-sm font-body mb-5 max-w-xs mx-auto">
-            完成幾次 check-in 後，我們就會顯示和你膚質相似的人在用什麼 ✨
-          </p>
-          <Link href="/dashboard/checkin"
-            className="inline-flex items-center gap-2 bg-skin-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium">
-            開始 Daily Scan
-          </Link>
-        </div>
+      {!hasRecommendations ? (
+        <ForYouEmptyState />
       ) : (
         <div className="space-y-4">
           {recommendations.map((rec, index) => {
@@ -131,7 +108,6 @@ export default async function RecommendationsPage() {
                   )}
                 </div>
 
-                {/* Confidence badge */}
                 <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
                   <ConfidenceBadge communityScore={rec.community_efficacy_score ?? undefined} type={rec.recommendation_type} />
                   {rec.community_efficacy_score && rec.community_efficacy_score >= 30 && (
@@ -141,7 +117,6 @@ export default async function RecommendationsPage() {
                   )}
                 </div>
 
-                {/* Match reasons */}
                 {rec.match_reason && rec.match_reason.length > 0 && (
                   <div className="px-4 pb-3">
                     <div className="flex flex-wrap gap-1.5">
@@ -154,7 +129,6 @@ export default async function RecommendationsPage() {
                   </div>
                 )}
 
-                {/* Scores */}
                 {(rec.ingredient_compatibility_score || rec.community_efficacy_score) && (
                   <div className="px-4 pb-3 flex gap-4">
                     {rec.ingredient_compatibility_score && (
@@ -172,7 +146,6 @@ export default async function RecommendationsPage() {
                   </div>
                 )}
 
-                {/* Product attributes */}
                 <div className="px-4 pb-3 flex flex-wrap gap-1.5">
                   {product.fragrance_free     && <span className="text-xs bg-sage-50 text-sage-700 px-2 py-0.5 rounded-full border border-sage-200">Fragrance-free</span>}
                   {product.cruelty_free       && <span className="text-xs bg-sage-50 text-sage-700 px-2 py-0.5 rounded-full border border-sage-200">Cruelty-free</span>}
@@ -225,8 +198,8 @@ export default async function RecommendationsPage() {
 
           <div className="bg-skin-50 rounded-2xl p-4 text-center">
             <p className="text-xs text-charcoal-600 font-body leading-relaxed italic">
-              你追蹤的越多，推薦就越準確 —<br />
-              同時也幫助了和你一樣膚質的人 ✨
+              The more you track, the smarter this gets —<br />
+              and the more you help others with skin like yours. ✨
             </p>
           </div>
         </div>
