@@ -5,42 +5,37 @@ export const maxDuration = 60
 
 interface AnalysisResult {
   overall_score: number
-  acne_severity: 'clear' | 'mild' | 'moderate' | 'severe'
-  redness_score: number
-  hydration_score: number
-  texture_score: number
-  pigmentation_score: number
+  dimensions: {
+    redness: number
+    breakouts: number
+    hydration: number
+    oiliness: number
+    pores: number
+    evenness: number
+  }
+  makeup_detected: boolean
+  visible_observations: string[]
+  main_concern: 'redness' | 'breakouts' | 'dryness' | 'oiliness' | 'pores' | 'none'
   photo_quality_score: number
   quality_flags: string[]
-  detected_concerns: string[]
-  insights: string[]
-  recommendations_note: string
+  acne_severity: 'clear' | 'mild' | 'moderate' | 'severe'
 }
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
 
-  // Auth check
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const body = await request.json()
-  const { photo_id, image_base64, acknowledged_disclaimer } = body
-
-  if (!acknowledged_disclaimer) {
-    return NextResponse.json(
-      { error: 'User must acknowledge disclaimer before AI analysis' },
-      { status: 400 }
-    )
-  }
+  const { photo_id, image_base64 } = body
 
   if (!photo_id || !image_base64) {
     return NextResponse.json({ error: 'photo_id and image_base64 are required' }, { status: 400 })
   }
 
-  // Verify the photo belongs to this user
   const { data: photo, error: photoError } = await supabase
     .from('skin_photos')
     .select('id, user_id')
@@ -53,7 +48,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Call Claude Vision API for skin analysis
     const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -64,41 +58,51 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'claude-opus-4-5',
         max_tokens: 1024,
-        system: `You are a skin analysis assistant. Analyze facial skin photos and return structured JSON data only.
-
-IMPORTANT DISCLAIMER: You are NOT a medical device. Your analysis is for personal tracking purposes only and does NOT constitute medical diagnosis, advice, or treatment. Always recommend consulting a dermatologist for medical concerns.
-
-Analyze the skin photo and return ONLY a valid JSON object (no markdown, no preamble) with these exact fields:
-{
-  "overall_score": <0-100, overall skin health score>,
-  "acne_severity": <"clear" | "mild" | "moderate" | "severe">,
-  "redness_score": <0-100, higher = more redness>,
-  "hydration_score": <0-100, higher = better hydrated>,
-  "texture_score": <0-100, higher = smoother texture>,
-  "pigmentation_score": <0-100, higher = more even pigmentation>,
-  "photo_quality_score": <0-100, quality of the photo itself>,
-  "quality_flags": <array of: "blurry", "poor_lighting", "obstructed", "off_angle", "too_dark", "overexposed" — empty array if quality is good>,
-  "detected_concerns": <array of observed skin characteristics, e.g. ["dry_patches", "mild_acne", "uneven_tone"] — factual observations only>,
-  "insights": <array of 2-4 brief observational strings about what you see, framed as tracking observations, NOT diagnoses>,
-  "recommendations_note": <single string: always include "For personalised skincare advice, consult a dermatologist.">
-}
-
-Be conservative and factual. If photo quality is poor (score < 40), note it and reduce confidence in scores. Never suggest medical treatments. Frame everything as personal tracking data.`,
+        system: `You are a skin analysis assistant. Analyze facial skin photos and return structured JSON data only. Return ONLY valid JSON, no other text.`,
         messages: [
           {
             role: 'user',
             content: [
               {
                 type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: 'image/jpeg',
-                  data: image_base64,
-                },
+                source: { type: 'base64', media_type: 'image/jpeg', data: image_base64 },
               },
               {
                 type: 'text',
-                text: 'Analyze this skin photo for personal tracking purposes. Return only the JSON object.',
+                text: `Analyze this facial skin photo and return a JSON object with the following structure.
+Be precise and vary your scores based on what you actually observe — do NOT return the same score every time.
+
+Return ONLY valid JSON, no other text:
+
+{
+  "overall_score": <number 40-95>,
+  "dimensions": {
+    "redness": <0-100, higher = more redness>,
+    "breakouts": <0-100, higher = more pimples/acne>,
+    "hydration": <0-100, higher = better hydrated>,
+    "oiliness": <0-100, higher = more oily>,
+    "pores": <0-100, higher = more visible pores>,
+    "evenness": <0-100, higher = more even skin tone>
+  },
+  "makeup_detected": <true or false>,
+  "visible_observations": [
+    <string: specific observation 1>,
+    <string: specific observation 2>,
+    <string: specific observation 3>
+  ],
+  "main_concern": <"redness" | "breakouts" | "dryness" | "oiliness" | "pores" | "none">,
+  "photo_quality_score": <0-100>,
+  "quality_flags": <array of "blurry"|"poor_lighting"|"obstructed"|"off_angle"|"too_dark"|"overexposed", empty if fine>,
+  "acne_severity": <"clear"|"mild"|"moderate"|"severe">
+}
+
+Scoring rules:
+- overall_score = (hydration*0.20) + ((100-breakouts)*0.25) + ((100-redness)*0.20) + ((100-oiliness)*0.15) + ((100-pores)*0.10) + (evenness*0.10)
+- Realistic range: 40 (severe issues) to 95 (very clear skin). NEVER cluster near 72-75 regardless of input.
+- If makeup is detected, set makeup_detected true and score only visible skin areas
+- visible_observations must describe SPECIFIC things you see (e.g. "2 small pimples on left cheek", "mild redness around nose bridge", "T-zone appears oily")
+- main_concern = the single worst dimension: if breakouts>60 then "breakouts", redness>60 then "redness", oiliness>70 then "oiliness", hydration<40 then "dryness", pores>60 then "pores", else "none"
+- Every photo must be evaluated independently — never return a generic score`,
               },
             ],
           },
@@ -107,8 +111,7 @@ Be conservative and factual. If photo quality is poor (score < 40), note it and 
     })
 
     if (!aiResponse.ok) {
-      const error = await aiResponse.text()
-      console.error('AI API error:', error)
+      console.error('AI API error:', await aiResponse.text())
       return NextResponse.json({ error: 'AI analysis failed' }, { status: 500 })
     }
 
@@ -117,48 +120,56 @@ Be conservative and factual. If photo quality is poor (score < 40), note it and 
 
     let analysis: AnalysisResult
     try {
-      const cleaned = rawText.replace(/```json|```/g, '').trim()
-      analysis = JSON.parse(cleaned)
+      analysis = JSON.parse(rawText.replace(/```json|```/g, '').trim())
     } catch {
       console.error('Failed to parse AI response:', rawText)
       return NextResponse.json({ error: 'Failed to parse AI analysis' }, { status: 500 })
     }
 
-    // Validate and clamp scores
-    const clamp = (val: unknown, min = 0, max = 100): number => {
-      const n = Number(val)
-      return isNaN(n) ? 50 : Math.min(max, Math.max(min, n))
+    const clamp = (v: unknown, lo = 0, hi = 100): number => {
+      const n = Number(v)
+      return isNaN(n) ? 50 : Math.min(hi, Math.max(lo, n))
     }
 
+    const dims = analysis.dimensions || {}
     const safeAnalysis = {
-      overall_score: clamp(analysis.overall_score),
-      acne_severity: ['clear', 'mild', 'moderate', 'severe'].includes(analysis.acne_severity)
-        ? analysis.acne_severity
-        : 'clear',
-      redness_score: clamp(analysis.redness_score),
-      hydration_score: clamp(analysis.hydration_score),
-      texture_score: clamp(analysis.texture_score),
-      pigmentation_score: clamp(analysis.pigmentation_score),
+      overall_score: clamp(analysis.overall_score, 40, 95),
+      dimensions: {
+        redness:   clamp(dims.redness),
+        breakouts: clamp(dims.breakouts),
+        hydration: clamp(dims.hydration),
+        oiliness:  clamp(dims.oiliness),
+        pores:     clamp(dims.pores),
+        evenness:  clamp(dims.evenness),
+      },
+      makeup_detected: Boolean(analysis.makeup_detected),
+      visible_observations: Array.isArray(analysis.visible_observations)
+        ? analysis.visible_observations.slice(0, 5)
+        : [],
+      main_concern: (['redness','breakouts','dryness','oiliness','pores','none'] as const)
+        .includes(analysis.main_concern as never)
+        ? analysis.main_concern
+        : 'none' as const,
       photo_quality_score: clamp(analysis.photo_quality_score),
       quality_flags: Array.isArray(analysis.quality_flags) ? analysis.quality_flags.slice(0, 6) : [],
-      detected_concerns: Array.isArray(analysis.detected_concerns) ? analysis.detected_concerns.slice(0, 10) : [],
-      insights: Array.isArray(analysis.insights) ? analysis.insights.slice(0, 4) : [],
-      recommendations_note: 'For personalised skincare advice, consult a dermatologist.',
+      acne_severity: (['clear','mild','moderate','severe'] as const).includes(analysis.acne_severity)
+        ? analysis.acne_severity
+        : 'clear' as const,
     }
 
-    // Store results in database
     const { error: updateError } = await supabase
       .from('skin_photos')
       .update({
-        ai_analysis_raw: analysis,
+        ai_analysis_raw: safeAnalysis,
         overall_skin_score: safeAnalysis.overall_score,
         acne_severity: safeAnalysis.acne_severity,
-        redness_score: safeAnalysis.redness_score,
-        hydration_score: safeAnalysis.hydration_score,
-        texture_score: safeAnalysis.texture_score,
-        pigmentation_score: safeAnalysis.pigmentation_score,
+        redness_score: safeAnalysis.dimensions.redness,
+        hydration_score: safeAnalysis.dimensions.hydration,
+        texture_score: safeAnalysis.dimensions.evenness,
+        pigmentation_score: safeAnalysis.dimensions.evenness,
         photo_quality_score: safeAnalysis.photo_quality_score,
         quality_flags: safeAnalysis.quality_flags,
+        detected_concerns: safeAnalysis.visible_observations,
         user_acknowledged_disclaimer: true,
         analyzed_at: new Date().toISOString(),
       })
@@ -169,15 +180,10 @@ Be conservative and factual. If photo quality is poor (score < 40), note it and 
       return NextResponse.json({ error: 'Failed to save analysis' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      photo_id,
-      analysis: safeAnalysis,
-      disclaimer: 'This analysis is for personal tracking purposes only and does not constitute medical advice. Always consult a qualified dermatologist for skin concerns.',
-    })
+    return NextResponse.json({ success: true, photo_id, analysis: safeAnalysis })
 
-  } catch (error) {
-    console.error('Analysis error:', error)
+  } catch (err) {
+    console.error('Analysis error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
