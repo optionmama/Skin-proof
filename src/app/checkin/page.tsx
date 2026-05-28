@@ -45,7 +45,7 @@ export default function CheckinPage() {
       if (!uploadError) {
         const { data: photo } = await supabase
           .from('skin_photos')
-          .insert({ user_id: user.id, storage_path: path, photo_date: new Date().toISOString() })
+          .insert({ user_id: user.id, storage_path: path })
           .select('id').single()
         if (photo) setPhotoId(photo.id)
       }
