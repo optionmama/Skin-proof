@@ -46,26 +46,12 @@ export default async function RecommendationsPage() {
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
-      <div className="mb-5">
+      <div className="mb-4">
         <h1 className="font-display text-3xl font-light text-charcoal-900">For You</h1>
         <p className="text-charcoal-500 text-sm font-body">
           What&apos;s working for people with skin like yours ✨
         </p>
       </div>
-
-      {/* Skin concerns */}
-      {skinProfile?.primary_concerns && skinProfile.primary_concerns.length > 0 && (
-        <div className="mb-5">
-          <p className="text-xs text-charcoal-500 mb-2 font-body">Targeting your concerns:</p>
-          <div className="flex flex-wrap gap-1.5">
-            {skinProfile.primary_concerns.map(c => (
-              <span key={c} className="bg-skin-100 text-skin-700 text-xs px-3 py-1 rounded-full font-medium capitalize">
-                {c.replace(/_/g, ' ')}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {!hasRecommendations ? (
         <ForYouEmptyState />

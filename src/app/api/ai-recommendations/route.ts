@@ -20,22 +20,42 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const [{ data: profile }, { data: routines }] = await Promise.all([
+  const [{ data: profile }, { data: routines }, { data: latestScan }] = await Promise.all([
     supabase.from('skin_profiles').select('skin_type, primary_concerns').eq('user_id', user.id).single(),
     supabase
       .from('user_routines')
       .select('product_id, user_products(brand, name, notes)')
       .eq('user_id', user.id)
       .eq('is_active', true),
+    supabase
+      .from('skin_photos')
+      .select('overall_skin_score, created_at, ai_analysis_raw')
+      .eq('user_id', user.id)
+      .not('overall_skin_score', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single(),
   ])
 
-  const skinType  = profile?.skin_type    || 'normal'
-  const concerns  = profile?.primary_concerns || []
+  const skinType = profile?.skin_type || 'normal'
+  const profileConcerns = profile?.primary_concerns || []
+
+  // Prefer latest scan data over onboarding profile
+  const scanRaw = latestScan?.ai_analysis_raw as Record<string, unknown> | null
+  const mainConcern = (scanRaw?.main_concern as string) || null
+  const scanDate = latestScan?.created_at
+    ? new Date(latestScan.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null
+
+  // Derive concerns: scan > profile
+  const concerns = mainConcern
+    ? [mainConcern === 'breakouts' ? 'acne' : mainConcern]
+    : profileConcerns
 
   // Determine ingredient suggestions
-  const concernKey = concerns.includes('acne') ? 'acne'
-    : skinType === 'oily' ? 'oily'
-    : skinType === 'dry'  ? 'dry'
+  const concernKey = concerns.includes('acne') || mainConcern === 'breakouts' ? 'acne'
+    : skinType === 'oily' || mainConcern === 'oiliness' ? 'oily'
+    : skinType === 'dry'  || mainConcern === 'dryness'  ? 'dry'
     : skinType === 'sensitive' ? 'sensitive'
     : skinType === 'combination' ? 'combination'
     : 'normal'
@@ -108,6 +128,9 @@ Return JSON array only, no other text:
   return NextResponse.json({
     skinType,
     concerns,
+    mainConcern,
+    scanDate,
+    hasScanData: !!latestScan,
     ingredientSuggestion,
     productWarnings,
     hasProducts,

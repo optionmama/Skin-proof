@@ -16,6 +16,9 @@ interface AiProduct {
 interface RecommendationData {
   skinType: string
   concerns: string[]
+  mainConcern: string | null
+  scanDate: string | null
+  hasScanData: boolean
   ingredientSuggestion: { ingredients: string[]; reason: string }
   productWarnings: { name: string; ingredient: string; concern: string }[]
   hasProducts: boolean
@@ -48,7 +51,23 @@ export default function ForYouEmptyState() {
       {/* Section A */}
       <div>
         <h2 className="font-display text-xl font-light text-charcoal-900 mb-1">Based on your skin profile</h2>
-        <p className="text-xs text-charcoal-500 font-body mb-4">Here&apos;s what we recommend right now</p>
+        {data?.hasScanData && data.scanDate ? (
+          <div className="flex items-center gap-1.5 mb-4">
+            <span className="text-xs text-charcoal-500 font-body">Based on your last scan · {data.scanDate}</span>
+            {data.mainConcern && data.mainConcern !== 'none' && (
+              <span className="bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium capitalize">
+                AI detected: {data.mainConcern}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 mb-4">
+            <p className="text-xs text-charcoal-500 font-body">Based on your skin profile (no scan yet)</p>
+            <Link href="/checkin" className="text-xs text-skin-600 font-medium underline">
+              Take a scan →
+            </Link>
+          </div>
+        )}
 
         {/* Product warning or diary prompt */}
         {data?.productWarnings && data.productWarnings.length > 0 ? (

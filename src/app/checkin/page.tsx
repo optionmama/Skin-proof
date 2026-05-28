@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Camera, Droplets, Moon, Zap, CheckCircle2, Loader2 } from 'lucide-react'
 import ProductsStep, { CheckinProduct } from '@/components/checkin/ProductsStep'
+import { t } from '@/lib/i18n'
 
 interface HabitsData {
   sleep_hours: number
@@ -14,9 +15,9 @@ interface HabitsData {
 }
 
 const STEPS = [
-  { key: 'photo',    label: 'Photo',    icon: Camera },
-  { key: 'habits',   label: 'Habits',   icon: Moon },
-  { key: 'products', label: 'Products', icon: Droplets },
+  { key: 'photo',    label: t.checkin.step_photo,    icon: Camera },
+  { key: 'habits',   label: t.checkin.step_habits,   icon: Moon },
+  { key: 'products', label: t.checkin.step_products, icon: Droplets },
 ]
 
 export default function CheckinPage() {
@@ -63,19 +64,25 @@ export default function CheckinPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
+
+      const today = new Date().toISOString().split('T')[0]
+
       const { data: checkin, error: checkinError } = await supabase
         .from('skin_checkins')
-        .insert({
+        .upsert({
           user_id: user.id,
+          checkin_date: today,
           photo_id: photoId,
           sleep_hours: habits.sleep_hours,
           water_intake_ml: habits.water_intake_ml,
           stress_level: habits.stress_level,
           notes: habits.notes,
           checked_in_at: new Date().toISOString(),
-        })
+        }, { onConflict: 'user_id,checkin_date' })
         .select('id').single()
+
       if (checkinError || !checkin) throw checkinError
+
       if (finalProducts.length > 0) {
         await supabase.from('checkin_products').insert(
           finalProducts.map(p => ({
@@ -91,22 +98,25 @@ export default function CheckinPage() {
           }))
         )
       }
+
       if (photoId && imageBase64) {
         fetch('/api/analyze-skin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ photo_id: photoId, image_base64: imageBase64, acknowledged_disclaimer: true }),
+          body: JSON.stringify({ photo_id: photoId, image_base64: imageBase64 }),
         })
       }
+
       router.push(`/dashboard/checkin/result?checkin_id=${checkin.id}`)
-    } catch (err: any) {
-      setError(err.message ?? '提交失敗，請稍後再試')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t.checkin.submit_error)
       setSubmitting(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col">
+      {/* Progress steps */}
       <div className="bg-white border-b border-stone-100 px-4 py-3">
         <div className="flex items-center gap-0">
           {STEPS.map((step, i) => {
@@ -152,10 +162,11 @@ export default function CheckinPage() {
       {submitting && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-50">
           <Loader2 className="w-8 h-8 animate-spin text-rose-400" />
-          <p className="text-stone-600 font-medium">正在分析中...</p>
-          <p className="text-stone-400 text-sm">AI 正在分析你的膚況</p>
+          <p className="text-stone-600 font-medium">{t.checkin.analysing}</p>
+          <p className="text-stone-400 text-sm">{t.checkin.analysing_sub}</p>
         </div>
       )}
+
       {error && (
         <div className="fixed bottom-4 left-4 right-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
           {error}
@@ -176,19 +187,19 @@ function PhotoStep({ onCapture }: { onCapture: (file: File) => void }) {
         <Camera className="w-12 h-12 text-rose-300" />
       </div>
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-stone-800">拍今天的臉</h2>
-        <p className="text-sm text-stone-500 mt-2">自然光、正面、無妝</p>
+        <h2 className="text-xl font-semibold text-stone-800">{t.checkin.photo_title}</h2>
+        <p className="text-sm text-stone-500 mt-2">{t.checkin.photo_subtitle}</p>
       </div>
       <label className="w-full">
         <input type="file" accept="image/*" capture="user" onChange={handleFileChange} className="sr-only" />
         <div className="w-full py-4 bg-rose-400 text-white rounded-xl text-center font-medium cursor-pointer active:scale-[0.98] transition-all">
-          📷 開啟相機
+          📷 {t.checkin.open_camera}
         </div>
       </label>
       <label className="w-full">
         <input type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
         <div className="w-full py-3 border border-stone-200 text-stone-600 rounded-xl text-center text-sm cursor-pointer">
-          從相簿選取
+          {t.checkin.choose_library}
         </div>
       </label>
     </div>
@@ -198,17 +209,18 @@ function PhotoStep({ onCapture }: { onCapture: (file: File) => void }) {
 function HabitsStep({ data, onChange, onNext, onBack }: {
   data: HabitsData; onChange: (d: HabitsData) => void; onNext: () => void; onBack: () => void
 }) {
-  const stressLabels = ['', '超輕鬆', '還好', '普通', '有點累', '壓力大']
+  const stressLabels = t.habits.stress_labels
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-stone-800">今天的生活習慣</h2>
-        <p className="text-sm text-stone-500 mt-0.5">這些資料幫助 AI 分析膚況變化的原因</p>
+        <h2 className="text-lg font-semibold text-stone-800">{t.habits.title}</h2>
+        <p className="text-sm text-stone-500 mt-0.5">{t.habits.subtitle}</p>
       </div>
+
       <div className="bg-white rounded-xl p-4 border border-stone-100">
         <div className="flex items-center gap-2 mb-3">
           <Moon className="w-4 h-4 text-indigo-400" />
-          <span className="text-sm font-medium text-stone-700">昨晚睡幾小時？</span>
+          <span className="text-sm font-medium text-stone-700">{t.habits.sleep}</span>
           <span className="ml-auto text-lg font-semibold text-stone-800">{data.sleep_hours}h</span>
         </div>
         <input type="range" min={4} max={12} step={0.5} value={data.sleep_hours}
@@ -218,23 +230,25 @@ function HabitsStep({ data, onChange, onNext, onBack }: {
           <span>4h</span><span>8h</span><span>12h</span>
         </div>
       </div>
+
       <div className="bg-white rounded-xl p-4 border border-stone-100">
         <div className="flex items-center gap-2 mb-3">
           <Droplets className="w-4 h-4 text-sky-400" />
-          <span className="text-sm font-medium text-stone-700">今天喝水量</span>
+          <span className="text-sm font-medium text-stone-700">{t.habits.water}</span>
           <span className="ml-auto text-lg font-semibold text-stone-800">{data.water_intake_ml}ml</span>
         </div>
         <input type="range" min={500} max={3000} step={250} value={data.water_intake_ml}
           onChange={e => onChange({ ...data, water_intake_ml: parseInt(e.target.value) })}
           className="w-full accent-sky-400" />
         <div className="flex justify-between text-xs text-stone-300 mt-1">
-          <span>少</span><span>1500ml</span><span>多</span>
+          <span>{t.habits.water_low}</span><span>1500ml</span><span>{t.habits.water_high}</span>
         </div>
       </div>
+
       <div className="bg-white rounded-xl p-4 border border-stone-100">
         <div className="flex items-center gap-2 mb-3">
           <Zap className="w-4 h-4 text-amber-400" />
-          <span className="text-sm font-medium text-stone-700">今日壓力指數</span>
+          <span className="text-sm font-medium text-stone-700">{t.habits.stress}</span>
           <span className="ml-auto text-sm text-stone-500">{stressLabels[data.stress_level]}</span>
         </div>
         <div className="flex gap-2">
@@ -246,12 +260,20 @@ function HabitsStep({ data, onChange, onNext, onBack }: {
           ))}
         </div>
       </div>
-      <textarea placeholder="今天有什麼特別的事？（選填）" value={data.notes}
+
+      <textarea placeholder={t.habits.notes_placeholder} value={data.notes}
         onChange={e => onChange({ ...data, notes: e.target.value })} rows={2}
         className="w-full px-4 py-3 text-sm border border-stone-200 rounded-xl focus:outline-none focus:border-rose-300 bg-white resize-none" />
+
       <div className="flex gap-3">
-        <button onClick={onBack} className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-medium text-stone-600">← 返回</button>
-        <button onClick={onNext} className="flex-1 py-3 bg-rose-400 text-white rounded-xl text-sm font-medium active:scale-[0.98] transition-all">下一步 →</button>
+        <button onClick={onBack}
+          className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-medium text-stone-600">
+          {t.habits.back}
+        </button>
+        <button onClick={onNext}
+          className="flex-1 py-3 bg-rose-400 text-white rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
+          {t.habits.next}
+        </button>
       </div>
     </div>
   )

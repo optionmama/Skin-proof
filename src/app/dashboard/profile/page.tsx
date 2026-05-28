@@ -156,9 +156,9 @@ export default function ProfilePage() {
               <Sparkles size={16} className="text-rose-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-charcoal-800">我的保養品 Routine</p>
+              <p className="text-sm font-semibold text-charcoal-800">My Skincare Routine</p>
               <p className="text-xs text-charcoal-400 mt-0.5">
-                {routineCount > 0 ? `已加入 ${routineCount} 個產品` : '還沒有設定，點此開始'}
+                {routineCount > 0 ? `${routineCount} product${routineCount !== 1 ? 's' : ''} added` : 'Not set up yet — tap to start'}
               </p>
             </div>
           </div>
