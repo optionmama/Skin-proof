@@ -166,6 +166,10 @@ Rules:
         photo_quality_score: safeAnalysis.photo_quality_score,
         quality_flags: safeAnalysis.quality_flags,
         detected_concerns: safeAnalysis.visible_observations,
+        // dedicated columns for fast querying
+        main_concern: safeAnalysis.main_concern,
+        visible_observations: safeAnalysis.visible_observations,
+        makeup_detected: safeAnalysis.makeup_detected,
         user_acknowledged_disclaimer: true,
         analyzed_at: new Date().toISOString(),
       })
