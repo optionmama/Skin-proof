@@ -10,7 +10,7 @@ export default async function DashboardPage() {
   const [
     { data: userData },
     { data: recentCheckins },
-    { count: routineCount },
+    { count: productCount },
     { count: totalCheckins },
   ] = await Promise.all([
     supabase.from('users').select('display_name').eq('id', user!.id).single(),
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
       .eq('user_id', user!.id)
       .order('checkin_date', { ascending: false })
       .limit(7),
-    supabase.from('user_routines')
+    supabase.from('user_products')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user!.id)
       .eq('is_active', true),
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
           <p className="text-xs text-charcoal-500 font-body">Skin score</p>
         </div>
         <div className="bg-white rounded-xl p-3 border border-skin-100 text-center">
-          <p className="font-display text-2xl font-light text-charcoal-900">{routineCount || 0}</p>
+          <p className="font-display text-2xl font-light text-charcoal-900">{productCount || 0}</p>
           <p className="text-xs text-charcoal-500 font-body">Products</p>
         </div>
       </div>

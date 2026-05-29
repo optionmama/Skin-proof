@@ -146,13 +146,14 @@ function ResultContent() {
   }
 
   const checkProducts = async (userId: string, mainConcern: MainConcern) => {
-    const { data: logs } = await supabase
-      .from('user_product_logs')
-      .select('*, product:products(name, product_ingredients(ingredient_name))')
+    // Query user_routines → user_products (the active product system)
+    const { data: routines } = await supabase
+      .from('user_routines')
+      .select('user_products(name, notes)')
       .eq('user_id', userId)
-      .eq('is_current', true)
+      .eq('is_active', true)
 
-    if (!logs || logs.length === 0) {
+    if (!routines || routines.length === 0) {
       setNoProducts(true)
       return
     }
@@ -160,14 +161,12 @@ function ResultContent() {
     if (mainConcern !== 'breakouts') return
 
     const alerts: { name: string; flag: string }[] = []
-    for (const log of logs) {
-      const p = log.product as { name: string; product_ingredients: { ingredient_name: string }[] } | null
-      if (!p) continue
-      const ings = p.product_ingredients || []
-      const hit = ings.find(i =>
-        COMEDOGENIC_INGREDIENTS.some(c => i.ingredient_name.toLowerCase().includes(c))
-      )
-      if (hit) alerts.push({ name: p.name, flag: hit.ingredient_name })
+    for (const r of routines) {
+      const p = r.user_products as { name?: string; notes?: string } | null
+      if (!p?.name) continue
+      const notesLower = (p.notes || '').toLowerCase()
+      const hit = COMEDOGENIC_INGREDIENTS.find(c => notesLower.includes(c))
+      if (hit) alerts.push({ name: p.name, flag: hit })
     }
     setComedogenicAlerts(alerts)
   }

@@ -75,37 +75,46 @@ export default function DiaryPage() {
 
     const today = new Date()
 
-    const items: RoutineProduct[] = routines.map((r: { id: string; product_id: string; routine_type: string; step_order: number }) => {
+    // Deduplicate by product_id — merge AM+PM into 'both'
+    const seen = new Map<string, RoutineProduct>()
+    for (const r of routines as { id: string; product_id: string; routine_type: string; step_order: number }[]) {
       const p = productMap.get(r.product_id)
       const addedAt = p?.created_at ? new Date(p.created_at) : null
       const daysInRoutine = addedAt
         ? Math.floor((today.getTime() - addedAt.getTime()) / 86400000)
         : 0
 
-      // Compute score delta if product has been in routine 14+ days
       let scoreDelta: number | null = null
       if (daysInRoutine >= 14 && addedAt) {
         const prior  = scores.filter(s => new Date(s.created_at) < addedAt)
         const during = scores.filter(s => new Date(s.created_at) >= addedAt)
-        const avg = (arr: typeof scores) => arr.length ? arr.reduce((s, p) => s + Number(p.overall_skin_score), 0) / arr.length : null
+        const avg = (arr: typeof scores) => arr.length ? arr.reduce((s, ph) => s + Number(ph.overall_skin_score), 0) / arr.length : null
         const pa = avg(prior), da = avg(during)
         if (pa !== null && da !== null) scoreDelta = Math.round((da - pa) * 10) / 10
       }
 
-      return {
-        routine_id:   r.id,
-        product_id:   r.product_id,
-        routine_type: r.routine_type as RoutineType,
-        step_order:   r.step_order,
-        brand:        p?.brand ?? '',
-        name:         p?.name  ?? '—',
-        category:     p?.category ?? null,
-        daysInRoutine,
-        scoreDelta:   daysInRoutine >= 14 ? scoreDelta : undefined,
+      const rType = r.routine_type as RoutineType
+      if (seen.has(r.product_id)) {
+        const existing = seen.get(r.product_id)!
+        if (existing.routine_type !== rType && existing.routine_type !== 'both') {
+          existing.routine_type = 'both'
+        }
+      } else {
+        seen.set(r.product_id, {
+          routine_id:   r.id,
+          product_id:   r.product_id,
+          routine_type: rType,
+          step_order:   r.step_order,
+          brand:        p?.brand ?? '',
+          name:         p?.name  ?? '—',
+          category:     p?.category ?? null,
+          daysInRoutine,
+          scoreDelta:   daysInRoutine >= 14 ? scoreDelta : undefined,
+        })
       }
-    })
+    }
 
-    setProducts(items)
+    setProducts(Array.from(seen.values()))
     setLoading(false)
   }
 
