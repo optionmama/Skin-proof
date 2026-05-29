@@ -58,7 +58,11 @@ export default async function DashboardPage() {
   const firstName = userData?.display_name?.split(' ')[0] || 'there'
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
-  const todaysCheckin = recentCheckins?.find(c => c.checkin_date === todayStr)
+  // Match by checkin_date OR by checked_in_at (handles both old and new check-in flows)
+  const todaysCheckin = recentCheckins?.find(c =>
+    c.checkin_date === todayStr ||
+    (c.checked_in_at && c.checked_in_at.startsWith(todayStr))
+  )
   const streakCount = recentCheckins?.length || 0
   const total = totalCheckins || 0
 
@@ -70,7 +74,10 @@ export default async function DashboardPage() {
     : null
 
   const raw = latestPhoto?.ai_analysis_raw as Record<string, unknown> | null
-  const mainConcern = (raw?.main_concern as string) || null
+  // Read from dedicated column first, fall back to ai_analysis_raw
+  const mainConcern = (latestPhoto as Record<string, unknown> | null)?.main_concern as string
+    || (raw?.main_concern as string)
+    || null
 
   const concernLabels: Record<string, string> = {
     breakouts: 'Breakouts',

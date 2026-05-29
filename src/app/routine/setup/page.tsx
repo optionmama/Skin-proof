@@ -53,7 +53,7 @@ export default function RoutineSetupPage() {
           .order('routine_type')
           .order('step_order')
 
-        if (routineErr) throw new Error(`載入 routine 失敗：${routineErr.message}`)
+        if (routineErr) throw new Error(`Failed to load routine: ${routineErr.message}`)
 
         if (routines && routines.length > 0) {
           // Step 2：用 product_id 清單查詢 user_products
@@ -63,7 +63,7 @@ export default function RoutineSetupPage() {
             .select('id, brand, name, category')
             .in('id', productIds)
 
-          if (productErr) throw new Error(`載入產品資料失敗：${productErr.message}`)
+          if (productErr) throw new Error(`Failed to load product data: ${productErr.message}`)
 
           // 建立 id → product 對照表
           const productMap = new Map<string, any>((products ?? []).map((p: any) => [p.id, p]))

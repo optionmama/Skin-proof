@@ -83,6 +83,29 @@ export async function GET() {
 
   const hasProducts = routines && routines.length > 0
 
+  // Build current routine list for the prompt
+  const routineList = (routines || [])
+    .map((r: { user_products: { brand?: string; name?: string } | null }) => {
+      const p = r.user_products
+      return p ? `${p.brand || ''} ${p.name || ''}`.trim() : null
+    })
+    .filter(Boolean)
+    .filter((v, i, a) => a.indexOf(v) === i) // dedupe
+
+  // Build scan context
+  const scanDimensions = scanRaw?.dimensions as Record<string, number> | null
+  const scanObservations = scanRaw?.visible_observations as string[] | null
+
+  const scanContext = latestScan ? `
+AI scan from ${scanDate}:
+- Main concern detected: ${mainConcern || 'none'}
+- Skin dimensions (0-100, higher = worse): ${scanDimensions ? JSON.stringify(scanDimensions) : 'not available'}
+- Visible observations: ${scanObservations?.join(', ') || 'not available'}` : `No scan yet — using skin profile: ${skinType} skin, concerns: ${profileConcerns.join(', ')}`
+
+  const routineContext = routineList.length > 0
+    ? `\nUser's current routine products (do NOT recommend these): ${routineList.join(', ')}`
+    : ''
+
   // Call Claude for product recommendations
   let aiProducts: { name: string; brand: string; key_ingredient: string; why: string; price_range: string; suitable_for: string }[] = []
 
@@ -99,7 +122,15 @@ export async function GET() {
         max_tokens: 800,
         messages: [{
           role: 'user',
-          content: `Based on skin type: ${skinType}, concerns: ${concerns.join(', ') || 'none'}, recommend 3 real skincare products available in Asia that contain ${ingredientSuggestion.ingredients[0]}.
+          content: `Based on this user's skin data, recommend 3 real skincare products available in Asia (Taiwan/Korea/Japan).
+${scanContext}
+Skin type: ${skinType}${routineContext}
+
+Requirements:
+1. Address the AI-detected main concern (${mainConcern || concerns[0] || 'general skin health'})
+2. Do NOT recommend products already in their routine
+3. Products must be from brands available in Asia
+4. Focus on: ${ingredientSuggestion.ingredients.join(', ')}
 
 Return JSON array only, no other text:
 [
@@ -107,7 +138,7 @@ Return JSON array only, no other text:
     "name": "product name",
     "brand": "brand name",
     "key_ingredient": "main active ingredient",
-    "why": "one sentence why it suits this skin type",
+    "why": "one sentence why it addresses the detected concern",
     "price_range": "approximate price in USD",
     "suitable_for": "skin type description"
   }

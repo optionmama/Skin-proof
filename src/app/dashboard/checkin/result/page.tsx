@@ -115,24 +115,32 @@ function ResultContent() {
     const poll = async () => {
       const { data: photoData } = await supabase
         .from('skin_photos')
-        .select('ai_analysis_raw, overall_skin_score')
+        .select('ai_analysis_raw, overall_skin_score, main_concern, visible_observations, makeup_detected')
         .eq('user_id', user.id)
         .not('overall_skin_score', 'is', null)
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
 
-      if (photoData?.ai_analysis_raw) {
-        const raw = photoData.ai_analysis_raw as Record<string, unknown>
+      if (photoData?.overall_skin_score) {
+        const raw = photoData.ai_analysis_raw as Record<string, unknown> | null
         setAnalysis({
-          overall_score: photoData.overall_skin_score || (raw.overall_score as number) || 70,
-          dimensions: (raw.dimensions as Record<string, number>) || {},
-          main_concern: (raw.main_concern as MainConcern) || 'none',
-          visible_observations: (raw.visible_observations as string[]) || [],
-          makeup_detected: Boolean(raw.makeup_detected),
+          overall_score: photoData.overall_skin_score || (raw?.overall_score as number) || 70,
+          dimensions: (raw?.dimensions as Record<string, number>) || {},
+          // prefer dedicated column, fall back to raw JSON
+          main_concern: (photoData.main_concern as MainConcern)
+            || (raw?.main_concern as MainConcern)
+            || 'none',
+          visible_observations: (photoData.visible_observations as string[])
+            || (raw?.visible_observations as string[])
+            || [],
+          makeup_detected: photoData.makeup_detected ?? Boolean(raw?.makeup_detected),
         })
         setLoading(false)
-        checkProducts(user.id, raw.main_concern as MainConcern)
+        const concern = (photoData.main_concern as MainConcern)
+          || (raw?.main_concern as MainConcern)
+          || 'none'
+        checkProducts(user.id, concern)
       } else if (attempts < 8) {
         attempts++
         setTimeout(poll, 2500)

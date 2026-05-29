@@ -18,29 +18,14 @@ export default async function RecommendationsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: recommendations }, { data: skinProfile }] = await Promise.all([
-    supabase
-      .from('recommendations')
-      .select(`
-        *,
-        product:products(
-          *,
-          prices:product_prices(
-            *,
-            retailer:retailers(name, is_verified_seller, has_affiliate_relationship, affiliate_disclosure)
-          )
-        )
-      `)
-      .eq('user_id', user!.id)
-      .eq('is_dismissed', false)
-      .order('ranking_score', { ascending: false })
-      .limit(20),
-    supabase
-      .from('skin_profiles')
-      .select('primary_concerns, skin_type')
-      .eq('user_id', user!.id)
-      .single(),
-  ])
+  // recommendations table is empty for now (no official products DB)
+  // — always falls through to ForYouEmptyState which uses AI recommendations
+  const { data: recommendations } = await supabase
+    .from('recommendations')
+    .select('id')
+    .eq('user_id', user!.id)
+    .eq('is_dismissed', false)
+    .limit(1)
 
   const hasRecommendations = recommendations && recommendations.length > 0
 
