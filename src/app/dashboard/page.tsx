@@ -10,7 +10,7 @@ export default async function DashboardPage() {
   const [
     { data: userData },
     { data: recentCheckins },
-    { count: productCount },
+    { data: allProducts },
     { count: totalCheckins },
   ] = await Promise.all([
     supabase.from('users').select('display_name').eq('id', user!.id).single(),
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
       .order('checkin_date', { ascending: false })
       .limit(7),
     supabase.from('user_products')
-      .select('*', { count: 'exact', head: true })
+      .select('brand, name')
       .eq('user_id', user!.id)
       .eq('is_active', true),
     supabase.from('skin_checkins')
@@ -45,6 +45,15 @@ export default async function DashboardPage() {
     .eq('is_active', true)
     .order('step_order', { ascending: true })
     .limit(4)
+
+  // Deduplicate products by brand+name to handle duplicate DB entries
+  const seen = new Set<string>()
+  const productCount = (allProducts || []).filter(p => {
+    const key = `${(p.brand || '').toLowerCase()}|${p.name.toLowerCase()}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  }).length
 
   const firstName = userData?.display_name?.split(' ')[0] || 'there'
   const today = new Date()

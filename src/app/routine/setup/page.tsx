@@ -153,14 +153,32 @@ export default function RoutineSetupPage() {
     try {
       const allNew = [...amProducts, ...pmProducts].filter(p => !p.isExisting)
       for (const p of allNew) {
-        const { data: inserted, error } = await supabase
+        // Reuse existing user_product record if same brand+name already saved
+        const { data: existing } = await supabase
           .from('user_products')
-          .insert({ user_id: userId, brand: p.brand, name: p.name, category: p.category || null, is_active: true })
-          .select('id').single()
-        if (error || !inserted) continue
+          .select('id')
+          .eq('user_id', userId)
+          .ilike('name', p.name.trim())
+          .ilike('brand', (p.brand || '').trim())
+          .eq('is_active', true)
+          .limit(1)
+          .single()
+
+        let productId: string
+        if (existing?.id) {
+          productId = existing.id
+        } else {
+          const { data: inserted, error } = await supabase
+            .from('user_products')
+            .insert({ user_id: userId, brand: p.brand, name: p.name, category: p.category || null, is_active: true })
+            .select('id').single()
+          if (error || !inserted) continue
+          productId = inserted.id
+        }
+
         const list = p.routineType === 'am' ? amProducts : pmProducts
         await supabase.from('user_routines').upsert({
-          user_id: userId, product_id: inserted.id, routine_type: p.routineType,
+          user_id: userId, product_id: productId, routine_type: p.routineType,
           step_order: list.findIndex(x => x.id === p.id), is_active: true,
         }, { onConflict: 'user_id,product_id,routine_type' })
       }

@@ -75,7 +75,7 @@ export default function DiaryPage() {
 
     const today = new Date()
 
-    // Deduplicate by product_id — merge AM+PM into 'both'
+    // Deduplicate by brand+name — handles duplicate product_id entries from setup
     const seen = new Map<string, RoutineProduct>()
     for (const r of routines as { id: string; product_id: string; routine_type: string; step_order: number }[]) {
       const p = productMap.get(r.product_id)
@@ -94,13 +94,14 @@ export default function DiaryPage() {
       }
 
       const rType = r.routine_type as RoutineType
-      if (seen.has(r.product_id)) {
-        const existing = seen.get(r.product_id)!
+      const dedupeKey = `${(p?.brand || '').toLowerCase()}|${(p?.name || '').toLowerCase()}`
+      if (seen.has(dedupeKey)) {
+        const existing = seen.get(dedupeKey)!
         if (existing.routine_type !== rType && existing.routine_type !== 'both') {
           existing.routine_type = 'both'
         }
       } else {
-        seen.set(r.product_id, {
+        seen.set(dedupeKey, {
           routine_id:   r.id,
           product_id:   r.product_id,
           routine_type: rType,
