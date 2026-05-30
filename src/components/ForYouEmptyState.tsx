@@ -4,8 +4,26 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Loader2, AlertCircle, Lightbulb, Package, Users, ShoppingCart } from 'lucide-react'
 
-const getGoogleShoppingUrl = (brand: string, name: string) =>
-  `https://www.google.com/search?q=${encodeURIComponent(`${brand} ${name}`)}&tbm=shop`
+const GOOGLE_DOMAINS: Record<string, string> = {
+  Asia:      'https://www.google.com.tw/search',
+  Americas:  'https://www.google.com/search',
+  Europe:    'https://www.google.co.uk/search',
+  Australia: 'https://www.google.com.au/search',
+  Global:    'https://www.google.com/search',
+}
+
+const getGoogleShoppingUrl = (brand: string, name: string, region = 'Global') => {
+  const domain = GOOGLE_DOMAINS[region] || GOOGLE_DOMAINS['Global']
+  return `${domain}?q=${encodeURIComponent(`${brand} ${name}`)}&tbm=shop`
+}
+
+const getRegionFromTimezone = (tz: string): string => {
+  if (tz.startsWith('Asia/')) return 'Asia'
+  if (tz.startsWith('America/')) return 'Americas'
+  if (tz.startsWith('Europe/')) return 'Europe'
+  if (tz.startsWith('Australia/') || tz.startsWith('Pacific/Auckland')) return 'Australia'
+  return 'Global'
+}
 
 interface AiProduct {
   name: string
@@ -13,6 +31,7 @@ interface AiProduct {
   key_ingredient: string
   why: string
   price_range: string
+  available_at?: string
   suitable_for: string
 }
 
@@ -26,6 +45,7 @@ interface RecommendationData {
   productWarnings: { name: string; ingredient: string; concern: string }[]
   hasProducts: boolean
   aiProducts: AiProduct[]
+  userRegion: string
 }
 
 export default function ForYouEmptyState() {
@@ -33,7 +53,9 @@ export default function ForYouEmptyState() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/ai-recommendations')
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const detectedRegion = getRegionFromTimezone(tz)
+    fetch(`/api/ai-recommendations?region=${encodeURIComponent(detectedRegion)}`)
       .then(r => r.json())
       .then(setData)
       .catch(() => setData(null))
@@ -137,11 +159,16 @@ export default function ForYouEmptyState() {
                       </span>
                     </div>
                     <p className="text-xs text-charcoal-600 font-body leading-relaxed">{product.why}</p>
-                    <p className="text-xs text-charcoal-400 font-body mt-1">~{product.price_range}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-charcoal-400 font-body">~{product.price_range}</p>
+                      {product.available_at && (
+                        <p className="text-xs text-sage-600 font-body">📍 {product.available_at}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <a
-                  href={getGoogleShoppingUrl(product.brand, product.name)}
+                  href={getGoogleShoppingUrl(product.brand, product.name, data?.userRegion)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 w-full flex items-center justify-center gap-2 border border-skin-300 text-skin-700 py-2.5 rounded-xl text-xs font-medium hover:bg-skin-50 transition-colors"

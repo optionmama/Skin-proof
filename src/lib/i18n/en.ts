@@ -28,7 +28,7 @@ export const en = {
   },
   products: {
     title: 'What did you use today?',
-    subtitle_with_routine: 'Your routine is pre-selected — uncheck anything you skipped',
+    subtitle_with_routine: 'Swipe left to remove for today · Long press to edit permanently',
     subtitle_no_routine: "You haven't set up your routine yet — add products you used today",
     loading: 'Loading your routine…',
     no_routine_title: 'No routine set up yet',

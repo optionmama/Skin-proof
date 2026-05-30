@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export const maxDuration = 30
@@ -15,12 +15,20 @@ const INGREDIENT_MAP: Record<string, { ingredients: string[]; reason: string }> 
   acne:        { ingredients: ['BHA (Salicylic Acid)', 'Azelaic Acid', 'Tea Tree (low %)'],           reason: 'These target breakouts and calm inflammation without over-drying.' },
 }
 
-export async function GET() {
+const REGION_CONTEXT: Record<string, string> = {
+  Asia:      "Focus on brands available in Taiwan, Korea, Japan, Southeast Asia: COSRX, Innisfree, Laneige, Torriden, Some By Mi, Dr. Jart+, Klairs, Round Lab, Etude.",
+  Americas:  "Focus on brands at US/Canada retailers (Sephora, Ulta, Target, Amazon, CVS): CeraVe, La Roche-Posay, Neutrogena, Paula's Choice, The Ordinary, Drunk Elephant, Tatcha, Kiehl's.",
+  Europe:    "Focus on brands across Europe (Boots, Douglas, Sephora EU, pharmacies): La Roche-Posay, Avène, Bioderma, Eucerin, The Ordinary, Nuxe, Clarins, Vichy.",
+  Australia: "Focus on brands in Australia/NZ (Priceline, Chemist Warehouse, Sephora AU): Aesop, The Ordinary, CeraVe, La Roche-Posay, Jurlique, Sukin.",
+  Global:    "Focus on internationally available brands: The Ordinary, CeraVe, La Roche-Posay, COSRX, Paula's Choice, Kiehl's.",
+}
+
+export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const [{ data: profile }, { data: routines }, { data: latestScan }] = await Promise.all([
+  const [{ data: profile }, { data: routines }, { data: latestScan }, { data: userSettings }] = await Promise.all([
     supabase.from('skin_profiles').select('skin_type, primary_concerns').eq('user_id', user.id).single(),
     supabase
       .from('user_routines')
@@ -35,10 +43,14 @@ export async function GET() {
       .order('created_at', { ascending: false })
       .limit(1)
       .single(),
+    supabase.from('user_settings').select('region').eq('user_id', user.id).single(),
   ])
 
   const skinType = profile?.skin_type || 'normal'
   const profileConcerns = profile?.primary_concerns || []
+  // Region priority: saved setting > client-detected timezone > default
+  const clientRegion = request.nextUrl.searchParams.get('region') || 'Asia'
+  const userRegion = (userSettings as { region?: string } | null)?.region || clientRegion
 
   // Prefer latest scan data over onboarding profile
   const scanRaw = latestScan?.ai_analysis_raw as Record<string, unknown> | null
@@ -122,14 +134,15 @@ AI scan from ${scanDate}:
         max_tokens: 800,
         messages: [{
           role: 'user',
-          content: `Based on this user's skin data, recommend 3 real skincare products available in Asia (Taiwan/Korea/Japan).
+          content: `You are a skincare expert recommending products for a user in ${userRegion}.
+${REGION_CONTEXT[userRegion] || REGION_CONTEXT['Global']}
 ${scanContext}
 Skin type: ${skinType}${routineContext}
 
 Requirements:
-1. Address the AI-detected main concern (${mainConcern || concerns[0] || 'general skin health'})
-2. Do NOT recommend products already in their routine
-3. Products must be from brands available in Asia
+1. Recommend 3 real products ACTUALLY AVAILABLE in ${userRegion}
+2. Address the AI-detected main concern (${mainConcern || concerns[0] || 'general skin health'})
+3. Do NOT recommend products already in the user's routine
 4. Focus on: ${ingredientSuggestion.ingredients.join(', ')}
 
 Return JSON array only, no other text:
@@ -139,7 +152,8 @@ Return JSON array only, no other text:
     "brand": "brand name",
     "key_ingredient": "main active ingredient",
     "why": "one sentence why it addresses the detected concern",
-    "price_range": "approximate price in USD",
+    "price_range": "price in local currency if possible, otherwise USD",
+    "available_at": "where to buy in ${userRegion}",
     "suitable_for": "skin type description"
   }
 ]`,
@@ -166,5 +180,6 @@ Return JSON array only, no other text:
     productWarnings,
     hasProducts,
     aiProducts,
+    userRegion,
   })
 }

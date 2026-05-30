@@ -38,12 +38,21 @@ interface UserSettings {
   notif_tips: boolean
   dark_mode: boolean
   language: string
+  region: string
 }
+
+const REGIONS = [
+  { value: 'Asia',      label: 'Asia',      desc: 'Taiwan · Korea · Japan · Southeast Asia' },
+  { value: 'Americas',  label: 'Americas',  desc: 'US · Canada · Latin America' },
+  { value: 'Europe',    label: 'Europe',    desc: 'UK · EU · Rest of Europe' },
+  { value: 'Australia', label: 'Australia', desc: 'Australia & New Zealand' },
+  { value: 'Global',    label: 'Global',    desc: 'International / online shipping' },
+]
 
 const DEFAULT_SETTINGS: UserSettings = {
   notif_daily_scan: true, notif_daily_scan_time: '08:00',
   notif_weekly_report: true, notif_tips: false,
-  dark_mode: false, language: 'en',
+  dark_mode: false, language: 'en', region: 'Asia',
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -73,7 +82,7 @@ export default function ProfilePage() {
   const [userId, setUserId] = useState<string | null>(null)
 
   // Panel visibility
-  const [panel, setPanel] = useState<'notifications' | 'language' | 'privacy' | null>(null)
+  const [panel, setPanel] = useState<'notifications' | 'language' | 'region' | 'privacy' | null>(null)
   // Privacy actions
   const [confirmDeletePhotos, setConfirmDeletePhotos] = useState(false)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
@@ -333,6 +342,19 @@ export default function ProfilePage() {
             </div>
           </button>
 
+          {/* Region */}
+          <button onClick={() => setPanel('region')}
+            className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
+            <div className="flex items-center gap-3">
+              <Globe size={16} className="text-charcoal-400" />
+              <span className="text-sm text-charcoal-700">Region</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-charcoal-400">{settings.region}</span>
+              <ChevronRight size={16} className="text-charcoal-300" />
+            </div>
+          </button>
+
           {/* Privacy & Data */}
           <button onClick={() => setPanel('privacy')}
             className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
@@ -453,6 +475,34 @@ export default function ProfilePage() {
                 <p className="text-xs text-charcoal-400 font-body mt-4 text-center">
                   Full translation coming soon. Preference saved.
                 </p>
+              </div>
+            )}
+
+            {/* Region panel */}
+            {panel === 'region' && (
+              <div className="px-5 pt-5 pb-8">
+                <div className="w-10 h-1 bg-skin-200 rounded-full mx-auto mb-4" />
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="font-display text-xl font-light text-charcoal-900">Region</h2>
+                  <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-skin-50 rounded-lg"><X size={16} /></button>
+                </div>
+                <p className="text-xs text-charcoal-500 font-body mb-4">
+                  Used to tailor product recommendations to brands available near you.
+                </p>
+                <div className="space-y-2">
+                  {REGIONS.map(r => (
+                    <button key={r.value} onClick={() => saveSettings({ region: r.value })}
+                      className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all text-left ${
+                        settings.region === r.value ? 'border-skin-400 bg-skin-50' : 'border-skin-100 bg-white hover:border-skin-200'
+                      }`}>
+                      <div>
+                        <p className="font-medium text-charcoal-900 text-sm">{r.label}</p>
+                        <p className="text-xs text-charcoal-500 font-body">{r.desc}</p>
+                      </div>
+                      {settings.region === r.value && <Check size={16} className="text-skin-500 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
