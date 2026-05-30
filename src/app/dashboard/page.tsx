@@ -38,13 +38,33 @@ export default async function DashboardPage() {
     .limit(2)
 
   // Products from user_routines for "current routine" preview
-  const { data: routineItems } = await supabase
+  const { data: routineRaw } = await supabase
     .from('user_routines')
     .select('id, routine_type, user_products(brand, name, category)')
     .eq('user_id', user!.id)
     .eq('is_active', true)
     .order('step_order', { ascending: true })
-    .limit(4)
+    .limit(20) // fetch enough to deduplicate properly
+
+  // Deduplicate by brand+name; if same product in AM and PM, show "AM · PM"
+  const routineMap = new Map<string, { id: string; brand: string; name: string; category: string | null; label: string }>()
+  for (const item of routineRaw || []) {
+    const prod = item.user_products as { brand?: string; name?: string; category?: string } | null
+    if (!prod?.name) continue
+    const key = `${(prod.brand || '').toLowerCase()}|${prod.name.toLowerCase()}`
+    if (routineMap.has(key)) {
+      routineMap.get(key)!.label = 'AM · PM'
+    } else {
+      routineMap.set(key, {
+        id: item.id,
+        brand: prod.brand || '',
+        name: prod.name,
+        category: prod.category || null,
+        label: (item.routine_type as string).toUpperCase(),
+      })
+    }
+  }
+  const routineItems = Array.from(routineMap.values()).slice(0, 4)
 
   // Deduplicate products by brand+name to handle duplicate DB entries
   const seen = new Set<string>()
@@ -219,21 +239,18 @@ export default async function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-2">
-            {routineItems.map(item => {
-              const prod = item.user_products as { brand?: string; name?: string; category?: string } | null
-              return (
-                <div key={item.id} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-skin-100">
-                  <div className="w-10 h-10 rounded-lg bg-skin-100 flex items-center justify-center text-skin-600 text-xs font-medium uppercase">
-                    {prod?.category?.slice(0, 2) || '??'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-charcoal-900 truncate">{prod?.name || '—'}</p>
-                    <p className="text-xs text-charcoal-500">{prod?.brand}</p>
-                  </div>
-                  <span className="text-xs text-charcoal-400 font-body uppercase shrink-0">{item.routine_type}</span>
+            {routineItems.map(item => (
+              <div key={item.id} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-skin-100">
+                <div className="w-10 h-10 rounded-lg bg-skin-100 flex items-center justify-center text-skin-600 text-xs font-medium uppercase">
+                  {item.category?.slice(0, 2) || '??'}
                 </div>
-              )
-            })}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-charcoal-900 truncate">{item.name}</p>
+                  <p className="text-xs text-charcoal-500">{item.brand}</p>
+                </div>
+                <span className="text-xs text-charcoal-400 font-body shrink-0">{item.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
