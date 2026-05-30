@@ -44,7 +44,7 @@ export default function RoutineSetupPage() {
         if (authError || !user) { setLoading(false); return }
         setUserId(user.id)
 
-        // Step 1：獨立查詢 user_routines（不使用 embedded join，避免 RLS 靜默失敗）
+        // Step 1: query user_routines separately (avoid embedded join RLS silent failures)
         const { data: routines, error: routineErr } = await supabase
           .from('user_routines')
           .select('id, product_id, routine_type, step_order')
@@ -56,7 +56,7 @@ export default function RoutineSetupPage() {
         if (routineErr) throw new Error(`Failed to load routine: ${routineErr.message}`)
 
         if (routines && routines.length > 0) {
-          // Step 2：用 product_id 清單查詢 user_products
+          // Step 2: fetch user_products by product_id list
           const productIds = [...new Set(routines.map((r: any) => r.product_id))]
           const { data: products, error: productErr } = await supabase
             .from('user_products')
@@ -65,7 +65,7 @@ export default function RoutineSetupPage() {
 
           if (productErr) throw new Error(`Failed to load product data: ${productErr.message}`)
 
-          // 建立 id → product 對照表
+          // Build id → product lookup map
           const productMap = new Map<string, any>((products ?? []).map((p: any) => [p.id, p]))
 
           const am: ProductDraft[] = []
@@ -90,7 +90,7 @@ export default function RoutineSetupPage() {
           setAmProducts(am)
           setPmProducts(pm)
         }
-        // （沒有 routine 時頁面保持空白，讓使用者從頭設定）
+        // (empty state when no routine — user starts from scratch)
       } catch (err: any) {
         setLoadError(err instanceof Error ? err.message : t.routine.load_error_title)
       } finally {

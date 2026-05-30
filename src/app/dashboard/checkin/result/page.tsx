@@ -4,16 +4,14 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Home, BookOpen, TrendingUp, Loader2, Sparkles, AlertCircle } from 'lucide-react'
+import { Home, BookOpen, TrendingUp, Loader2, Sparkles, AlertCircle, Users } from 'lucide-react'
 
-const COMEDOGENIC_INGREDIENTS = [
-  'isopropyl myristate', 'coconut oil', 'lanolin',
-  'wheat germ oil', 'sodium lauryl sulfate', 'algae extract',
-  'cocoa butter', 'flaxseed oil', 'acetylated lanolin',
-]
+const COMEDOGENIC = ['coconut oil', 'lanolin', 'cocoa butter', 'isopropyl myristate', 'mineral oil', 'wheat germ oil']
+const HEAVY       = ['petrolatum', 'dimethicone', 'shea butter']
+const IRRITANTS   = ['fragrance', 'alcohol denat', 'sodium lauryl sulfate', 'menthol', 'eucalyptus']
 
-const BENEFICIAL = ['niacinamide', 'hyaluronic acid', 'ceramide', 'centella', 'vitamin c', 'retinol', 'peptide']
-const IRRITANTS   = ['fragrance', 'parfum', 'alcohol denat', 'sodium lauryl sulfate']
+// Legacy arrays kept for checkProducts function
+const COMEDOGENIC_INGREDIENTS = [...COMEDOGENIC, 'algae extract', 'flaxseed oil', 'acetylated lanolin']
 
 type MainConcern = 'redness' | 'breakouts' | 'dryness' | 'oiliness' | 'pores' | 'none'
 
@@ -91,6 +89,7 @@ function ResultContent() {
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [comedogenicAlerts, setComedogenicAlerts] = useState<{ name: string; flag: string }[]>([])
+  const [routineProducts, setRoutineProducts] = useState<{ name: string; brand: string; notes: string; flag?: string; flagType?: string }[]>([])
   const [noProducts, setNoProducts] = useState(false)
   const [checkinCount, setCheckinCount] = useState(1)
 
@@ -136,28 +135,27 @@ function ResultContent() {
             || [],
           makeup_detected: photoData.makeup_detected ?? Boolean(raw?.makeup_detected),
         })
+        const dimensions = (raw?.dimensions as Record<string, number>) || {}
         setLoading(false)
         const concern = (photoData.main_concern as MainConcern)
           || (raw?.main_concern as MainConcern)
           || 'none'
-        checkProducts(user.id, concern)
+        checkProducts(user.id, concern, dimensions)
       } else if (attempts < 8) {
         attempts++
         setTimeout(poll, 2500)
       } else {
-        // Analysis timed out — still show insight without score
         setLoading(false)
-        checkProducts(user.id, 'none')
+        checkProducts(user.id, 'none', {})
       }
     }
     poll()
   }
 
-  const checkProducts = async (userId: string, mainConcern: MainConcern) => {
-    // Query user_routines → user_products (the active product system)
+  const checkProducts = async (userId: string, mainConcern: MainConcern, dims: Record<string, number>) => {
     const { data: routines } = await supabase
       .from('user_routines')
-      .select('user_products(name, notes)')
+      .select('user_products(name, brand, notes)')
       .eq('user_id', userId)
       .eq('is_active', true)
 
@@ -166,17 +164,41 @@ function ResultContent() {
       return
     }
 
-    if (mainConcern !== 'breakouts') return
+    const oilinessBad  = (dims.oiliness  || 0) > 60
+    const breakoutsBad = (dims.breakouts || 0) > 60
+    const rednessBad   = (dims.redness   || 0) > 60
 
+    // Deduplicate by brand+name
+    const seen = new Set<string>()
+    const products: { name: string; brand: string; notes: string; flag?: string; flagType?: string }[] = []
     const alerts: { name: string; flag: string }[] = []
+
     for (const r of routines) {
-      const p = r.user_products as { name?: string; notes?: string } | null
+      const p = r.user_products as { name?: string; brand?: string; notes?: string } | null
       if (!p?.name) continue
+      const key = `${(p.brand||'').toLowerCase()}|${p.name.toLowerCase()}`
+      if (seen.has(key)) continue
+      seen.add(key)
+
       const notesLower = (p.notes || '').toLowerCase()
-      const hit = COMEDOGENIC_INGREDIENTS.find(c => notesLower.includes(c))
-      if (hit) alerts.push({ name: p.name, flag: hit })
+      let flag: string | undefined
+      let flagType: string | undefined
+
+      if ((oilinessBad || breakoutsBad) && !flag) {
+        const hit = [...COMEDOGENIC, ...HEAVY].find(c => notesLower.includes(c))
+        if (hit) { flag = hit; flagType = 'pores' }
+      }
+      if (rednessBad && !flag) {
+        const hit = IRRITANTS.find(c => notesLower.includes(c))
+        if (hit) { flag = hit; flagType = 'redness' }
+      }
+
+      if (flag) alerts.push({ name: p.name, flag })
+      products.push({ name: p.name, brand: p.brand || '', notes: p.notes || '', flag, flagType })
     }
+
     setComedogenicAlerts(alerts)
+    setRoutineProducts(products)
   }
 
   if (loading) {
@@ -253,37 +275,84 @@ function ResultContent() {
         </div>
       </div>
 
-      {/* Comedogenic alerts */}
-      {comedogenicAlerts.length > 0 && (
-        <div className="space-y-2">
-          {comedogenicAlerts.map((alert, i) => (
-            <div key={i} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
-              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-800 font-body leading-relaxed">
-                <strong>{alert.name}</strong> contains <em>{alert.flag}</em> which may clog pores.
-                Try skipping it for 5 days and see if breakouts improve.
-              </p>
-            </div>
-          ))}
+      {/* ── Task 3: Your routine today ── */}
+      <div className="bg-white rounded-2xl border border-skin-100 overflow-hidden">
+        <div className="px-4 pt-4 pb-3 border-b border-skin-50">
+          <h2 className="font-display text-lg font-light text-charcoal-900">Your routine today</h2>
+          <p className="text-xs text-charcoal-500 font-body">Checked against today&apos;s AI results</p>
         </div>
-      )}
 
-      {/* No products prompt */}
-      {noProducts && (
-        <div className="bg-white border border-skin-200 rounded-2xl p-4 flex items-start gap-3">
-          <span className="text-lg shrink-0">📝</span>
-          <div>
-            <p className="text-sm font-medium text-charcoal-800">Add your products</p>
-            <p className="text-xs text-charcoal-500 font-body mt-0.5 mb-2">
-              Log what you&apos;re using and next time I can check if any ingredients are causing issues.
-            </p>
-            <Link href="/dashboard/diary/add"
-              className="inline-flex items-center gap-1.5 bg-skin-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium">
-              <BookOpen className="w-3.5 h-3.5" /> Add products
-            </Link>
+        {noProducts ? (
+          <div className="p-4 flex items-start gap-3">
+            <span className="text-lg shrink-0">📝</span>
+            <div>
+              <p className="text-sm text-charcoal-700 font-body leading-relaxed">
+                Add products to your Diary and we&apos;ll check if they suit today&apos;s skin condition.
+              </p>
+              <Link href="/dashboard/diary/add"
+                className="inline-flex items-center gap-1.5 text-xs text-skin-600 font-medium mt-2 underline">
+                <BookOpen className="w-3 h-3" /> Go to Diary →
+              </Link>
+            </div>
           </div>
+        ) : (
+          <div className="divide-y divide-skin-50">
+            {routineProducts.map((p, i) => (
+              <div key={i} className="px-4 py-3 flex items-start gap-3">
+                {p.flag ? (
+                  <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                ) : (
+                  <span className="text-sm shrink-0 mt-0.5">✅</span>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-charcoal-900">
+                    {p.brand && <span className="text-charcoal-500 font-normal">{p.brand} </span>}
+                    {p.name}
+                  </p>
+                  {p.flag ? (
+                    <p className="text-xs text-amber-700 font-body mt-0.5">
+                      Contains <em>{p.flag}</em> which may worsen{' '}
+                      {p.flagType === 'pores' ? 'oiliness or breakouts' : 'redness'}.
+                      Consider skipping tonight.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-charcoal-400 font-body mt-0.5">
+                      Good choice for today&apos;s skin condition.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Task 4: Community teaser ── */}
+      <div className="bg-cream-50 border border-cream-200 rounded-2xl p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="w-4 h-4 text-charcoal-500" />
+          <h3 className="text-sm font-semibold text-charcoal-800">What works for skin like yours</h3>
         </div>
-      )}
+        <p className="text-xs text-charcoal-600 font-body leading-relaxed mb-3">
+          Right now your recommendations are AI-based. As more users join SkinProof,
+          you&apos;ll be able to see exactly what products helped people with:
+        </p>
+        <ul className="space-y-1 mb-3">
+          {['Same skin type as you', 'Similar concerns (oiliness, pores, etc.)', 'Your age group'].map(item => (
+            <li key={item} className="flex items-center gap-2 text-xs text-charcoal-600 font-body">
+              <span className="w-1 h-1 rounded-full bg-skin-400 shrink-0" />
+              {item}
+            </li>
+          ))}
+        </ul>
+        <p className="text-xs text-charcoal-600 font-body mb-3">
+          …reach a skin score of 85+. Real results. Real people. No guesswork.
+        </p>
+        <div className="inline-flex items-center gap-1.5 bg-white border border-cream-300 rounded-full px-3 py-1.5">
+          <span className="w-2 h-2 rounded-full bg-red-400" />
+          <span className="text-xs text-charcoal-600 font-body">Community data: building — be an early tracker</span>
+        </div>
+      </div>
 
       {/* Come back tomorrow */}
       <p className="text-xs text-center text-charcoal-400 font-body">

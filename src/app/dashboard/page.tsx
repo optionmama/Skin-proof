@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { TrendingUp, Sparkles, ChevronRight, ArrowRight } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import RoutineList from '@/components/RoutineList'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -40,14 +41,14 @@ export default async function DashboardPage() {
   // Products from user_routines for "current routine" preview
   const { data: routineRaw } = await supabase
     .from('user_routines')
-    .select('id, routine_type, user_products(brand, name, category)')
+    .select('id, product_id, routine_type, user_products(brand, name, category)')
     .eq('user_id', user!.id)
     .eq('is_active', true)
     .order('step_order', { ascending: true })
-    .limit(20) // fetch enough to deduplicate properly
+    .limit(20)
 
   // Deduplicate by brand+name; if same product in AM and PM, show "AM · PM"
-  const routineMap = new Map<string, { id: string; brand: string; name: string; category: string | null; label: string }>()
+  const routineMap = new Map<string, { id: string; productId: string; brand: string; name: string; category: string | null; label: string }>()
   for (const item of routineRaw || []) {
     const prod = item.user_products as { brand?: string; name?: string; category?: string } | null
     if (!prod?.name) continue
@@ -57,6 +58,7 @@ export default async function DashboardPage() {
     } else {
       routineMap.set(key, {
         id: item.id,
+        productId: item.product_id as string,
         brand: prod.brand || '',
         name: prod.name,
         category: prod.category || null,
@@ -238,20 +240,7 @@ export default async function DashboardPage() {
               Edit <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="space-y-2">
-            {routineItems.map(item => (
-              <div key={item.id} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-skin-100">
-                <div className="w-10 h-10 rounded-lg bg-skin-100 flex items-center justify-center text-skin-600 text-xs font-medium uppercase">
-                  {item.category?.slice(0, 2) || '??'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-charcoal-900 truncate">{item.name}</p>
-                  <p className="text-xs text-charcoal-500">{item.brand}</p>
-                </div>
-                <span className="text-xs text-charcoal-400 font-body shrink-0">{item.label}</span>
-              </div>
-            ))}
-          </div>
+          <RoutineList items={routineItems} />
         </div>
       )}
     </div>

@@ -146,7 +146,7 @@ export default function ProfilePage() {
 
       <div className="max-w-lg mx-auto px-4 -mt-8 space-y-4 pb-8">
 
-        {/* ── 我的保養品 Routine（新增區塊）── */}
+        {/* Skincare Routine section */}
         <Link
           href="/routine/setup"
           className="flex items-center justify-between bg-white border border-skin-100 rounded-2xl px-5 py-4 hover:bg-skin-50 transition-colors"
