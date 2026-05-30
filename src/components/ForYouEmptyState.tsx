@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Loader2, AlertCircle, Lightbulb, Package, Users } from 'lucide-react'
+import { Loader2, AlertCircle, Lightbulb, Package, Users, ShoppingCart } from 'lucide-react'
+
+const getGoogleShoppingUrl = (brand: string, name: string) =>
+  `https://www.google.com/search?q=${encodeURIComponent(`${brand} ${name}`)}&tbm=shop`
 
 interface AiProduct {
   name: string
@@ -137,6 +140,15 @@ export default function ForYouEmptyState() {
                     <p className="text-xs text-charcoal-400 font-body mt-1">~{product.price_range}</p>
                   </div>
                 </div>
+                <a
+                  href={getGoogleShoppingUrl(product.brand, product.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 w-full flex items-center justify-center gap-2 border border-skin-300 text-skin-700 py-2.5 rounded-xl text-xs font-medium hover:bg-skin-50 transition-colors"
+                >
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  Find best price on Google Shopping ↗
+                </a>
               </div>
             ))}
             <p className="text-xs text-charcoal-400 font-body text-center px-4 leading-relaxed">
