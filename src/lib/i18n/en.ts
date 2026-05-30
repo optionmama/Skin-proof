@@ -87,7 +87,7 @@ export const en = {
       "As SkinProof grows, you'll see what products helped people with skin like yours reach a score of 85+. Real results. Real people. No guesswork.",
     community_badge: 'Community data: coming soon',
     based_on_profile_section: 'Based on your skin profile',
-    here_is_what: 'Here's what we recommend right now',
+    here_is_what: "Here's what we recommend right now",
   },
   home: {
     checkin_prompt: "Start today's skin check",
@@ -95,7 +95,7 @@ export const en = {
     checkin_step2: 'Step 2: Confirm your products',
     checkin_step3: 'Step 3: Get your skin report',
     checkin_cta: 'Start Daily Check-in',
-    checkin_done_label: 'Today's check-in complete',
+    checkin_done_label: "Today's check-in complete",
     view_report: "View today's report →",
     streak: 'Day streak',
     skin_score: 'Skin score',
