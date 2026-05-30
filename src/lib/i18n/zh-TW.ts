@@ -86,7 +86,7 @@ export const zhTW: Translations = {
     ai_detected: 'AI 偵測到',
     community_title: '加入的人越多，推薦就越聰明 🌟',
     community_body:
-      '隨著 SkinProof 用戶增加，你將能看到和你膚質相同的人，用了什麼產品讓分數達到 85 分以上。真實數據，真實用戶。',
+      '隨著 SkinProof 用戶增加，你將能看到和你膚質相同的人，用了什麼產品讓分數達到 75 分或 80 分以上。真實數據，真實用戶。',
     community_badge: '社群數據：即將推出',
     based_on_profile_section: '根據你的膚質資料',
     here_is_what: '以下是目前的建議',

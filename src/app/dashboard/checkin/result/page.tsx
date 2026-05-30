@@ -334,19 +334,21 @@ function ResultContent() {
           <h3 className="text-sm font-semibold text-charcoal-800">What works for skin like yours</h3>
         </div>
         <p className="text-xs text-charcoal-600 font-body leading-relaxed mb-3">
-          Right now your recommendations are AI-based. As more users join SkinProof,
-          you&apos;ll be able to see exactly what products helped people with:
+          As more users join, you&apos;ll see what products helped people like you reach:
         </p>
-        <ul className="space-y-1 mb-3">
-          {['Same skin type as you', 'Similar concerns (oiliness, pores, etc.)', 'Your age group'].map(item => (
-            <li key={item} className="flex items-center gap-2 text-xs text-charcoal-600 font-body">
-              <span className="w-1 h-1 rounded-full bg-skin-400 shrink-0" />
-              {item}
-            </li>
-          ))}
-        </ul>
-        <p className="text-xs text-charcoal-600 font-body mb-3">
-          …reach a skin score of 85+. Real results. Real people. No guesswork.
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2">
+            <span className="text-sm">🟡</span>
+            <span className="text-xs text-charcoal-700 font-body"><strong>75+ score</strong> — working well</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2">
+            <span className="text-sm">🟢</span>
+            <span className="text-xs text-charcoal-700 font-body"><strong>80+ score</strong> — working great</span>
+          </div>
+        </div>
+        <p className="text-xs text-charcoal-500 font-body mb-3">
+          Same skin type · Similar concerns · Your age group.<br />
+          Real results. Real people. No guesswork.
         </p>
         <div className="inline-flex items-center gap-1.5 bg-white border border-cream-300 rounded-full px-3 py-1.5">
           <span className="w-2 h-2 rounded-full bg-red-400" />

@@ -84,7 +84,7 @@ export const en = {
     ai_detected: 'AI detected',
     community_title: 'The more people join, the smarter this gets 🌟',
     community_body:
-      "As SkinProof grows, you'll see what products helped people with skin like yours reach a score of 85+. Real results. Real people. No guesswork.",
+      "As SkinProof grows, you'll see what products helped people with skin like yours reach a score of 75+ or 80+. Real results. Real people. No guesswork.",
     community_badge: 'Community data: coming soon',
     based_on_profile_section: 'Based on your skin profile',
     here_is_what: "Here's what we recommend right now",

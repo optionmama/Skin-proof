@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Loader2, AlertCircle, Lightbulb, Package, Users, ShoppingCart } from 'lucide-react'
+import { Loader2, AlertCircle, Lightbulb, Package, ShoppingCart } from 'lucide-react'
+import CommunityPicks from './CommunityPicks'
 
 const GOOGLE_DOMAINS: Record<string, string> = {
   Asia:      'https://www.google.com.tw/search',
@@ -186,23 +187,8 @@ export default function ForYouEmptyState() {
         )}
       </div>
 
-      {/* Section B — Community teaser */}
-      <div className="bg-charcoal-900 rounded-2xl p-5 text-center">
-        <Users className="w-6 h-6 text-skin-300 mx-auto mb-3" />
-        <h3 className="font-display text-lg font-light text-white mb-2">
-          The more people join, the smarter this gets 🌟
-        </h3>
-        <p className="text-xs text-charcoal-300 font-body leading-relaxed mb-3">
-          Right now, recommendations are based on your skin profile and ingredient analysis.
-          As SkinProof grows, you&apos;ll be able to see exactly what products helped people with
-          skin like yours — same skin type, same concerns, same age range — reach a skin score of 85+.
-          <br /><br />
-          Real results. Real people. No guesswork.
-        </p>
-        <span className="inline-block text-xs text-charcoal-500 border border-charcoal-700 px-3 py-1 rounded-full">
-          Community data: coming soon
-        </span>
-      </div>
+      {/* Section B — Live Community Picks (75+ and 80+) */}
+      <CommunityPicks region={data?.userRegion} />
     </div>
   )
 }
