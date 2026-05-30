@@ -1,5 +1,5 @@
 # SkinProof 專案進度報告
-最後更新：2026-05-30
+最後更新：2026-05-30（第二次更新）
 
 ---
 
@@ -56,6 +56,22 @@
 | `src/app/routine/setup/page.tsx` | 4 個中文 code comments → English |
 | `src/app/dashboard/profile/page.tsx` | 1 個中文 JSX comment → English |
 
+### Session 2 (2026-05-30 afternoon)
+
+| Task | 檔案 | 完成內容 |
+|------|------|---------|
+| Google Shopping | `src/components/ForYouEmptyState.tsx` | 每個 AI 推薦產品卡底部加「🛒 Find best price on Google Shopping ↗」按鈕 |
+| Profile 設定修復 | `src/app/dashboard/profile/page.tsx` | Notifications / Dark Mode / Language / Privacy & Data 四個設定全部有效 |
+| Notifications | profile page | Bottom-sheet：3 個 toggle + 時間選擇器，自動存到 `user_settings` |
+| Dark Mode | profile page | 即時 toggle，套用 `dark` class 到 `<html>`，存到 `user_settings` |
+| Language | profile page | Bottom-sheet：English / 繁體中文，存到 `user_settings.language` |
+| Privacy & Data | profile page | Bottom-sheet：Delete all photos（confirm）/ Delete account（confirm） |
+| Copyright year | profile page | 2025 → 2026 |
+| Age Range display | profile page | Skin Profile 區塊新增 Age Range 欄位 |
+| user_settings table | Supabase SQL | 建立 table + RLS policy |
+
+### Session 1 (2026-05-30 morning)
+
 ### Previous session (2026-05-29 continued)
 
 - Fixed build-breaking syntax error in `en.ts` (unescaped apostrophes → all previous fixes now deployed)
@@ -81,7 +97,9 @@
 | For You (推薦) | ✅ | AI 推薦基於最新掃描（非 onboarding concerns） |
 | Routine compatibility check | ✅ | 今日 routine 相容性顯示於結果頁 |
 | Community teaser | ✅ | 靜態卡片，預告社群功能 |
-| Profile page | ✅ | routine count 顯示 |
+| Google Shopping 連結 | ✅ | For You AI 推薦每張產品卡都有 Google Shopping 搜尋按鈕 |
+| user_settings table | ✅ | Supabase 已建立，含 RLS policy |
+| Profile page | ✅ | 設定全部有效（Notifications/DarkMode/Language/Privacy）；Age Range 顯示 |
 | i18n 架構 | ✅ | en.ts + zh-TW.ts，全站英文 |
 | 語言切換 UI | ❌ | 架構建好，Profile 無語言 selector |
 | 定期膚質報告 | ❌ | 未開始 |
