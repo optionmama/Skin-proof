@@ -56,6 +56,20 @@
 | `src/app/routine/setup/page.tsx` | 4 個中文 code comments → English |
 | `src/app/dashboard/profile/page.tsx` | 1 個中文 JSX comment → English |
 
+### Session 3 (2026-05-30 evening)
+
+| Task | 檔案 | 完成內容 |
+|------|------|---------|
+| Swipe-to-delete | `ProductsStep.tsx` | SwipeRow 組件：左滑 70px 顯示 Edit(橘) + Remove(紅) 按鈕 |
+| Edit product | `ProductsStep.tsx` | Long press 或 Edit button 開啟 bottom-sheet，永久更新 user_products + user_routines |
+| Fix product count | `ProductsStep.tsx` | checkedCount 用 brand\|name Set 去重，不再重複計算 AM+PM |
+| New subtitle | `en.ts` | "Swipe left to remove for today · Long press to edit permanently" |
+| Region detection | `ForYouEmptyState.tsx` | Intl.DateTimeFormat() 偵測時區 → 對應 Region → 傳入 API |
+| Region-aware recs | `ai-recommendations/route.ts` | 5 個 region 各有品牌推薦清單；Claude prompt 加入 "ACTUALLY AVAILABLE in [region]" |
+| Region-specific Shopping | `ForYouEmptyState.tsx` | Google Shopping 改用 google.com.tw/.co.uk/.com.au 等地區域名 |
+| Region profile setting | `profile/page.tsx` | Settings 加 Region panel，5 個選項，存到 user_settings.region |
+| user_settings.region | Supabase SQL | `ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS region TEXT DEFAULT 'Asia'` |
+
 ### Session 2 (2026-05-30 afternoon)
 
 | Task | 檔案 | 完成內容 |
@@ -97,8 +111,11 @@
 | For You (推薦) | ✅ | AI 推薦基於最新掃描（非 onboarding concerns） |
 | Routine compatibility check | ✅ | 今日 routine 相容性顯示於結果頁 |
 | Community teaser | ✅ | 靜態卡片，預告社群功能 |
-| Google Shopping 連結 | ✅ | For You AI 推薦每張產品卡都有 Google Shopping 搜尋按鈕 |
-| user_settings table | ✅ | Supabase 已建立，含 RLS policy |
+| Google Shopping 連結 | ✅ | For You AI 推薦每張產品卡都有 Google Shopping 搜尋按鈕（地區域名） |
+| user_settings table | ✅ | Supabase 已建立，含 RLS policy；新增 region 欄位 |
+| Check-in swipe-delete | ✅ | Products step 可左滑刪除（session only）+ long press 永久編輯 |
+| Product count fix | ✅ | 確認唯一計數，不重複 AM+PM |
+| Region-aware recs | ✅ | 自動偵測時區 → 地區品牌推薦；Profile 可手動設定 |
 | Profile page | ✅ | 設定全部有效（Notifications/DarkMode/Language/Privacy）；Age Range 顯示 |
 | i18n 架構 | ✅ | en.ts + zh-TW.ts，全站英文 |
 | 語言切換 UI | ❌ | 架構建好，Profile 無語言 selector |
