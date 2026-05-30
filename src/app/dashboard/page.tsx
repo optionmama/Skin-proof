@@ -3,10 +3,12 @@ import Link from 'next/link'
 import { TrendingUp, Sparkles, ChevronRight, ArrowRight } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import RoutineList from '@/components/RoutineList'
+import { getT } from '@/lib/i18n/server'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const t = await getT()
 
   const [
     { data: userData },
@@ -79,6 +81,8 @@ export default async function DashboardPage() {
 
   const firstName = userData?.display_name?.split(' ')[0] || 'there'
   const today = new Date()
+  const hour = today.getHours()
+  const greeting = hour < 12 ? t('home_greeting_morning') : hour < 18 ? t('home_greeting_afternoon') : t('home_greeting_evening')
   const todayStr = today.toISOString().split('T')[0]
   // Match by checkin_date OR by checked_in_at (handles both old and new check-in flows)
   const todaysCheckin = recentCheckins?.find(c =>
@@ -117,7 +121,7 @@ export default async function DashboardPage() {
         <div>
           <p className="text-charcoal-500 text-sm font-body">{formatDate(today)}</p>
           <h1 className="font-display text-3xl font-light text-charcoal-900">
-            Good morning, <em className="text-skin-500">{firstName}</em>
+            {greeting}, <em className="text-skin-500">{firstName}</em>
           </h1>
         </div>
         <Link href="/dashboard/profile"
@@ -178,7 +182,7 @@ export default async function DashboardPage() {
             </div>
             <Link href={`/dashboard/checkin/result?checkin_id=${todaysCheckin.id}`}
               className="bg-white/20 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/30 transition-colors text-center shrink-0">
-              View today&apos;s<br />report →
+              {t('home_view_report')}
             </Link>
           </div>
         </div>
@@ -189,8 +193,8 @@ export default async function DashboardPage() {
         <span className="text-sm shrink-0">{total >= 14 ? '💚' : '🔬'}</span>
         <p className="text-xs text-charcoal-600 font-body">
           {total >= 14
-            ? `Great consistency! Your skin trends are now reliable 💚`
-            : <>You&apos;ve tracked <strong>{total} day{total !== 1 ? 's' : ''}</strong> — results sharpen after 14 days 🔬</>
+            ? t('home_great_consistency')
+            : t('home_progress_nudge', { days: total })
           }
         </p>
       </div>
@@ -199,17 +203,17 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="bg-white rounded-xl p-3 border border-skin-100 text-center">
           <p className="font-display text-2xl font-light text-charcoal-900">{streakCount}</p>
-          <p className="text-xs text-charcoal-500 font-body">Day streak</p>
+          <p className="text-xs text-charcoal-500 font-body">{t('home_day_streak')}</p>
         </div>
         <div className="bg-white rounded-xl p-3 border border-skin-100 text-center">
           <p className="font-display text-2xl font-light text-charcoal-900">
             {latestScore ? Math.round(latestScore) : '—'}
           </p>
-          <p className="text-xs text-charcoal-500 font-body">Skin score</p>
+          <p className="text-xs text-charcoal-500 font-body">{t('home_skin_score')}</p>
         </div>
         <div className="bg-white rounded-xl p-3 border border-skin-100 text-center">
           <p className="font-display text-2xl font-light text-charcoal-900">{productCount || 0}</p>
-          <p className="text-xs text-charcoal-500 font-body">Products</p>
+          <p className="text-xs text-charcoal-500 font-body">{t('home_products')}</p>
         </div>
       </div>
 
@@ -220,14 +224,14 @@ export default async function DashboardPage() {
           <div className="w-8 h-8 rounded-lg bg-sage-50 text-sage-600 flex items-center justify-center">
             <TrendingUp className="w-4 h-4" />
           </div>
-          <span className="text-sm font-medium text-charcoal-800">📊 My Progress</span>
+          <span className="text-sm font-medium text-charcoal-800">{t('home_my_progress')}</span>
         </Link>
         <Link href="/dashboard/recommendations"
           className="flex items-center gap-3 p-4 bg-white rounded-xl border border-cream-200 hover:shadow-sm transition-all active:scale-95">
           <div className="w-8 h-8 rounded-lg bg-cream-100 text-cream-600 flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </div>
-          <span className="text-sm font-medium text-charcoal-800">✨ For You</span>
+          <span className="text-sm font-medium text-charcoal-800">{t('home_for_you')}</span>
         </Link>
       </div>
 
@@ -235,7 +239,7 @@ export default async function DashboardPage() {
       {routineItems && routineItems.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-xl font-light text-charcoal-900">Current routine</h2>
+            <h2 className="font-display text-xl font-light text-charcoal-900">{t('home_current_routine')}</h2>
             <Link href="/routine/setup" className="text-xs text-skin-600 font-medium flex items-center gap-1">
               Edit <ChevronRight className="w-3 h-3" />
             </Link>

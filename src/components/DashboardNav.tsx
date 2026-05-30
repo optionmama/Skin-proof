@@ -5,20 +5,22 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Home, Camera, BookOpen, TrendingUp, Sparkles, User } from 'lucide-react'
-
-const navItems = [
-  { href: '/dashboard',                 label: 'Home',       icon: Home },
-  { href: '/checkin',                   label: 'Daily Scan', icon: Camera, checkinTab: true },
-  { href: '/dashboard/diary',           label: 'Diary',      icon: BookOpen },
-  { href: '/dashboard/progress',        label: 'Progress',   icon: TrendingUp },
-  { href: '/dashboard/recommendations', label: 'For You',    icon: Sparkles },
-  { href: '/dashboard/profile',         label: 'Profile',    icon: User },
-]
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function DashboardNav() {
   const pathname = usePathname()
   const supabase = createClient()
+  const { t } = useLanguage()
   const [checkedInToday, setCheckedInToday] = useState(true)
+
+  const navItems = [
+    { href: '/dashboard',                 label: t('nav_home'),       icon: Home },
+    { href: '/checkin',                   label: t('nav_daily_scan'), icon: Camera, checkinTab: true },
+    { href: '/dashboard/diary',           label: t('nav_diary'),      icon: BookOpen },
+    { href: '/dashboard/progress',        label: t('nav_progress'),   icon: TrendingUp },
+    { href: '/dashboard/recommendations', label: t('nav_for_you'),    icon: Sparkles },
+    { href: '/dashboard/profile',         label: t('nav_profile'),    icon: User },
+  ]
 
   useEffect(() => {
     const check = async () => {

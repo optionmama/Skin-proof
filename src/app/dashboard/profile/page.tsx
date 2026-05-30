@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { createClient } from '@/lib/supabase/client'
 import {
   User, Shield, Bell, ChevronRight, LogOut, Edit2, Moon, Sun,
@@ -53,6 +54,33 @@ const DEFAULT_SETTINGS: UserSettings = {
   notif_daily_scan: true, notif_daily_scan_time: '08:00',
   notif_weekly_report: true, notif_tips: false,
   dark_mode: false, language: 'en', region: 'Asia',
+}
+
+const LANG_OPTIONS = [
+  { value: 'en',    label: 'English',   sub: 'English' },
+  { value: 'zh-TW', label: '繁體中文', sub: 'Traditional Chinese' },
+  { value: 'zh-CN', label: '简体中文', sub: 'Simplified Chinese' },
+]
+
+function LangSelector({ currentLang, onSave }: { currentLang: string; onSave: (l: string) => Promise<void> }) {
+  const { setLang } = useLanguage()
+  return (
+    <div className="space-y-2">
+      {LANG_OPTIONS.map(opt => (
+        <button key={opt.value} onClick={async () => { await onSave(opt.value); setLang(opt.value as 'en' | 'zh-TW' | 'zh-CN') }}
+          className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+            currentLang === opt.value ? 'border-skin-400 bg-skin-50' : 'border-skin-100 bg-white hover:border-skin-200'
+          }`}>
+          <div>
+            <p className="font-medium text-charcoal-900 text-sm">{opt.label}</p>
+            <p className="text-xs text-charcoal-400">{opt.sub}</p>
+          </div>
+          {currentLang === opt.value && <Check size={16} className="text-skin-500" />}
+        </button>
+      ))}
+      <p className="text-xs text-charcoal-400 font-body pt-1 text-center">App switches immediately.</p>
+    </div>
+  )
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -337,7 +365,7 @@ export default function ProfilePage() {
               <span className="text-sm text-charcoal-700">Language</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-charcoal-400">{settings.language === 'zh-TW' ? '繁體中文' : 'English'}</span>
+              <span className="text-xs text-charcoal-400">{LANG_OPTIONS.find(o => o.value === settings.language)?.label || 'English'}</span>
               <ChevronRight size={16} className="text-charcoal-300" />
             </div>
           </button>
@@ -461,20 +489,7 @@ export default function ProfilePage() {
                   <h2 className="font-display text-xl font-light text-charcoal-900">Language</h2>
                   <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-skin-50 rounded-lg"><X size={16} /></button>
                 </div>
-                <div className="space-y-2">
-                  {[{ value: 'en', label: 'English' }, { value: 'zh-TW', label: '繁體中文' }].map(lang => (
-                    <button key={lang.value} onClick={() => saveSettings({ language: lang.value })}
-                      className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                        settings.language === lang.value ? 'border-skin-400 bg-skin-50' : 'border-skin-100 bg-white hover:border-skin-200'
-                      }`}>
-                      <span className="font-medium text-charcoal-900">{lang.label}</span>
-                      {settings.language === lang.value && <Check size={16} className="text-skin-500" />}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-charcoal-400 font-body mt-4 text-center">
-                  Full translation coming soon. Preference saved.
-                </p>
+                <LangSelector currentLang={settings.language} onSave={async (l) => { await saveSettings({ language: l }) }} />
               </div>
             )}
 

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
+import { LanguageProvider } from '@/lib/i18n/LanguageContext'
 
 export const metadata: Metadata = {
   title: {
@@ -46,7 +47,7 @@ export default function RootLayout({
       </head>
       <body className="grain-overlay min-h-screen bg-skin-50">
         <ServiceWorkerRegistration />
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   )
