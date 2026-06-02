@@ -59,8 +59,12 @@ your best estimate based on the brand and product name.`
     })
     if (!res.ok) return null
     const data = await res.json()
-    const raw = data.content?.[0]?.text || ''
-    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+    const raw = (data.content?.[0]?.text || '').replace(/```json|```/g, '').trim()
+    // Robustly extract the first balanced JSON object (model may append prose)
+    const start = raw.indexOf('{')
+    const end = raw.lastIndexOf('}')
+    if (start === -1 || end === -1 || end < start) return null
+    const parsed = JSON.parse(raw.slice(start, end + 1))
     return parsed as IngredientsData
   } catch {
     return null

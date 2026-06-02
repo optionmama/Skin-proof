@@ -77,8 +77,11 @@ Return ONLY valid JSON, no other text:
     })
     if (res.ok) {
       const data = await res.json()
-      const raw = data.content?.[0]?.text || '[]'
-      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+      const raw = (data.content?.[0]?.text || '[]').replace(/```json|```/g, '').trim()
+      const start = raw.indexOf('[')
+      const end = raw.lastIndexOf(']')
+      const slice = start !== -1 && end !== -1 && end > start ? raw.slice(start, end + 1) : '[]'
+      const parsed = JSON.parse(slice)
       products = Array.isArray(parsed) ? parsed.filter((p) => !isSunscreen(p)) : []
     }
   } catch {

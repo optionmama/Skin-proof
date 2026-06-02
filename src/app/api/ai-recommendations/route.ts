@@ -178,8 +178,10 @@ Return JSON array only, no other text:
 
     if (aiResponse.ok) {
       const data = await aiResponse.json()
-      const raw = data.content?.[0]?.text || '[]'
-      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+      const rawText = (data.content?.[0]?.text || '[]').replace(/```json|```/g, '').trim()
+      const s = rawText.indexOf('['), e = rawText.lastIndexOf(']')
+      const raw = s !== -1 && e !== -1 && e > s ? rawText.slice(s, e + 1) : '[]'
+      const parsed = JSON.parse(raw)
       const isSunscreen = (p: { name?: string; brand?: string; key_ingredient?: string; suitable_for?: string }) => {
         const text = `${p.name} ${p.brand} ${p.key_ingredient} ${p.suitable_for}`.toLowerCase()
         return ['spf', 'sunscreen', 'uv', 'sun protection', 'pa+'].some(kw => text.includes(kw))
