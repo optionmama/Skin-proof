@@ -2,40 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Sparkles, Package, ExternalLink, Star } from 'lucide-react'
 import type { Recommendation } from '@/types/database'
-import ForYouEmptyState from '@/components/ForYouEmptyState'
-
-const COMEDOGENIC_INGREDIENTS = ['coconut oil', 'lanolin', 'cocoa butter', 'isopropyl myristate', 'mineral oil', 'wheat germ oil', 'acetylated lanolin']
-const IRRITATING_INGREDIENTS  = ['fragrance', 'parfum', 'alcohol denat', 'denatured alcohol', 'sodium lauryl sulfate', 'menthol', 'eucalyptus']
-const OCCLUSIVE_INGREDIENTS   = ['petrolatum', 'shea butter', 'dimethicone']
-
-function checkCompatibility(
-  notes: string,
-  dimensions: Record<string, number> | null
-): { status: 'ok' | 'warning' | 'info'; message: string } {
-  const lower = notes.toLowerCase()
-  const d = dimensions || {}
-
-  const isComedogenicRisk = d.breakouts > 50 || d.oiliness > 65
-  const isIrritantRisk    = d.redness > 55 || (d.calmness !== undefined && d.calmness < 60)
-  const isOcclRisk        = d.oiliness > 65
-
-  for (const ing of COMEDOGENIC_INGREDIENTS) {
-    if (lower.includes(ing) && isComedogenicRisk) {
-      return { status: 'warning', message: `Contains ${ing} which may clog pores and worsen breakouts. Consider skipping tonight.` }
-    }
-  }
-  for (const ing of IRRITATING_INGREDIENTS) {
-    if (lower.includes(ing) && isIrritantRisk) {
-      return { status: 'warning', message: `Contains ${ing} which may increase redness or irritation. Use with caution today.` }
-    }
-  }
-  for (const ing of OCCLUSIVE_INGREDIENTS) {
-    if (lower.includes(ing) && isOcclRisk) {
-      return { status: 'warning', message: `Contains ${ing} which may feel heavy on oily skin. Try a lighter alternative tonight.` }
-    }
-  }
-  return { status: 'ok', message: 'Compatible with your skin today.' }
-}
+import ForYouEmptyState, { type RoutineProduct } from '@/components/ForYouEmptyState'
 
 function ConfidenceBadge({ communityScore, type }: { communityScore?: number; type?: string }) {
   if (type === 'community' || (communityScore && communityScore >= 60)) {
@@ -71,7 +38,7 @@ export default async function RecommendationsPage({
       .limit(1),
     supabase
       .from('user_routines')
-      .select('product_id, user_products(brand, name, notes)')
+      .select('product_id, routine_type, user_products(id, brand, name, category, ingredients_data, product_full_name)')
       .eq('user_id', user!.id)
       .eq('is_active', true),
     supabase
@@ -88,26 +55,37 @@ export default async function RecommendationsPage({
 
   const scanRaw = latestScan?.ai_analysis_raw as Record<string, unknown> | null
   const dimensions = (scanRaw?.dimensions as Record<string, number> | null) || null
+  const mainConcern = (scanRaw?.main_concern as string) || scanConcern || null
 
-  type RoutineItem = {
-    productId: string
-    brand: string
-    name: string
-    status: 'ok' | 'warning' | 'info'
-    message: string
-    hasIngredients: boolean
-  }
-  const routineItems: RoutineItem[] = (routines || []).map((r: { product_id: string; user_products: { brand?: string; name?: string; notes?: string } | null }) => {
+  // Deduplicate routine products by product id; merge AM/PM into a single label
+  const productMap = new Map<string, RoutineProduct>()
+  for (const r of (routines || []) as Array<{
+    product_id: string
+    routine_type: string
+    user_products: { id?: string; brand?: string; name?: string; category?: string; ingredients_data?: unknown; product_full_name?: string } | null
+  }>) {
     const p = r.user_products
-    const brand = p?.brand || ''
-    const name = p?.name || ''
-    const notes = p?.notes || ''
-    if (!notes.trim()) {
-      return { productId: r.product_id, brand, name, status: 'info' as const, message: 'Add ingredient details to get a compatibility check.', hasIngredients: false }
+    if (!p) continue
+    const id = r.product_id
+    const existing = productMap.get(id)
+    const rt = (r.routine_type || '').toUpperCase()
+    if (existing) {
+      // merge routine type label (AM · PM) without duplicating
+      const parts = new Set(existing.routineType.split(' · ').filter(Boolean))
+      if (rt) parts.add(rt)
+      existing.routineType = Array.from(parts).join(' · ')
+    } else {
+      productMap.set(id, {
+        productId: id,
+        brand: p.brand || '',
+        name: p.product_full_name || p.name || '',
+        category: p.category || 'serum',
+        routineType: rt,
+        ingredientsData: (p.ingredients_data as RoutineProduct['ingredientsData']) || null,
+      })
     }
-    const compat = checkCompatibility(notes, dimensions)
-    return { productId: r.product_id, brand, name, ...compat, hasIngredients: true }
-  })
+  }
+  const routineProducts = Array.from(productMap.values())
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
@@ -127,7 +105,13 @@ export default async function RecommendationsPage({
       </div>
 
       {!hasRecommendations ? (
-        <ForYouEmptyState routineItems={routineItems} fromScan={fromScan} scanConcern={scanConcern} />
+        <ForYouEmptyState
+          routineProducts={routineProducts}
+          scanDimensions={dimensions}
+          mainConcern={mainConcern}
+          fromScan={fromScan}
+          scanConcern={scanConcern}
+        />
       ) : (
         <div className="space-y-4">
           {recommendations.map((rec, index) => {

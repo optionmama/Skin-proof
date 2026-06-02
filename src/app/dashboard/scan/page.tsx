@@ -176,7 +176,7 @@ export default async function ScanPage() {
       </div>
 
       {/* Metrics */}
-      <div className="bg-white rounded-2xl border border-skin-100 p-5 mb-4">
+      <div id="full-analysis" className="bg-white rounded-2xl border border-skin-100 p-5 mb-4 scroll-mt-4">
         <h2 className="font-display text-xl font-light text-charcoal-900 mb-4">Skin metrics</h2>
         <div className="space-y-4">
           {[
@@ -238,40 +238,41 @@ export default async function ScanPage() {
         </p>
       )}
 
-      {/* Actions */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      {/* View progress */}
+      <div className="mb-4">
         <Link href="/dashboard/progress" className="flex items-center justify-center gap-2 bg-sage-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-sage-700 transition-colors">
           <TrendingUp className="w-4 h-4" />
-          View progress
-        </Link>
-        <Link href="/dashboard/recommendations" className="flex items-center justify-center gap-2 bg-white border border-skin-200 text-charcoal-800 py-3 rounded-xl text-sm font-medium hover:bg-skin-50 transition-colors">
-          <Sparkles className="w-4 h-4 text-skin-500" />
-          Recommendations
+          View progress over time
         </Link>
       </div>
 
-      {/* Scan → For You CTA */}
+      {/* Scan → next steps CTA */}
       {(() => {
         const mainConcern = latestPhoto.detected_concerns?.[0] || ''
         const today = new Date().toISOString().split('T')[0]
         const href = `/dashboard/recommendations?from=scan&concern=${encodeURIComponent(mainConcern)}&date=${today}`
         return (
           <div className="bg-gradient-to-br from-skin-50 to-cream-50 border border-skin-200 rounded-2xl p-5 mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-5 h-5 text-skin-500" />
-              <p className="font-display text-lg font-medium text-charcoal-900">Ready to see what could help?</p>
-            </div>
+            <p className="font-display text-lg font-medium text-charcoal-900 mb-1">What would you like to do next?</p>
             <p className="text-sm text-charcoal-600 font-body leading-relaxed mb-4">
-              Based on today&apos;s scan, we&apos;ve prepared personalised product recommendations
-              and checked if your current routine suits your skin right now.
+              Based on today&apos;s scan, we&apos;ve checked if your routine suits your skin
+              and prepared personalised recommendations.
             </p>
-            <Link
-              href={href}
-              className="flex items-center justify-center gap-2 bg-skin-500 text-white py-3.5 rounded-xl font-medium hover:bg-skin-600 transition-colors text-sm"
-            >
-              <Sparkles className="w-4 h-4" />
-              See my recommendations →
-            </Link>
+            <div className="space-y-2.5">
+              <a
+                href="#full-analysis"
+                className="flex items-center justify-center gap-2 bg-white border border-skin-200 text-charcoal-800 py-3 rounded-xl font-medium hover:bg-skin-50 transition-colors text-sm"
+              >
+                📊 View today&apos;s full analysis
+              </a>
+              <Link
+                href={href}
+                className="flex items-center justify-center gap-2 bg-skin-500 text-white py-3.5 rounded-xl font-medium hover:bg-skin-600 transition-colors text-sm"
+              >
+                <Sparkles className="w-4 h-4" />
+                See product recommendations →
+              </Link>
+            </div>
           </div>
         )
       })()}

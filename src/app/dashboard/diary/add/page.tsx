@@ -72,6 +72,13 @@ export default function AddProductPage() {
       const { error: routineErr } = await supabase.from('user_routines').insert(routineRows)
       if (routineErr) throw routineErr
 
+      // Auto-fetch ingredients in the background (fire-and-forget)
+      fetch('/api/lookup-product-ingredients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id }),
+      }).catch(() => {})
+
       setSaved(true)
       setTimeout(() => router.push('/routine/setup'), 1200)
     } catch (err) {
@@ -191,7 +198,7 @@ export default function AddProductPage() {
         </button>
 
         <p className="text-xs text-center text-charcoal-400 font-body">
-          You can type any brand and product — no database lookup required.
+          Just type the brand and product — we&apos;ll look up the ingredients for you automatically. ✨
         </p>
       </div>
     </div>
