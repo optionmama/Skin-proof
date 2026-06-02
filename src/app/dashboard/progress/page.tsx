@@ -311,11 +311,61 @@ export default function ProgressPage() {
             <p className="text-xs font-semibold text-sage-800 mb-1">💡 Tip</p>
             <p className="text-xs text-sage-700 font-body leading-relaxed">
               Log consistently for 3+ weeks to identify patterns between habits and skin changes.
-              These are personal observations only — not clinical findings.
             </p>
           </div>
+
+          {/* Periodic Reports */}
+          <SkinReports checkinCount={checkins.length} />
         </>
       )}
+    </div>
+  )
+}
+
+function SkinReports({ checkinCount }: { checkinCount: number }) {
+  const PERIODS = [
+    { days: 14 as const, label: '14-Day Report', icon: '📊', needed: 14 },
+    { days: 30 as const, label: '30-Day Report', icon: '📈', needed: 30 },
+    { days: 90 as const, label: '90-Day Report', icon: '🏆', needed: 90 },
+  ]
+
+  return (
+    <div className="mt-2">
+      <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">Skin Reports</h2>
+      <div className="space-y-2">
+        {PERIODS.map(({ days, label, icon, needed }) => {
+          const unlocked = checkinCount >= needed
+          return (
+            <div key={days} className={`bg-white rounded-xl border p-4 flex items-center justify-between ${unlocked ? 'border-skin-200' : 'border-skin-100 opacity-70'}`}>
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{unlocked ? icon : '🔒'}</span>
+                <div>
+                  <p className="text-sm font-medium text-charcoal-800">{label}</p>
+                  {unlocked ? (
+                    <p className="text-xs text-charcoal-400 font-body">AI analysis of your {days}-day journey</p>
+                  ) : (
+                    <p className="text-xs text-charcoal-400 font-body">
+                      Complete {needed - checkinCount} more check-in{needed - checkinCount !== 1 ? 's' : ''} to unlock
+                      <span className="ml-1 text-charcoal-300">({checkinCount}/{needed})</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              {unlocked ? (
+                <a href={`/dashboard/progress/report?period=${days}`}
+                  className="text-xs text-skin-600 font-medium border border-skin-300 px-3 py-1.5 rounded-lg hover:bg-skin-50 transition-colors">
+                  View →
+                </a>
+              ) : (
+                <div className="w-10 h-2.5 bg-skin-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-skin-400 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, (checkinCount / needed) * 100)}%` }} />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

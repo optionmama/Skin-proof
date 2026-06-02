@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Camera, Droplets, Moon, Zap, CheckCircle2, Loader2 } from 'lucide-react'
 import ProductsStep, { CheckinProduct } from '@/components/checkin/ProductsStep'
-import { t } from '@/lib/i18n'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface HabitsData {
   sleep_hours: number
@@ -14,15 +14,16 @@ interface HabitsData {
   notes: string
 }
 
-const STEPS = [
-  { key: 'photo',    label: t.checkin.step_photo,    icon: Camera },
-  { key: 'habits',   label: t.checkin.step_habits,   icon: Moon },
-  { key: 'products', label: t.checkin.step_products, icon: Droplets },
-]
-
 export default function CheckinPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useLanguage()
+
+  const STEPS = [
+    { key: 'photo',    label: t('checkin_step_photo'),    icon: Camera },
+    { key: 'habits',   label: t('checkin_step_habits'),   icon: Moon },
+    { key: 'products', label: t('checkin_step_products'), icon: Droplets },
+  ]
   const [currentStep, setCurrentStep] = useState(0)
   const [photoId, setPhotoId] = useState<string | null>(null)
   const [imageBase64, setImageBase64] = useState<string | null>(null)
@@ -109,7 +110,7 @@ export default function CheckinPage() {
 
       router.push(`/dashboard/checkin/result?checkin_id=${checkin.id}`)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t.checkin.submit_error)
+      setError(err instanceof Error ? err.message : t('checkin_submit_error'))
       setSubmitting(false)
     }
   }
@@ -149,10 +150,10 @@ export default function CheckinPage() {
       </div>
 
       <div className="flex-1 px-4 py-6">
-        {currentStep === 0 && <PhotoStep onCapture={handlePhotoCapture} />}
+        {currentStep === 0 && <PhotoStep onCapture={handlePhotoCapture} t={t} />}
         {currentStep === 1 && (
           <HabitsStep data={habits} onChange={setHabits}
-            onNext={() => setCurrentStep(2)} onBack={() => setCurrentStep(0)} />
+            onNext={() => setCurrentStep(2)} onBack={() => setCurrentStep(0)} t={t} />
         )}
         {currentStep === 2 && (
           <ProductsStep onComplete={handleProductsComplete} onBack={() => setCurrentStep(1)} />
@@ -162,8 +163,8 @@ export default function CheckinPage() {
       {submitting && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-50">
           <Loader2 className="w-8 h-8 animate-spin text-rose-400" />
-          <p className="text-stone-600 font-medium">{t.checkin.analysing}</p>
-          <p className="text-stone-400 text-sm">{t.checkin.analysing_sub}</p>
+          <p className="text-stone-600 font-medium">{t('checkin_analysing')}</p>
+          <p className="text-stone-400 text-sm">{t('checkin_analysing_sub')}</p>
         </div>
       )}
 
@@ -176,7 +177,7 @@ export default function CheckinPage() {
   )
 }
 
-function PhotoStep({ onCapture }: { onCapture: (file: File) => void }) {
+function PhotoStep({ onCapture, t }: { onCapture: (file: File) => void; t: (k: string) => string }) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) onCapture(file)
@@ -187,40 +188,41 @@ function PhotoStep({ onCapture }: { onCapture: (file: File) => void }) {
         <Camera className="w-12 h-12 text-rose-300" />
       </div>
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-stone-800">{t.checkin.photo_title}</h2>
-        <p className="text-sm text-stone-500 mt-2">{t.checkin.photo_subtitle}</p>
+        <h2 className="text-xl font-semibold text-stone-800">{t('checkin_photo_title')}</h2>
+        <p className="text-sm text-stone-500 mt-2">{t('checkin_photo_subtitle')}</p>
       </div>
       <label className="w-full">
         <input type="file" accept="image/*" capture="user" onChange={handleFileChange} className="sr-only" />
         <div className="w-full py-4 bg-rose-400 text-white rounded-xl text-center font-medium cursor-pointer active:scale-[0.98] transition-all">
-          📷 {t.checkin.open_camera}
+          📷 {t('checkin_open_camera')}
         </div>
       </label>
       <label className="w-full">
         <input type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
         <div className="w-full py-3 border border-stone-200 text-stone-600 rounded-xl text-center text-sm cursor-pointer">
-          {t.checkin.choose_library}
+          {t('checkin_choose_library')}
         </div>
       </label>
     </div>
   )
 }
 
-function HabitsStep({ data, onChange, onNext, onBack }: {
+function HabitsStep({ data, onChange, onNext, onBack, t }: {
   data: HabitsData; onChange: (d: HabitsData) => void; onNext: () => void; onBack: () => void
+  t: (k: string) => string
 }) {
-  const stressLabels = t.habits.stress_labels
+  const stressLabels = ['', t('checkin_stress_1'), t('checkin_stress_2'), t('checkin_stress_3'), t('checkin_stress_4'), t('checkin_stress_5')]
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-stone-800">{t.habits.title}</h2>
-        <p className="text-sm text-stone-500 mt-0.5">{t.habits.subtitle}</p>
+        <h2 className="text-lg font-semibold text-stone-800">{t('checkin_habits_title')}</h2>
+        <p className="text-sm text-stone-500 mt-0.5">{t('checkin_habits_subtitle')}</p>
       </div>
 
       <div className="bg-white rounded-xl p-4 border border-stone-100">
         <div className="flex items-center gap-2 mb-3">
           <Moon className="w-4 h-4 text-indigo-400" />
-          <span className="text-sm font-medium text-stone-700">{t.habits.sleep}</span>
+          <span className="text-sm font-medium text-stone-700">{t('checkin_habits_sleep')}</span>
           <span className="ml-auto text-lg font-semibold text-stone-800">{data.sleep_hours}h</span>
         </div>
         <input type="range" min={4} max={12} step={0.5} value={data.sleep_hours}
@@ -234,21 +236,21 @@ function HabitsStep({ data, onChange, onNext, onBack }: {
       <div className="bg-white rounded-xl p-4 border border-stone-100">
         <div className="flex items-center gap-2 mb-3">
           <Droplets className="w-4 h-4 text-sky-400" />
-          <span className="text-sm font-medium text-stone-700">{t.habits.water}</span>
+          <span className="text-sm font-medium text-stone-700">{t('checkin_habits_water')}</span>
           <span className="ml-auto text-lg font-semibold text-stone-800">{data.water_intake_ml}ml</span>
         </div>
         <input type="range" min={500} max={3000} step={250} value={data.water_intake_ml}
           onChange={e => onChange({ ...data, water_intake_ml: parseInt(e.target.value) })}
           className="w-full accent-sky-400" />
         <div className="flex justify-between text-xs text-stone-300 mt-1">
-          <span>{t.habits.water_low}</span><span>1500ml</span><span>{t.habits.water_high}</span>
+          <span>{t('checkin_habits_water_low')}</span><span>1500ml</span><span>{t('checkin_habits_water_high')}</span>
         </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 border border-stone-100">
         <div className="flex items-center gap-2 mb-3">
           <Zap className="w-4 h-4 text-amber-400" />
-          <span className="text-sm font-medium text-stone-700">{t.habits.stress}</span>
+          <span className="text-sm font-medium text-stone-700">{t('checkin_habits_stress')}</span>
           <span className="ml-auto text-sm text-stone-500">{stressLabels[data.stress_level]}</span>
         </div>
         <div className="flex gap-2">
@@ -261,18 +263,18 @@ function HabitsStep({ data, onChange, onNext, onBack }: {
         </div>
       </div>
 
-      <textarea placeholder={t.habits.notes_placeholder} value={data.notes}
+      <textarea placeholder={t('checkin_habits_notes')} value={data.notes}
         onChange={e => onChange({ ...data, notes: e.target.value })} rows={2}
         className="w-full px-4 py-3 text-sm border border-stone-200 rounded-xl focus:outline-none focus:border-rose-300 bg-white resize-none" />
 
       <div className="flex gap-3">
         <button onClick={onBack}
           className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-medium text-stone-600">
-          {t.habits.back}
+          {t('checkin_habits_back')}
         </button>
         <button onClick={onNext}
           className="flex-1 py-3 bg-rose-400 text-white rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
-          {t.habits.next}
+          {t('checkin_habits_next')}
         </button>
       </div>
     </div>

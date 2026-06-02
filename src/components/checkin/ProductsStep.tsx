@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle2, Plus, X, Loader2, Sun, Moon, Edit2, Trash2, Check } from 'lucide-react'
-import { t } from '@/lib/i18n'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 type Category = 'cleanser' | 'toner' | 'serum' | 'moisturizer' | 'eye_cream' | 'sunscreen' | 'treatment' | 'other'
-const CATEGORY_LABELS = t.products.categories
+const CATEGORY_KEYS: Category[] = ['cleanser','toner','serum','moisturizer','eye_cream','sunscreen','treatment','other']
 const CATEGORY_EMOJI: Record<Category, string> = {
   cleanser: '🫧', toner: '💧', serum: '✨', moisturizer: '🥛',
   eye_cream: '👁️', sunscreen: '☀️', treatment: '💊', other: '🧴',
@@ -125,6 +125,13 @@ function SwipeRow({
 
 export default function ProductsStep({ onComplete, onBack }: Props) {
   const supabase = createClient()
+  const { t } = useLanguage()
+
+  // Build category labels from translations
+  const CATEGORY_LABELS = Object.fromEntries(
+    CATEGORY_KEYS.map(k => [k, t(`cat_${k}` as never)])
+  ) as Record<Category, string>
+
   const [routine, setRoutine] = useState<RoutineItem[]>([])
   const [loading, setLoading] = useState(true)
   const [hasRoutine, setHasRoutine] = useState(false)
@@ -288,7 +295,7 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <Loader2 className="w-6 h-6 animate-spin text-rose-300" />
-        <p className="text-sm text-stone-400">{t.products.loading}</p>
+        <p className="text-sm text-stone-400">{t('products_loading')}</p>
       </div>
     )
   }
@@ -296,9 +303,9 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="text-lg font-semibold text-stone-800">{t.products.title}</h2>
+        <h2 className="text-lg font-semibold text-stone-800">{t('products_title')}</h2>
         <p className="text-sm text-stone-500 mt-0.5">
-          {hasRoutine ? t.products.subtitle_with_routine : t.products.subtitle_no_routine}
+          {hasRoutine ? t('products_subtitle') : t('products_subtitle_no_routine')}
         </p>
       </div>
 
@@ -306,9 +313,9 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
         <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-start gap-3">
           <span className="text-xl">💡</span>
           <div>
-            <p className="text-sm font-medium text-amber-700">{t.products.no_routine_title}</p>
-            <p className="text-xs text-amber-600 mt-0.5">{t.products.no_routine_body}</p>
-            <a href="/routine/setup" className="text-xs text-amber-700 underline mt-1 inline-block">{t.products.setup_routine}</a>
+            <p className="text-sm font-medium text-amber-700">{t('products_no_routine_title')}</p>
+            <p className="text-xs text-amber-600 mt-0.5">{t('products_no_routine_body')}</p>
+            <a href="/routine/setup" className="text-xs text-amber-700 underline mt-1 inline-block">{t('products_setup_routine')}</a>
           </div>
         </div>
       )}
@@ -318,7 +325,7 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
           {(['all', 'am', 'pm'] as const).map(f => (
             <button key={f} onClick={() => setActiveFilter(f)}
               className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${activeFilter === f ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500'}`}>
-              {f === 'all' ? t.products.filter_all : f === 'am' ? t.products.filter_am : t.products.filter_pm}
+              {f === 'all' ? t('products_filter_all') : f === 'am' ? t('products_filter_am') : t('products_filter_pm')}
             </button>
           ))}
         </div>
@@ -371,7 +378,7 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
 
       {tempProducts.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t.products.extra_used}</p>
+          <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('products_extra_used')}</p>
           {tempProducts.map((p, i) => (
             <div key={i} className="bg-violet-50 rounded-xl p-3 border border-violet-100 flex items-center gap-3">
               <span className="text-xl">🆕</span>
@@ -391,42 +398,42 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
 
       {showTempForm ? (
         <div className="bg-white rounded-xl p-4 border border-violet-200 space-y-3">
-          <p className="text-sm font-medium text-stone-700">{t.products.temp_form_title}</p>
-          <input type="text" placeholder={t.products.brand_placeholder} value={tempDraft.brand}
+          <p className="text-sm font-medium text-stone-700">{t('products_temp_title')}</p>
+          <input type="text" placeholder={t('products_brand')} value={tempDraft.brand}
             onChange={e => setTempDraft(d => ({ ...d, brand: e.target.value }))}
             className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-violet-300" autoFocus />
-          <input type="text" placeholder={t.products.name_placeholder} value={tempDraft.name}
+          <input type="text" placeholder={t('products_name')} value={tempDraft.name}
             onChange={e => setTempDraft(d => ({ ...d, name: e.target.value }))}
             className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-violet-300" />
           <select value={tempDraft.category}
             onChange={e => setTempDraft(d => ({ ...d, category: e.target.value as Category }))}
             className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-violet-300 text-stone-600">
-            <option value="">{t.products.category_placeholder}</option>
+            <option value="">{t('products_category')}</option>
             {(Object.keys(CATEGORY_LABELS) as Category[]).map(c => (
               <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
             ))}
           </select>
           <div className="flex gap-2">
             <button onClick={() => { setShowTempForm(false); setTempDraft({ brand: '', name: '', category: '' }) }}
-              className="flex-1 py-2 text-sm text-stone-500 border border-stone-200 rounded-lg">{t.products.cancel}</button>
+              className="flex-1 py-2 text-sm text-stone-500 border border-stone-200 rounded-lg">{t('products_cancel')}</button>
             <button onClick={addTempProduct} disabled={!tempDraft.brand.trim() || !tempDraft.name.trim()}
-              className="flex-1 py-2 text-sm font-medium bg-violet-400 text-white rounded-lg disabled:opacity-40">{t.products.add}</button>
+              className="flex-1 py-2 text-sm font-medium bg-violet-400 text-white rounded-lg disabled:opacity-40">{t('products_add')}</button>
           </div>
         </div>
       ) : (
         <button onClick={() => setShowTempForm(true)}
           className="w-full py-2.5 border-2 border-dashed border-stone-200 rounded-xl text-sm text-stone-400 flex items-center justify-center gap-2 hover:border-violet-300 hover:text-violet-400 transition-colors">
-          <Plus className="w-4 h-4" />{t.products.add_temp}
+          <Plus className="w-4 h-4" />{t('products_add_temp')}
         </button>
       )}
 
       <div className="flex gap-3 pt-2">
-        <button onClick={onBack} className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-medium text-stone-600">{t.products.back}</button>
+        <button onClick={onBack} className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-medium text-stone-600">{t('products_back')}</button>
         <button onClick={handleSubmit}
           className="flex-1 py-3 bg-rose-400 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
           {checkedCount > 0 ? (
-            <><CheckCircle2 className="w-4 h-4" />{t.products.confirm(checkedCount)}</>
-          ) : t.products.skip}
+            <><CheckCircle2 className="w-4 h-4" />{t('products_confirm', { count: checkedCount })}</>
+          ) : t('products_skip')}
         </button>
       </div>
 
