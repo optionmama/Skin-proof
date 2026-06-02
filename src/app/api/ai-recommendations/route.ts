@@ -139,6 +139,21 @@ ${REGION_CONTEXT[userRegion] || REGION_CONTEXT['Global']}
 ${scanContext}
 Skin type: ${skinType}${routineContext}
 
+NEVER recommend these product types under any circumstances:
+- Sunscreen, SPF products, UV protection
+- Makeup, BB cream, CC cream, tinted moisturiser, foundation
+- Cleansers, face wash, micellar water, makeup remover
+- Body lotion, hand cream, lip balm
+- Hair care products
+
+ONLY recommend products from these categories:
+- Serum (treatment serum for detected concern)
+- Essence or toner (hydrating or exfoliating)
+- Targeted moisturiser or gel cream (for detected skin type)
+- Spot treatment (only if breakouts detected)
+- Ampoule or booster (concentrated treatment)
+- Eye cream (only if under-eye darkness or puffiness detected in scan)
+
 Requirements:
 1. Recommend 3 real products ACTUALLY AVAILABLE in ${userRegion}
 2. Address the AI-detected main concern (${mainConcern || concerns[0] || 'general skin health'})
@@ -164,7 +179,12 @@ Return JSON array only, no other text:
     if (aiResponse.ok) {
       const data = await aiResponse.json()
       const raw = data.content?.[0]?.text || '[]'
-      aiProducts = JSON.parse(raw.replace(/```json|```/g, '').trim())
+      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+      const isSunscreen = (p: { name?: string; brand?: string; key_ingredient?: string; suitable_for?: string }) => {
+        const text = `${p.name} ${p.brand} ${p.key_ingredient} ${p.suitable_for}`.toLowerCase()
+        return ['spf', 'sunscreen', 'uv', 'sun protection', 'pa+'].some(kw => text.includes(kw))
+      }
+      aiProducts = parsed.filter((p: typeof parsed[0]) => !isSunscreen(p))
     }
   } catch {
     // AI call failed — return without products

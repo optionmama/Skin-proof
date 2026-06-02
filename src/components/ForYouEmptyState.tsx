@@ -2,8 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Loader2, AlertCircle, Lightbulb, Package, ShoppingCart } from 'lucide-react'
+import { Loader2, AlertCircle, Lightbulb, Package, ShoppingCart, CheckCircle2, AlertTriangle, Info } from 'lucide-react'
 import CommunityPicks from './CommunityPicks'
+
+type RoutineItem = {
+  productId: string
+  brand: string
+  name: string
+  status: 'ok' | 'warning' | 'info'
+  message: string
+  hasIngredients: boolean
+}
 
 const GOOGLE_DOMAINS: Record<string, string> = {
   Asia:      'https://www.google.com.tw/search',
@@ -49,7 +58,15 @@ interface RecommendationData {
   userRegion: string
 }
 
-export default function ForYouEmptyState() {
+export default function ForYouEmptyState({
+  routineItems = [],
+  fromScan = false,
+  scanConcern = '',
+}: {
+  routineItems?: RoutineItem[]
+  fromScan?: boolean
+  scanConcern?: string
+}) {
   const [data, setData] = useState<RecommendationData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -74,55 +91,72 @@ export default function ForYouEmptyState() {
 
   return (
     <div className="space-y-5">
-      {/* Section A */}
-      <div>
-        <h2 className="font-display text-xl font-light text-charcoal-900 mb-1">Based on your skin profile</h2>
-        {data?.hasScanData && data.scanDate ? (
-          <div className="flex items-center gap-1.5 mb-4">
-            <span className="text-xs text-charcoal-500 font-body">Based on your last scan · {data.scanDate}</span>
-            {data.mainConcern && data.mainConcern !== 'none' && (
-              <span className="bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium capitalize">
-                AI detected: {data.mainConcern}
-              </span>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 mb-4">
-            <p className="text-xs text-charcoal-500 font-body">Based on your skin profile (no scan yet)</p>
-            <Link href="/checkin" className="text-xs text-skin-600 font-medium underline">
-              Take a scan →
-            </Link>
-          </div>
-        )}
-
-        {/* Product warning or diary prompt */}
-        {data?.productWarnings && data.productWarnings.length > 0 ? (
-          <div className="space-y-2 mb-4">
-            {data.productWarnings.map((w, i) => (
-              <div key={i} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
-                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-800 font-body leading-relaxed">
-                  <strong>⚠️ Consider taking a break from {w.name}</strong><br />
-                  It contains <em>{w.ingredient}</em> which may {w.concern}.
-                  Try skipping it for 5–7 days to see if your skin improves.
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : !data?.hasProducts ? (
-          <div className="bg-skin-50 border border-skin-200 rounded-2xl p-4 flex gap-3 mb-4">
+      {/* Section 1 — Routine compatibility check */}
+      <div className="bg-white rounded-2xl border border-skin-100 overflow-hidden">
+        <div className="p-4 border-b border-skin-50">
+          <h2 className="font-display text-xl font-light text-charcoal-900">Your routine today</h2>
+          <p className="text-xs text-charcoal-500 font-body mt-0.5">Checked against today&apos;s scan results</p>
+        </div>
+        {routineItems.length === 0 ? (
+          <div className="p-4 flex gap-3">
             <span className="text-lg shrink-0">📝</span>
             <div>
               <p className="text-sm text-charcoal-700 font-body leading-relaxed">
-                Add products to your routine in the Diary tab, and we&apos;ll flag anything that might be affecting your skin.
+                Add products in the Diary tab and we&apos;ll check if they suit your skin today.
               </p>
-              <Link href="/dashboard/diary/add"
-                className="inline-block mt-2 text-xs text-skin-600 font-medium underline">
-                Add your first product →
+              <Link href="/dashboard/diary" className="inline-block mt-2 text-xs text-skin-600 font-medium underline">
+                Go to Diary →
               </Link>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="divide-y divide-skin-50">
+            {routineItems.map((item, i) => (
+              <div key={i} className="p-4 flex gap-3 items-start">
+                {item.status === 'ok' && <CheckCircle2 className="w-4 h-4 text-sage-500 shrink-0 mt-0.5" />}
+                {item.status === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />}
+                {item.status === 'info' && <Info className="w-4 h-4 text-charcoal-400 shrink-0 mt-0.5" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-charcoal-900">{item.brand} {item.name}</p>
+                  <p className={`text-xs font-body leading-relaxed mt-0.5 ${
+                    item.status === 'warning' ? 'text-amber-700' :
+                    item.status === 'ok' ? 'text-sage-700' : 'text-charcoal-500'
+                  }`}>{item.message}</p>
+                  {!item.hasIngredients && (
+                    <Link href={`/dashboard/diary/${item.productId}`} className="inline-block mt-1 text-xs text-skin-600 font-medium underline">
+                      Add ingredients →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Section 2 — AI Recommendations */}
+      <div>
+        <h2 className="font-display text-xl font-light text-charcoal-900 mb-1">Recommended for your skin today</h2>
+        <div className="flex items-center gap-1.5 mb-4">
+          {data?.hasScanData && data.scanDate ? (
+            <>
+              <span className="text-xs text-charcoal-500 font-body">Based on AI scan · {data.scanDate}</span>
+              {data.mainConcern && data.mainConcern !== 'none' && (
+                <span className="bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium capitalize">
+                  {data.mainConcern}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="text-xs text-charcoal-500 font-body">Based on your skin profile (no scan yet)</span>
+              <Link href="/dashboard/checkin" className="text-xs text-skin-600 font-medium underline">
+                Take a scan →
+              </Link>
+            </>
+          )}
+        </div>
+
 
         {/* Ingredient suggestion */}
         {data?.ingredientSuggestion && (
@@ -187,7 +221,7 @@ export default function ForYouEmptyState() {
         )}
       </div>
 
-      {/* Section B — Live Community Picks (75+ and 80+) */}
+      {/* Section 3 — Community Picks */}
       <CommunityPicks region={data?.userRegion} />
     </div>
   )

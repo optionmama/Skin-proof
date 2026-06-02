@@ -4,6 +4,39 @@ import { Sparkles, Package, ExternalLink, Star } from 'lucide-react'
 import type { Recommendation } from '@/types/database'
 import ForYouEmptyState from '@/components/ForYouEmptyState'
 
+const COMEDOGENIC_INGREDIENTS = ['coconut oil', 'lanolin', 'cocoa butter', 'isopropyl myristate', 'mineral oil', 'wheat germ oil', 'acetylated lanolin']
+const IRRITATING_INGREDIENTS  = ['fragrance', 'parfum', 'alcohol denat', 'denatured alcohol', 'sodium lauryl sulfate', 'menthol', 'eucalyptus']
+const OCCLUSIVE_INGREDIENTS   = ['petrolatum', 'shea butter', 'dimethicone']
+
+function checkCompatibility(
+  notes: string,
+  dimensions: Record<string, number> | null
+): { status: 'ok' | 'warning' | 'info'; message: string } {
+  const lower = notes.toLowerCase()
+  const d = dimensions || {}
+
+  const isComedogenicRisk = d.breakouts > 50 || d.oiliness > 65
+  const isIrritantRisk    = d.redness > 55 || (d.calmness !== undefined && d.calmness < 60)
+  const isOcclRisk        = d.oiliness > 65
+
+  for (const ing of COMEDOGENIC_INGREDIENTS) {
+    if (lower.includes(ing) && isComedogenicRisk) {
+      return { status: 'warning', message: `Contains ${ing} which may clog pores and worsen breakouts. Consider skipping tonight.` }
+    }
+  }
+  for (const ing of IRRITATING_INGREDIENTS) {
+    if (lower.includes(ing) && isIrritantRisk) {
+      return { status: 'warning', message: `Contains ${ing} which may increase redness or irritation. Use with caution today.` }
+    }
+  }
+  for (const ing of OCCLUSIVE_INGREDIENTS) {
+    if (lower.includes(ing) && isOcclRisk) {
+      return { status: 'warning', message: `Contains ${ing} which may feel heavy on oily skin. Try a lighter alternative tonight.` }
+    }
+  }
+  return { status: 'ok', message: 'Compatible with your skin today.' }
+}
+
 function ConfidenceBadge({ communityScore, type }: { communityScore?: number; type?: string }) {
   if (type === 'community' || (communityScore && communityScore >= 60)) {
     return <span className="inline-flex items-center gap-1 bg-sage-100 text-sage-700 text-xs px-2 py-0.5 rounded-full font-medium">🟢 Community Verified</span>
@@ -14,23 +47,78 @@ function ConfidenceBadge({ communityScore, type }: { communityScore?: number; ty
   return <span className="inline-flex items-center gap-1 bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium">🔴 AI Estimate</span>
 }
 
-export default async function RecommendationsPage() {
+export default async function RecommendationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; concern?: string; date?: string }>
+}) {
+  const params = await searchParams
+  const fromScan = params.from === 'scan'
+  const scanConcern = params.concern || ''
+  const scanDate = params.date || ''
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // recommendations table is empty for now (no official products DB)
   // — always falls through to ForYouEmptyState which uses AI recommendations
-  const { data: recommendations } = await supabase
-    .from('recommendations')
-    .select('id')
-    .eq('user_id', user!.id)
-    .eq('is_dismissed', false)
-    .limit(1)
+  const [{ data: recommendations }, { data: routines }, { data: latestScan }] = await Promise.all([
+    supabase
+      .from('recommendations')
+      .select('id')
+      .eq('user_id', user!.id)
+      .eq('is_dismissed', false)
+      .limit(1),
+    supabase
+      .from('user_routines')
+      .select('product_id, user_products(brand, name, notes)')
+      .eq('user_id', user!.id)
+      .eq('is_active', true),
+    supabase
+      .from('skin_photos')
+      .select('ai_analysis_raw, overall_skin_score')
+      .eq('user_id', user!.id)
+      .not('overall_skin_score', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single(),
+  ])
 
   const hasRecommendations = recommendations && recommendations.length > 0
 
+  const scanRaw = latestScan?.ai_analysis_raw as Record<string, unknown> | null
+  const dimensions = (scanRaw?.dimensions as Record<string, number> | null) || null
+
+  type RoutineItem = {
+    productId: string
+    brand: string
+    name: string
+    status: 'ok' | 'warning' | 'info'
+    message: string
+    hasIngredients: boolean
+  }
+  const routineItems: RoutineItem[] = (routines || []).map((r: { product_id: string; user_products: { brand?: string; name?: string; notes?: string } | null }) => {
+    const p = r.user_products
+    const brand = p?.brand || ''
+    const name = p?.name || ''
+    const notes = p?.notes || ''
+    if (!notes.trim()) {
+      return { productId: r.product_id, brand, name, status: 'info' as const, message: 'Add ingredient details to get a compatibility check.', hasIngredients: false }
+    }
+    const compat = checkCompatibility(notes, dimensions)
+    return { productId: r.product_id, brand, name, ...compat, hasIngredients: true }
+  })
+
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
+      {fromScan && (
+        <div className="bg-skin-100 border border-skin-200 rounded-xl px-4 py-2.5 mb-4 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-skin-500 shrink-0" />
+          <p className="text-sm text-skin-700 font-medium">
+            Personalised for today&apos;s scan{scanDate ? ` · ${scanDate}` : ''}
+          </p>
+        </div>
+      )}
       <div className="mb-4">
         <h1 className="font-display text-3xl font-light text-charcoal-900">For You</h1>
         <p className="text-charcoal-500 text-sm font-body">
@@ -39,7 +127,7 @@ export default async function RecommendationsPage() {
       </div>
 
       {!hasRecommendations ? (
-        <ForYouEmptyState />
+        <ForYouEmptyState routineItems={routineItems} fromScan={fromScan} scanConcern={scanConcern} />
       ) : (
         <div className="space-y-4">
           {recommendations.map((rec, index) => {
