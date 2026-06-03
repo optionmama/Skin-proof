@@ -4,6 +4,10 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { Loader2, Lightbulb, Package, ShoppingCart, CheckCircle2, AlertTriangle } from 'lucide-react'
 import CommunityPicks from './CommunityPicks'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n/translations'
+
+type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string
 
 export interface IngredientsData {
   product_found?: boolean
@@ -90,7 +94,8 @@ type CompatResult =
 function checkCompatibility(
   product: RoutineProduct,
   scanDimensions: Record<string, number> | null,
-  mainConcern: string | null
+  mainConcern: string | null,
+  t: TFn
 ): CompatResult {
   const ingredients = product.ingredientsData
   if (!ingredients) return { status: 'loading' }
@@ -102,13 +107,13 @@ function checkCompatibility(
   // Comedogenic — flag if oiliness or breakouts high
   if ((((d.oiliness ?? 0) > 60) || ((d.breakouts ?? 0) > 50)) && (flagSet.comedogenic?.length ?? 0) > 0) {
     const ing = flagSet.comedogenic![0]
-    flags.push({ ingredient: ing, message: `Contains ${ing} which may worsen oiliness or clog pores. Consider skipping tonight.` })
+    flags.push({ ingredient: ing, message: t('foryou_flag_comedogenic', { ing }) })
   }
 
   // Irritating — flag if redness high
   if (((d.redness ?? 0) > 55) && (flagSet.irritating?.length ?? 0) > 0) {
     const ing = flagSet.irritating![0]
-    flags.push({ ingredient: ing, message: `Contains ${ing} which may increase sensitivity. Use with caution.` })
+    flags.push({ ingredient: ing, message: t('foryou_flag_irritating', { ing }) })
   }
 
   if (flags.length === 0) {
@@ -121,8 +126,8 @@ function checkCompatibility(
     return {
       status: 'good',
       message: isHelpful
-        ? `Good choice — targets your detected ${mainConcern} concern.`
-        : 'Compatible with your current skin condition.',
+        ? t('foryou_good_targets', { concern: mainConcern || '' })
+        : t('foryou_compatible'),
     }
   }
 
@@ -142,6 +147,7 @@ export default function ForYouEmptyState({
   fromScan?: boolean
   scanConcern?: string
 }) {
+  const { t } = useLanguage()
   const [products, setProducts] = useState<RoutineProduct[]>(routineProducts)
   const [data, setData] = useState<RecommendationData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -191,8 +197,8 @@ export default function ForYouEmptyState({
 
   // Compute compatibility for each product
   const checked = useMemo(
-    () => products.map(p => ({ product: p, result: checkCompatibility(p, scanDimensions, effectiveConcern) })),
-    [products, scanDimensions, effectiveConcern]
+    () => products.map(p => ({ product: p, result: checkCompatibility(p, scanDimensions, effectiveConcern, t) })),
+    [products, scanDimensions, effectiveConcern, t]
   )
 
   const stillLoading = checked.some(c => c.result.status === 'loading')
@@ -227,7 +233,7 @@ export default function ForYouEmptyState({
     return (
       <div className="flex flex-col items-center py-16 gap-3">
         <Loader2 className="w-6 h-6 animate-spin text-skin-400" />
-        <p className="text-sm text-charcoal-500 font-body">Building your recommendations…</p>
+        <p className="text-sm text-charcoal-500 font-body">{t('foryou_building')}</p>
       </div>
     )
   }
@@ -237,18 +243,18 @@ export default function ForYouEmptyState({
       {/* Section 1 — Routine compatibility check */}
       <div className="bg-white rounded-2xl border border-skin-100 overflow-hidden">
         <div className="p-4 border-b border-skin-50">
-          <h2 className="font-display text-xl font-light text-charcoal-900">Your routine today</h2>
-          <p className="text-xs text-charcoal-500 font-body mt-0.5">Checked against today&apos;s scan results</p>
+          <h2 className="font-display text-xl font-light text-charcoal-900">{t('foryou_routine_today')}</h2>
+          <p className="text-xs text-charcoal-500 font-body mt-0.5">{t('foryou_checked_against')}</p>
         </div>
         {!hasRoutineProducts ? (
           <div className="p-4 flex gap-3">
             <span className="text-lg shrink-0">📝</span>
             <div>
               <p className="text-sm text-charcoal-700 font-body leading-relaxed">
-                Add products in the Diary tab and we&apos;ll check if they suit your skin today.
+                {t('foryou_add_diary')}
               </p>
               <Link href="/dashboard/diary" className="inline-block mt-2 text-xs text-skin-600 font-medium underline">
-                Go to Diary →
+                {t('foryou_go_diary')}
               </Link>
             </div>
           </div>
@@ -267,7 +273,7 @@ export default function ForYouEmptyState({
                     )}
                   </div>
                   {result.status === 'loading' && (
-                    <p className="text-xs text-charcoal-400 font-body mt-0.5">Looking up ingredients…</p>
+                    <p className="text-xs text-charcoal-400 font-body mt-0.5">{t('foryou_looking_up')}</p>
                   )}
                   {result.status === 'good' && (
                     <p className="text-xs text-sage-700 font-body leading-relaxed mt-0.5">{result.message}</p>
@@ -278,7 +284,7 @@ export default function ForYouEmptyState({
                         <p key={fi} className="text-xs text-amber-700 font-body leading-relaxed">{f.message}</p>
                       ))}
                       <a href="#replacements" className="inline-block mt-1 text-xs text-skin-600 font-medium underline">
-                        Find a replacement →
+                        {t('foryou_find_replacement')}
                       </a>
                     </div>
                   )}
@@ -293,28 +299,28 @@ export default function ForYouEmptyState({
       {hasRoutineProducts ? (
         allGood ? (
           <div className="bg-sage-50 border border-sage-200 rounded-2xl p-5 text-center">
-            <p className="font-display text-lg font-medium text-sage-800 mb-1">Your current routine looks great for today&apos;s skin! 💚</p>
+            <p className="font-display text-lg font-medium text-sage-800 mb-1">{t('foryou_routine_great')}</p>
             <p className="text-sm text-sage-700 font-body leading-relaxed mb-1">
-              No new products needed right now.
+              {t('foryou_no_new')}
             </p>
             <p className="text-xs text-sage-600 font-body">
-              Keep using your current routine and check back tomorrow.
+              {t('foryou_keep_checking')}
             </p>
           </div>
         ) : !stillLoading && warningItems.length > 0 ? (
           <div id="replacements">
-            <h2 className="font-display text-xl font-light text-charcoal-900 mb-1">We found a potential issue with your routine</h2>
+            <h2 className="font-display text-xl font-light text-charcoal-900 mb-1">{t('foryou_found_issue')}</h2>
             <p className="text-xs text-charcoal-500 font-body mb-4">
-              Here are alternatives that better suit today&apos;s skin
+              {t('foryou_alternatives_sub')}
             </p>
             {loadingReplacements || replacements === null ? (
               <div className="flex items-center gap-2 py-6 justify-center">
                 <Loader2 className="w-4 h-4 animate-spin text-skin-400" />
-                <span className="text-sm text-charcoal-500 font-body">Finding better alternatives…</span>
+                <span className="text-sm text-charcoal-500 font-body">{t('foryou_finding_alts')}</span>
               </div>
             ) : replacements.length === 0 ? (
               <p className="text-sm text-charcoal-500 font-body text-center py-4">
-                No suitable alternatives found right now. Try again later.
+                {t('foryou_no_alts')}
               </p>
             ) : (
               <div className="space-y-3">
@@ -351,7 +357,7 @@ export default function ForYouEmptyState({
                       className="mt-3 w-full flex items-center justify-center gap-2 border border-skin-300 text-skin-700 py-2.5 rounded-xl text-xs font-medium hover:bg-skin-50 transition-colors"
                     >
                       <ShoppingCart className="w-3.5 h-3.5" />
-                      Find best price on Google Shopping ↗
+                      {t('foryou_shopping')}
                     </a>
                   </div>
                 ))}
@@ -362,11 +368,11 @@ export default function ForYouEmptyState({
       ) : (
         /* No routine products — show general AI recommendations for new users */
         <div>
-          <h2 className="font-display text-xl font-light text-charcoal-900 mb-1">Recommended for your skin today</h2>
+          <h2 className="font-display text-xl font-light text-charcoal-900 mb-1">{t('foryou_recommended_today')}</h2>
           <div className="flex items-center gap-1.5 mb-4">
             {data?.hasScanData && data.scanDate ? (
               <>
-                <span className="text-xs text-charcoal-500 font-body">Based on AI scan · {data.scanDate}</span>
+                <span className="text-xs text-charcoal-500 font-body">{t('foryou_based_on_scan_date', { date: data.scanDate })}</span>
                 {data.mainConcern && data.mainConcern !== 'none' && (
                   <span className="bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium capitalize">
                     {data.mainConcern}
@@ -375,9 +381,9 @@ export default function ForYouEmptyState({
               </>
             ) : (
               <>
-                <span className="text-xs text-charcoal-500 font-body">Based on your skin profile (no scan yet)</span>
+                <span className="text-xs text-charcoal-500 font-body">{t('foryou_based_profile_noscan')}</span>
                 <Link href="/dashboard/checkin" className="text-xs text-skin-600 font-medium underline">
-                  Take a scan →
+                  {t('foryou_take_scan_short')}
                 </Link>
               </>
             )}
@@ -388,7 +394,7 @@ export default function ForYouEmptyState({
               <Lightbulb className="w-4 h-4 text-sage-600 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-sage-800 mb-1">
-                  💡 Your skin may benefit from {data.ingredientSuggestion.ingredients.join(', ')}
+                  {t('foryou_may_benefit', { ingredients: data.ingredientSuggestion.ingredients.join(', ') })}
                 </p>
                 <p className="text-xs text-sage-700 font-body leading-relaxed">
                   {data.ingredientSuggestion.reason}
@@ -432,13 +438,13 @@ export default function ForYouEmptyState({
                     className="mt-3 w-full flex items-center justify-center gap-2 border border-skin-300 text-skin-700 py-2.5 rounded-xl text-xs font-medium hover:bg-skin-50 transition-colors"
                   >
                     <ShoppingCart className="w-3.5 h-3.5" />
-                    Find best price on Google Shopping ↗
+                    {t('foryou_shopping')}
                   </a>
                 </div>
               ))}
               <p className="text-xs text-charcoal-400 font-body text-center px-4 leading-relaxed">
-                Suggested by AI based on your skin profile.<br />
-                No community data yet — recommendations improve as more users join.
+                {t('foryou_ai_suggested')}<br />
+                {t('foryou_no_community')}
               </p>
             </div>
           )}

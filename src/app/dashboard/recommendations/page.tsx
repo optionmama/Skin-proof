@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Sparkles, Package, ExternalLink, Star } from 'lucide-react'
 import type { Recommendation } from '@/types/database'
 import ForYouEmptyState, { type RoutineProduct } from '@/components/ForYouEmptyState'
+import { getT } from '@/lib/i18n/server'
 
 function ConfidenceBadge({ communityScore, type }: { communityScore?: number; type?: string }) {
   if (type === 'community' || (communityScore && communityScore >= 60)) {
@@ -25,6 +26,7 @@ export default async function RecommendationsPage({
   const scanDate = params.date || ''
 
   const supabase = await createClient()
+  const t = await getT()
   const { data: { user } } = await supabase.auth.getUser()
 
   // recommendations table is empty for now (no official products DB)
@@ -93,14 +95,14 @@ export default async function RecommendationsPage({
         <div className="bg-skin-100 border border-skin-200 rounded-xl px-4 py-2.5 mb-4 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-skin-500 shrink-0" />
           <p className="text-sm text-skin-700 font-medium">
-            Personalised for today&apos;s scan{scanDate ? ` · ${scanDate}` : ''}
+            {t('foryou_based_on_scan')}{scanDate ? ` · ${scanDate}` : ''}
           </p>
         </div>
       )}
       <div className="mb-4">
-        <h1 className="font-display text-3xl font-light text-charcoal-900">For You</h1>
+        <h1 className="font-display text-3xl font-light text-charcoal-900">{t('foryou_title')}</h1>
         <p className="text-charcoal-500 text-sm font-body">
-          What&apos;s working for people with skin like yours ✨
+          {t('foryou_subtitle')}
         </p>
       </div>
 

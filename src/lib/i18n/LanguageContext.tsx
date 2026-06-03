@@ -19,17 +19,42 @@ const LanguageContext = createContext<LanguageContextType>({
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Language>('en')
 
+  const applyLang = (l: Language) => {
+    setLangState(l)
+    // keep cookie in sync so server components render the same language
+    document.cookie = `skinproof_lang=${l}; path=/; max-age=31536000; SameSite=Lax`
+    localStorage.setItem('skinproof_lang', l)
+  }
+
   useEffect(() => {
-    // Priority: localStorage > browser locale
+    // Priority: localStorage > browser locale (then async upgrade to Supabase saved value)
     const saved = localStorage.getItem('skinproof_lang') as Language | null
     if (saved && ['en', 'zh-TW', 'zh-CN'].includes(saved)) {
       setLangState(saved)
     } else {
       const bl = navigator.language
-      if (bl === 'zh-TW' || bl === 'zh-Hant' || bl.startsWith('zh-Hant')) setLangState('zh-TW')
-      else if (bl.startsWith('zh')) setLangState('zh-CN')
-      else setLangState('en')
+      if (bl === 'zh-TW' || bl === 'zh-Hant' || bl.startsWith('zh-Hant')) applyLang('zh-TW')
+      else if (bl.startsWith('zh')) applyLang('zh-CN')
+      else applyLang('en')
     }
+
+    // Supabase has the authoritative saved preference — sync it if present
+    ;(async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data } = await supabase
+          .from('user_settings')
+          .select('language')
+          .eq('user_id', user.id)
+          .single()
+        const remote = data?.language as Language | undefined
+        if (remote && ['en', 'zh-TW', 'zh-CN'].includes(remote) && remote !== saved) {
+          applyLang(remote)
+        }
+      } catch { /* non-fatal */ }
+    })()
   }, [])
 
   const setLang = async (newLang: Language) => {

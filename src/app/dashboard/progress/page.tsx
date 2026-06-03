@@ -9,11 +9,13 @@ import {
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import type { SkinCheckin, SkinPhoto } from '@/types/database'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 type Period = '14d' | '30d' | '90d'
 
 export default function ProgressPage() {
   const supabase = createClient()
+  const { t } = useLanguage()
   const [period, setPeriod] = useState<Period>('30d')
   const [checkins, setCheckins] = useState<SkinCheckin[]>([])
   const [photos, setPhotos] = useState<SkinPhoto[]>([])
@@ -108,8 +110,8 @@ export default function ProgressPage() {
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
       <div className="mb-5">
-        <h1 className="font-display text-3xl font-light text-charcoal-900">Progress</h1>
-        <p className="text-charcoal-500 text-sm font-body">{checkins.length} check-ins tracked</p>
+        <h1 className="font-display text-3xl font-light text-charcoal-900">{t('progress_title')}</h1>
+        <p className="text-charcoal-500 text-sm font-body">{t('progress_checkins_tracked', { n: checkins.length })}</p>
       </div>
 
       {/* Period selector */}
@@ -122,7 +124,7 @@ export default function ProgressPage() {
               period === p ? 'bg-white text-charcoal-900 shadow-sm' : 'text-charcoal-500'
             }`}
           >
-            {p === '14d' ? '14 days' : p === '30d' ? '30 days' : '90 days'}
+            {p === '14d' ? '14d' : p === '30d' ? '30d' : '90d'}
           </button>
         ))}
       </div>
@@ -133,18 +135,18 @@ export default function ProgressPage() {
         </div>
       ) : checkins.length === 0 ? (
         <div className="text-center py-12">
-          <p className="font-display text-xl font-light text-charcoal-700 mb-2">No data yet</p>
-          <p className="text-charcoal-500 text-sm font-body">Complete daily check-ins to see your progress.</p>
+          <p className="font-display text-xl font-light text-charcoal-700 mb-2">{t('progress_no_data')}</p>
+          <p className="text-charcoal-500 text-sm font-body">{t('progress_no_data_body')}</p>
         </div>
       ) : (
         <>
           {/* Stats cards */}
           <div className="grid grid-cols-2 gap-3 mb-5">
             {[
-              { label: 'Avg skin score', value: avgSkinScore ? `${avgSkinScore}` : '—', trendKey: 'skinScore' as const, unit: '/100' },
-              { label: 'Photos taken', value: `${photos.length}`, trendKey: null, unit: '' },
-              { label: 'Avg sleep', value: checkins.length ? `${(checkins.reduce((s, c) => s + (c.sleep_hours || 0), 0) / checkins.length).toFixed(1)}` : '—', trendKey: 'sleep' as const, unit: 'h' },
-              { label: 'Check-ins', value: `${checkins.length}`, trendKey: null, unit: '' },
+              { label: t('progress_avg_score'), value: avgSkinScore ? `${avgSkinScore}` : '—', trendKey: 'skinScore' as const, unit: '/100' },
+              { label: t('progress_photos_taken'), value: `${photos.length}`, trendKey: null, unit: '' },
+              { label: t('progress_avg_sleep'), value: checkins.length ? `${(checkins.reduce((s, c) => s + (c.sleep_hours || 0), 0) / checkins.length).toFixed(1)}` : '—', trendKey: 'sleep' as const, unit: 'h' },
+              { label: t('progress_checkins'), value: `${checkins.length}`, trendKey: null, unit: '' },
             ].map(({ label, value, trendKey, unit }) => (
               <div key={label} className="bg-white rounded-xl border border-skin-100 p-4">
                 <div className="flex items-center justify-between mb-1">
@@ -161,7 +163,7 @@ export default function ProgressPage() {
           {/* AI Skin Score chart */}
           {photosWithScore.length > 1 && (
             <div className="bg-white rounded-2xl border border-skin-100 p-5 mb-4">
-              <h2 className="font-display text-xl font-light text-charcoal-900 mb-4">AI Skin Score trend</h2>
+              <h2 className="font-display text-xl font-light text-charcoal-900 mb-4">{t('progress_score_trend')}</h2>
               <ResponsiveContainer width="100%" height={160}>
                 <AreaChart data={chartData.filter(d => d.skinScore !== null)}>
                   <defs>
@@ -185,7 +187,7 @@ export default function ProgressPage() {
 
           {/* Sleep & Stress chart */}
           <div className="bg-white rounded-2xl border border-skin-100 p-5 mb-4">
-            <h2 className="font-display text-xl font-light text-charcoal-900 mb-4">Sleep & stress</h2>
+            <h2 className="font-display text-xl font-light text-charcoal-900 mb-4">{t('progress_sleep_stress')}</h2>
             <ResponsiveContainer width="100%" height={150}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f2d5c7" />
@@ -210,18 +212,18 @@ export default function ProgressPage() {
           {photos.length > 0 && (
             <div className="bg-white rounded-2xl border border-skin-100 p-5 mb-4">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-display text-xl font-light text-charcoal-900">Photo timeline</h2>
+                <h2 className="font-display text-xl font-light text-charcoal-900">{t('progress_photo_timeline')}</h2>
                 {(compareA || compareB) && (
                   <button
                     onClick={() => { setCompareA(null); setCompareB(null) }}
                     className="text-xs text-charcoal-400 hover:text-charcoal-600"
                   >
-                    Clear
+                    {t('progress_clear')}
                   </button>
                 )}
               </div>
               <p className="text-xs text-charcoal-400 font-body mb-3">
-                {!compareA ? 'Tap a photo to compare' : !compareB ? 'Tap another photo to compare' : 'Comparing two photos'}
+                {!compareA ? t('progress_tap_compare') : !compareB ? t('progress_tap_another') : t('progress_comparing')}
               </p>
 
               {/* Compare view */}
@@ -243,14 +245,14 @@ export default function ProgressPage() {
                         )}
                       </div>
                       <div className="absolute top-2 left-2 bg-white/90 rounded-full px-2 py-0.5 text-xs font-medium text-charcoal-700">
-                        {i === 0 ? 'Before' : 'After'}
+                        {i === 0 ? t('progress_before') : t('progress_after')}
                       </div>
                     </div>
                   ))}
                   {/* Score delta */}
                   {compareA.overall_skin_score && compareB.overall_skin_score && (
                     <div className="col-span-2 bg-skin-50 rounded-xl p-3 text-center">
-                      <span className="text-sm text-charcoal-600 font-body">Score change: </span>
+                      <span className="text-sm text-charcoal-600 font-body">{t('progress_score_change_label')}</span>
                       <span className={`text-sm font-semibold ${
                         (compareB.overall_skin_score - compareA.overall_skin_score) >= 0
                           ? 'text-sage-600' : 'text-skin-500'
@@ -308,9 +310,9 @@ export default function ProgressPage() {
 
           {/* Tip */}
           <div className="bg-sage-50 border border-sage-200 rounded-xl p-4">
-            <p className="text-xs font-semibold text-sage-800 mb-1">💡 Tip</p>
+            <p className="text-xs font-semibold text-sage-800 mb-1">{t('progress_tip')}</p>
             <p className="text-xs text-sage-700 font-body leading-relaxed">
-              Log consistently for 3+ weeks to identify patterns between habits and skin changes.
+              {t('progress_tip_body')}
             </p>
           </div>
 
@@ -323,15 +325,16 @@ export default function ProgressPage() {
 }
 
 function SkinReports({ checkinCount }: { checkinCount: number }) {
+  const { t } = useLanguage()
   const PERIODS = [
-    { days: 14 as const, label: '14-Day Report', icon: '📊', needed: 14 },
-    { days: 30 as const, label: '30-Day Report', icon: '📈', needed: 30 },
-    { days: 90 as const, label: '90-Day Report', icon: '🏆', needed: 90 },
+    { days: 14 as const, label: t('progress_report_14d'), icon: '📊', needed: 14 },
+    { days: 30 as const, label: t('progress_report_30d'), icon: '📈', needed: 30 },
+    { days: 90 as const, label: t('progress_report_90d'), icon: '🏆', needed: 90 },
   ]
 
   return (
     <div className="mt-2">
-      <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">Skin Reports</h2>
+      <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">{t('progress_reports')}</h2>
       <div className="space-y-2">
         {PERIODS.map(({ days, label, icon, needed }) => {
           const unlocked = checkinCount >= needed
@@ -345,7 +348,7 @@ function SkinReports({ checkinCount }: { checkinCount: number }) {
                     <p className="text-xs text-charcoal-400 font-body">AI analysis of your {days}-day journey</p>
                   ) : (
                     <p className="text-xs text-charcoal-400 font-body">
-                      Complete {needed - checkinCount} more check-in{needed - checkinCount !== 1 ? 's' : ''} to unlock
+                      {t('progress_locked', { needed: needed - checkinCount })}
                       <span className="ml-1 text-charcoal-300">({checkinCount}/{needed})</span>
                     </p>
                   )}
@@ -354,7 +357,7 @@ function SkinReports({ checkinCount }: { checkinCount: number }) {
               {unlocked ? (
                 <a href={`/dashboard/progress/report?period=${days}`}
                   className="text-xs text-skin-600 font-medium border border-skin-300 px-3 py-1.5 rounded-lg hover:bg-skin-50 transition-colors">
-                  View →
+                  {t('progress_view_short')}
                 </a>
               ) : (
                 <div className="w-10 h-2.5 bg-skin-100 rounded-full overflow-hidden">

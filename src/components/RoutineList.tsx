@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export interface RoutineItem {
   id: string
@@ -17,6 +18,7 @@ export interface RoutineItem {
 export default function RoutineList({ items }: { items: RoutineItem[] }) {
   const supabase = createClient()
   const router = useRouter()
+  const { t } = useLanguage()
   const [confirmItem, setConfirmItem] = useState<RoutineItem | null>(null)
   const [removing, setRemoving] = useState(false)
 
@@ -67,25 +69,24 @@ export default function RoutineList({ items }: { items: RoutineItem[] }) {
           <div className="relative w-full max-w-lg bg-white rounded-t-2xl px-5 pt-5 pb-8 space-y-4 animate-slide-up">
             <div className="w-10 h-1 bg-skin-200 rounded-full mx-auto mb-2" />
             <h3 className="font-display text-xl font-light text-charcoal-900">
-              Remove from routine?
+              {t('routine_remove_title')}
             </h3>
             <p className="text-sm text-charcoal-600 font-body">
-              Remove <strong>{confirmItem.name}</strong> from your daily routine?
-              You can add it back any time in Routine Setup.
+              <strong>{confirmItem.name}</strong> — {t('routine_remove_body')}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmItem(null)}
                 className="flex-1 py-3 border border-skin-200 rounded-xl text-sm font-medium text-charcoal-700 hover:bg-skin-50 transition-colors"
               >
-                Cancel
+                {t('general_cancel')}
               </button>
               <button
                 onClick={handleRemove}
                 disabled={removing}
                 className="flex-1 py-3 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60"
               >
-                {removing ? 'Removing…' : 'Remove'}
+                {removing ? t('general_removing') : t('general_remove')}
               </button>
             </div>
           </div>

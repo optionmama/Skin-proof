@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Users, Package, ShoppingCart } from 'lucide-react'
 import type { CommunityProduct } from '@/app/api/community-picks/route'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface TierData {
   products: CommunityProduct[]
@@ -12,6 +13,7 @@ interface TierData {
 }
 
 function ProductCard({ product, region }: { product: CommunityProduct; region?: string }) {
+  const { t } = useLanguage()
   const GOOGLE_DOMAINS: Record<string, string> = {
     Asia: 'https://www.google.com.tw/search',
     Americas: 'https://www.google.com/search',
@@ -49,7 +51,7 @@ function ProductCard({ product, region }: { product: CommunityProduct; region?: 
         className="mt-2.5 w-full flex items-center justify-center gap-1.5 border border-skin-200 text-skin-700 py-2 rounded-lg text-xs font-medium hover:bg-skin-50 transition-colors"
       >
         <ShoppingCart className="w-3 h-3" />
-        Find on Google Shopping ↗
+        {t('community_find_shopping')}
       </a>
     </div>
   )
@@ -66,6 +68,7 @@ function Tier({
   badge: string
   region?: string
 }) {
+  const { t } = useLanguage()
   const [data, setData] = useState<TierData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -86,8 +89,8 @@ function Tier({
           <h3 className="font-display text-lg font-light text-charcoal-900">{label}</h3>
         </div>
         <p className="text-xs text-charcoal-500 font-body">
-          Products used by people with {threshold}+ skin score
-          {data?.skinType ? ` · ${data.skinType} skin` : ''}
+          {t('community_tier_desc', { threshold })}
+          {data?.skinType ? ` · ${data.skinType}` : ''}
         </p>
       </div>
 
@@ -101,11 +104,11 @@ function Tier({
             <Users className="w-8 h-8 text-charcoal-200 mx-auto mb-2" />
             <p className="text-sm text-charcoal-500 font-body">
               {data?.userCount === 0
-                ? 'No users have reached this score yet.'
-                : `${data?.userCount} user${data?.userCount !== 1 ? 's' : ''} qualified — not enough product data yet.`}
+                ? t('community_no_users')
+                : `${data?.userCount} · —`}
             </p>
             <p className="text-xs text-charcoal-400 font-body mt-1">
-              Be an early tracker — your data helps build this list.
+              {t('community_be_early')}
             </p>
           </div>
         ) : (
@@ -126,22 +129,22 @@ function Tier({
 }
 
 export default function CommunityPicks({ region }: { region?: string }) {
+  const { t } = useLanguage()
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Users className="w-4 h-4 text-charcoal-500" />
-        <h2 className="font-display text-xl font-light text-charcoal-900">Community Picks</h2>
+        <h2 className="font-display text-xl font-light text-charcoal-900">{t('community_title')}</h2>
       </div>
       <p className="text-xs text-charcoal-500 font-body -mt-2">
-        Products used by people with similar skin type who achieved high scores.
-        As more users join, this gets more accurate.
+        {t('community_subtitle')}
       </p>
 
-      <Tier threshold={75} label="Working well" badge="🟡" region={region} />
-      <Tier threshold={80} label="Working great" badge="🟢" region={region} />
+      <Tier threshold={75} label={t('community_working_well')} badge="🟡" region={region} />
+      <Tier threshold={80} label={t('community_working_great')} badge="🟢" region={region} />
 
       <p className="text-xs text-center text-charcoal-400 font-body pt-1">
-        The more people track, the more accurate this becomes. ✨
+        {t('community_footer')}
       </p>
     </div>
   )

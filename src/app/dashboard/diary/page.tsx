@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Plus, BookOpen, Search, Package } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 type RoutineType = 'am' | 'pm' | 'both'
 
@@ -31,6 +32,7 @@ const ROUTINE_COLOR: Record<RoutineType, string> = {
 
 export default function DiaryPage() {
   const supabase = createClient()
+  const { t } = useLanguage()
   const [products, setProducts] = useState<RoutineProduct[]>([])
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
@@ -132,9 +134,9 @@ export default function DiaryPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
         <div>
-          <h1 className="font-display text-3xl font-light text-charcoal-900">Product Diary</h1>
+          <h1 className="font-display text-3xl font-light text-charcoal-900">{t('diary_title')}</h1>
           <p className="text-charcoal-500 text-sm font-body">
-            Track what you use — so we can learn what&apos;s helping 📖
+            {t('diary_subtitle')}
           </p>
         </div>
         <Link href="/dashboard/diary/add"
@@ -142,12 +144,12 @@ export default function DiaryPage() {
           <Plus className="w-5 h-5" />
         </Link>
       </div>
-      <p className="text-xs text-charcoal-400 font-body mb-4">{products.length} product{products.length !== 1 ? 's' : ''} in routine</p>
+      <p className="text-xs text-charcoal-400 font-body mb-4">{t('diary_count', { n: products.length })}</p>
 
       {/* Search */}
       <div className="relative mb-4">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal-400" />
-        <input type="text" placeholder="Search products…" value={search}
+        <input type="text" placeholder={t('diary_search')} value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-3 bg-white border border-skin-200 rounded-xl text-charcoal-900 placeholder:text-charcoal-400 focus:outline-none focus:border-skin-400 font-body text-sm" />
       </div>
@@ -159,7 +161,7 @@ export default function DiaryPage() {
             className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
               filter === f ? 'bg-white text-charcoal-900 shadow-sm' : 'text-charcoal-500'
             }`}>
-            {f === 'all' ? 'All' : f === 'am' ? '☀️ AM' : '🌙 PM'}
+            {f === 'all' ? t('diary_filter_all') : f === 'am' ? t('diary_filter_am') : t('diary_filter_pm')}
           </button>
         ))}
       </div>
@@ -174,17 +176,17 @@ export default function DiaryPage() {
             <BookOpen className="w-7 h-7 text-skin-400" />
           </div>
           <h3 className="font-display text-xl font-light text-charcoal-800 mb-2">
-            {search ? 'No matches' : 'No products yet'}
+            {search ? 'No matches' : t('diary_no_products')}
           </h3>
           <p className="text-charcoal-500 text-sm font-body mb-5">
             {search
               ? 'Try a different search term.'
-              : "Add your first product — we'll track if it's working 💧"}
+              : t('diary_empty_body')}
           </p>
           {!search && (
             <Link href="/dashboard/diary/add"
               className="inline-flex items-center gap-2 bg-skin-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-skin-600 transition-colors">
-              <Plus className="w-4 h-4" /> Add first product
+              <Plus className="w-4 h-4" /> {t('diary_add_first')}
             </Link>
           )}
         </div>
@@ -214,7 +216,7 @@ export default function DiaryPage() {
                       )}
                       {(product.daysInRoutine ?? 0) > 0 && (
                         <span className="text-xs text-charcoal-400 font-body">
-                          {product.daysInRoutine}d in routine
+                          {t('diary_days', { n: product.daysInRoutine ?? 0 })}
                         </span>
                       )}
                     </div>
@@ -231,11 +233,11 @@ export default function DiaryPage() {
                       <strong>{product.daysInRoutine} days</strong> using {product.name}.{' '}
                       {product.scoreDelta !== null
                         ? product.scoreDelta > 0
-                          ? <span>Skin score improved by <strong className="text-sage-700">+{product.scoreDelta} pts</strong> ✓</span>
+                          ? <span>{t('diary_improved', { pts: product.scoreDelta })}</span>
                           : product.scoreDelta < 0
-                            ? <span>Skin score changed by <strong className="text-amber-700">{product.scoreDelta} pts</strong>.</span>
-                            : <span>No significant score change yet.</span>
-                        : <span className="text-charcoal-400">Tracking in progress…</span>
+                            ? <span>{t('diary_changed', { pts: product.scoreDelta })}</span>
+                            : <span>{t('diary_no_change')}</span>
+                        : <span className="text-charcoal-400">{t('diary_tracking')}</span>
                       }
                     </span>
                   </p>
@@ -247,7 +249,7 @@ export default function DiaryPage() {
           {/* Manage routine link */}
           <Link href="/routine/setup"
             className="block text-center text-xs text-skin-600 font-medium py-3 hover:text-skin-700">
-            Manage routine in full →
+            {t('diary_manage')}
           </Link>
         </div>
       )}

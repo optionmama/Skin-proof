@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Home, BookOpen, TrendingUp, Loader2, Sparkles, AlertCircle, Users } from 'lucide-react'
+import { BookOpen, TrendingUp, Loader2, Sparkles, AlertCircle, Users } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 const COMEDOGENIC = ['coconut oil', 'lanolin', 'cocoa butter', 'isopropyl myristate', 'mineral oil', 'wheat germ oil']
 const HEAVY       = ['petrolatum', 'dimethicone', 'shea butter']
@@ -78,6 +79,7 @@ function ResultContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useLanguage()
   const checkinId = searchParams.get('checkin_id')
 
   const [analysis, setAnalysis] = useState<{
@@ -207,8 +209,8 @@ function ResultContent() {
         <div className="w-16 h-16 rounded-2xl bg-skin-100 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-skin-500 animate-spin" />
         </div>
-        <p className="font-display text-xl font-light text-charcoal-800">AI is analysing your skin…</p>
-        <p className="text-sm text-charcoal-500 font-body">This takes about 10 seconds</p>
+        <p className="font-display text-xl font-light text-charcoal-800">{t('result_loading')}</p>
+        <p className="text-sm text-charcoal-500 font-body">{t('result_loading_sub')}</p>
       </div>
     )
   }
@@ -220,8 +222,8 @@ function ResultContent() {
     <div className="px-4 pt-6 pb-8 max-w-lg mx-auto space-y-4">
       {/* Header */}
       <div>
-        <p className="text-xs text-charcoal-500 font-body">Day {checkinCount} of your journey</p>
-        <h1 className="font-display text-3xl font-light text-charcoal-900">Today&apos;s Skin ✨</h1>
+        <p className="text-xs text-charcoal-500 font-body">{t('result_day', { n: checkinCount })}</p>
+        <h1 className="font-display text-3xl font-light text-charcoal-900">{t('result_title')}</h1>
       </div>
 
       {/* Score card */}
@@ -278,7 +280,7 @@ function ResultContent() {
       {/* ── Task 3: Your routine today ── */}
       <div className="bg-white rounded-2xl border border-skin-100 overflow-hidden">
         <div className="px-4 pt-4 pb-3 border-b border-skin-50">
-          <h2 className="font-display text-lg font-light text-charcoal-900">Your routine today</h2>
+          <h2 className="font-display text-lg font-light text-charcoal-900">{t('result_your_routine')}</h2>
           <p className="text-xs text-charcoal-500 font-body">Checked against today&apos;s AI results</p>
         </div>
 
@@ -317,7 +319,7 @@ function ResultContent() {
                     </p>
                   ) : (
                     <p className="text-xs text-charcoal-400 font-body mt-0.5">
-                      Good choice for today&apos;s skin condition.
+                      {t('result_good_choice')}
                     </p>
                   )}
                 </div>
@@ -358,18 +360,18 @@ function ResultContent() {
 
       {/* Come back tomorrow */}
       <p className="text-xs text-center text-charcoal-400 font-body">
-        Come back tomorrow for Day {checkinCount + 1} — your skin trend is building 🔥
+        {t('result_come_back', { day: checkinCount + 1 })}
       </p>
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-3 pt-2">
-        <Link href="/dashboard"
+        <Link href={`/dashboard/recommendations?from=scan&concern=${encodeURIComponent(analysis?.main_concern || '')}`}
           className="flex items-center justify-center gap-2 bg-white border border-skin-200 text-charcoal-700 py-3 rounded-xl text-sm font-medium hover:bg-skin-50 transition-colors">
-          <Home className="w-4 h-4" /> Home
+          <Sparkles className="w-4 h-4" /> {t('home_for_you')}
         </Link>
         <Link href="/dashboard/progress"
           className="flex items-center justify-center gap-2 bg-skin-500 text-white py-3 rounded-xl text-sm font-medium hover:bg-skin-600 transition-colors">
-          <TrendingUp className="w-4 h-4" /> View progress
+          <TrendingUp className="w-4 h-4" /> {t('result_view_progress')}
         </Link>
       </div>
     </div>
