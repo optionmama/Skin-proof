@@ -39,12 +39,18 @@ export default function Home() {
         /* Steps section — desktop */
         .steps-header { padding: 80px 72px 48px; max-width: 700px; margin: 0 auto; text-align: center; }
 
-        .step-block { display: flex; align-items: stretch; min-height: 540px; }
+        .step-block { display: flex; align-items: flex-start; }
         .step-block-reversed { flex-direction: row-reverse; }
 
-        .step-block-image { flex: 0 0 60%; position: relative; overflow: hidden; }
+        /* Portrait ratio (3:4) so 9:16 images show ~74% from top — faces always visible */
+        .step-block-image {
+          flex: 0 0 58%;
+          position: relative;
+          overflow: hidden;
+          aspect-ratio: 3 / 4;
+        }
         .step-block-text {
-          flex: 0 0 40%;
+          flex: 0 0 42%;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
@@ -52,6 +58,7 @@ export default function Home() {
           padding: 60px 64px;
           position: relative;
           background: #FAF7F5;
+          align-self: center;
         }
         .step-block-text-blush { background: #F5EDE8 !important; }
 
@@ -82,12 +89,15 @@ export default function Home() {
           .steps-header { padding: 56px 24px 32px !important; }
           .steps-header h2 { font-size: 34px !important; }
 
-          .step-block { display: block !important; min-height: 0 !important; }
+          .step-block { display: block !important; }
 
+          /* Portrait ratio on mobile — no more face crop */
           .step-block-image {
             flex: none !important;
-            height: 70vw !important;
-            max-height: 420px !important;
+            width: calc(100% - 32px) !important;
+            height: auto !important;
+            max-height: none !important;
+            aspect-ratio: 3 / 4 !important;
             border-radius: 20px !important;
             margin: 0 16px 28px !important;
           }
@@ -245,7 +255,8 @@ export default function Home() {
               src="/landing/steps/step1-selfie.jpg"
               alt="Daily skin scan"
               fill
-              style={{objectFit:'cover',objectPosition:'top'}}
+              quality={90}
+              style={{objectFit:'cover',objectPosition:'center 10%'}}
             />
           </div>
           <div className="step-block-text">
@@ -264,7 +275,8 @@ export default function Home() {
               src="/landing/steps/step2-lookscreen.jpg"
               alt="Check your routine"
               fill
-              style={{objectFit:'cover',objectPosition:'top'}}
+              quality={90}
+              style={{objectFit:'cover',objectPosition:'center 12%'}}
             />
           </div>
           <div className="step-block-text step-block-text-blush">
@@ -283,7 +295,8 @@ export default function Home() {
               src="/landing/steps/step3-result.jpg"
               alt="Real skin results"
               fill
-              style={{objectFit:'cover',objectPosition:'top'}}
+              quality={90}
+              style={{objectFit:'cover',objectPosition:'center 8%'}}
             />
           </div>
           <div className="step-block-text">
