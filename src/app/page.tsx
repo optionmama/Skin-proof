@@ -6,7 +6,7 @@ export default function Home() {
     <div style={{fontFamily:"'Outfit',sans-serif",background:'#FAF7F5',color:'#2C1810',overflowX:'hidden'}}>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500&display=swap');
 
         .nav-links { display: flex !important; }
         .mobile-nav-cta { display: none !important; }
@@ -70,11 +70,13 @@ export default function Home() {
 
           /* Hero */
           .hero-grid { grid-template-columns: 1fr !important; min-height: auto !important; }
-          .hero-image-side { height: 70vh !important; }
+          .hero-image-side { height: 420px !important; }
           .hero-text-side { padding: 40px 24px 60px !important; }
-          .hero-title { font-size: 38px !important; }
+          .hero-title { font-size: 40px !important; }
           .hero-buttons { flex-direction: column !important; align-items: stretch !important; }
           .hero-buttons a { text-align: center !important; justify-content: center !important; }
+          .floating-card-left { left: 3% !important; }
+          .floating-card-right { right: 3% !important; }
 
           /* Steps */
           .steps-header { padding: 56px 24px 32px !important; }
@@ -138,37 +140,89 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* HERO — unchanged */}
+      {/* HERO — original design restored */}
       <section style={{paddingTop:'64px'}}>
-        <div className="hero-grid" style={{display:'grid',gridTemplateColumns:'55% 45%',minHeight:'100vh'}}>
-          <div className="hero-image-side" style={{position:'relative',overflow:'hidden'}}>
+        <div className="hero-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',minHeight:'100vh'}}>
+
+          {/* Photo side with floating cards */}
+          <div className="hero-image-side" style={{position:'relative',overflow:'hidden',display:'flex',alignItems:'stretch',background:'linear-gradient(160deg,#fdf9f6 0%,#fdf0ec 55%,#fce8e8 100%)'}}>
             <Image
-              src="/landing/overhead.png"
-              alt="Skin tracking"
+              src="/landing page pic.webp"
+              alt="Glass skin portrait"
               fill
-              style={{objectFit:'cover',objectPosition:'center top'}}
+              style={{objectFit:'cover',objectPosition:'center 10%',filter:'brightness(1.04) saturate(1.05)'}}
               priority
             />
-            <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,transparent 50%,rgba(44,24,16,0.35) 100%)',pointerEvents:'none'}}/>
+            {/* Subtle vignette overlays */}
+            <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 50% 40% at 42% 28%,rgba(255,255,255,0.18) 0%,transparent 60%)',pointerEvents:'none'}}/>
+            <div style={{position:'absolute',top:0,left:0,bottom:0,width:'80px',background:'linear-gradient(to right,rgba(253,240,236,0.45),transparent)',pointerEvents:'none'}}/>
+            <div style={{position:'absolute',bottom:0,left:0,right:0,height:'160px',background:'linear-gradient(to top,rgba(252,232,232,0.45) 0%,transparent 100%)',pointerEvents:'none'}}/>
+
+            {/* AI Scanning pill */}
+            <div style={{position:'absolute',top:'7%',right:'5%',background:'rgba(0,0,0,0.72)',color:'white',borderRadius:'999px',padding:'8px 16px',fontSize:'13px',fontWeight:500,display:'flex',alignItems:'center',gap:'7px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',zIndex:10}}>
+              <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#4CAF50',boxShadow:'0 0 0 2px rgba(76,175,80,0.35)'}}/>
+              AI Scanning...
+            </div>
+
+            {/* Score card: HYDRATION — top left */}
+            <div className="floating-card-left" style={{position:'absolute',top:'12%',left:'5%',background:'rgba(255,255,255,0.92)',backdropFilter:'blur(16px)',border:'1px solid rgba(196,131,106,0.18)',borderRadius:'18px',padding:'13px 17px',boxShadow:'0 6px 24px rgba(44,24,16,0.1)',zIndex:10}}>
+              <div style={{fontSize:'10px',fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',color:'#8B6355',marginBottom:'4px'}}>Hydration</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:'24px',fontWeight:500,color:'#2C1810'}}>87 <span style={{fontSize:'11px',color:'#C4836A'}}>/ 100</span></div>
+              <div style={{height:'3px',background:'rgba(196,131,106,0.18)',borderRadius:'2px',marginTop:'7px',overflow:'hidden'}}>
+                <div style={{width:'87%',height:'100%',borderRadius:'2px',background:'linear-gradient(90deg,#f0c4b4,#C4836A)'}}/>
+              </div>
+              <div style={{fontSize:'11px',color:'#4CAF50',fontWeight:600,marginTop:'5px'}}>↑ +12 this week</div>
+            </div>
+
+            {/* Score card: TEXTURE — right middle */}
+            <div className="floating-card-right" style={{position:'absolute',top:'42%',right:'5%',background:'rgba(255,255,255,0.92)',backdropFilter:'blur(16px)',border:'1px solid rgba(196,131,106,0.18)',borderRadius:'18px',padding:'13px 17px',boxShadow:'0 6px 24px rgba(44,24,16,0.1)',zIndex:10}}>
+              <div style={{fontSize:'10px',fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',color:'#8B6355',marginBottom:'4px'}}>Texture</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:'24px',fontWeight:500,color:'#2C1810'}}>92 <span style={{fontSize:'11px',color:'#C4836A'}}>/ 100</span></div>
+              <div style={{height:'3px',background:'rgba(196,131,106,0.18)',borderRadius:'2px',marginTop:'7px',overflow:'hidden'}}>
+                <div style={{width:'92%',height:'100%',borderRadius:'2px',background:'linear-gradient(90deg,#f0c4b4,#C4836A)'}}/>
+              </div>
+              <div style={{fontSize:'11px',color:'#4CAF50',fontWeight:600,marginTop:'5px'}}>↑ +8 · 30 days</div>
+            </div>
+
+            {/* Score card: RADIANCE — bottom left */}
+            <div className="floating-card-left" style={{position:'absolute',bottom:'22%',left:'5%',background:'rgba(255,255,255,0.92)',backdropFilter:'blur(16px)',border:'1px solid rgba(196,131,106,0.18)',borderRadius:'18px',padding:'13px 17px',boxShadow:'0 6px 24px rgba(44,24,16,0.1)',zIndex:10}}>
+              <div style={{fontSize:'10px',fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',color:'#8B6355',marginBottom:'4px'}}>Radiance</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:'24px',fontWeight:500,color:'#2C1810'}}>79 <span style={{fontSize:'11px',color:'#C4836A'}}>/ 100</span></div>
+              <div style={{height:'3px',background:'rgba(196,131,106,0.18)',borderRadius:'2px',marginTop:'7px',overflow:'hidden'}}>
+                <div style={{width:'79%',height:'100%',borderRadius:'2px',background:'linear-gradient(90deg,#f0c4b4,#C4836A)'}}/>
+              </div>
+              <div style={{fontSize:'11px',color:'#4CAF50',fontWeight:600,marginTop:'5px'}}>↑ +21 · 60 days</div>
+            </div>
           </div>
-          <div className="hero-text-side" style={{display:'flex',flexDirection:'column',justifyContent:'center',padding:'60px 72px 60px 56px',background:'#FAF7F5'}}>
-            <span className="landing-label" style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'24px'}}>
-              <span style={{width:'28px',height:'1px',background:'#C4836A',display:'inline-block',flexShrink:0}}/>
-              SKIN TRACKING · AI POWERED
-            </span>
-            <h1 className="hero-title" style={{fontFamily:"'Playfair Display',serif",fontSize:'58px',lineHeight:1.1,color:'#2C1810',marginBottom:'20px',marginTop:0}}>
-              Your skin.<br/>Your data.<br/><em style={{fontStyle:'italic',color:'#C4836A'}}>Your truth.</em>
+
+          {/* Text side */}
+          <div className="hero-text-side" style={{display:'flex',flexDirection:'column',justifyContent:'center',padding:'60px 72px 60px 48px',background:'#FAF7F5'}}>
+            <div style={{display:'inline-flex',alignItems:'center',gap:'10px',fontSize:'11px',fontWeight:500,letterSpacing:'0.14em',textTransform:'uppercase',color:'#C4836A',marginBottom:'24px'}}>
+              <span style={{width:'28px',height:'1px',background:'#C4836A',display:'inline-block'}}/>
+              AI-powered skin tracking
+            </div>
+            <h1 className="hero-title" style={{fontFamily:"'Playfair Display',serif",fontSize:'62px',lineHeight:1.1,color:'#2C1810',marginBottom:'20px',marginTop:0}}>
+              Your skin story,<br/>
+              <em style={{fontStyle:'italic',color:'#C4836A'}}>clearly proven</em>
             </h1>
-            <p style={{fontSize:'16px',fontWeight:300,lineHeight:1.75,color:'#8B6355',maxWidth:'360px',marginBottom:'40px'}}>
-              Daily photo check-ins + AI analysis + real community results.
+            <p style={{fontSize:'16px',fontWeight:300,lineHeight:1.75,color:'#8B6355',maxWidth:'400px',marginBottom:'40px'}}>
+              Track your skin every day, log your products, and discover what <em>actually</em> works for skin like yours — backed by real data, not marketing claims.
             </p>
-            <div className="hero-buttons" style={{display:'flex',gap:'14px',alignItems:'center',flexWrap:'wrap'}}>
+            <div className="hero-buttons" style={{display:'flex',gap:'14px',alignItems:'center',marginBottom:'44px',flexWrap:'wrap'}}>
               <Link href="/auth" style={{background:'#C4836A',color:'#FAF7F5',padding:'15px 32px',borderRadius:'100px',fontSize:'14px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(196,131,106,0.3)'}}>
                 Start tracking free →
               </Link>
-              <a href="#how" style={{color:'#8B6355',fontSize:'14px',textDecoration:'none',display:'flex',alignItems:'center',gap:'6px'}}>
-                See how →
+              <a href="#how" style={{color:'#8B6355',fontSize:'14px',textDecoration:'none',display:'flex',alignItems:'center',gap:'8px'}}>
+                See how it works →
               </a>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+              <div style={{display:'flex'}}>
+                {['🌸','✨','🌿','💎'].map((e,i)=>(
+                  <div key={i} style={{width:'34px',height:'34px',borderRadius:'50%',border:'2px solid white',marginLeft:i===0?0:'-10px',background:'linear-gradient(135deg,#fce8e0,#f0c4b4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px'}}>{e}</div>
+                ))}
+              </div>
+              <div style={{fontSize:'13px',color:'#8B6355'}}><strong style={{color:'#2C1810'}}>4,200+</strong> people tracking their skin journey</div>
             </div>
           </div>
         </div>
@@ -267,7 +321,6 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Banner — replaced pout.png with aspirational step3-result.jpg */}
           <div className="pout-banner" style={{position:'relative',borderRadius:'20px',overflow:'hidden',height:'420px'}}>
             <Image
               src="/landing/steps/step3-result.jpg"
