@@ -6,6 +6,7 @@ import { Loader2, Lightbulb, Package, ShoppingCart, CheckCircle2, AlertTriangle 
 import CommunityPicks from './CommunityPicks'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
+import { getGoogleShoppingUrl, getRegionFromTimezone } from '@/lib/utils'
 
 type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string
 
@@ -31,27 +32,6 @@ export interface RoutineProduct {
   category: string
   routineType: string
   ingredientsData: IngredientsData | null
-}
-
-const GOOGLE_DOMAINS: Record<string, string> = {
-  Asia:      'https://www.google.com.tw/search',
-  Americas:  'https://www.google.com/search',
-  Europe:    'https://www.google.co.uk/search',
-  Australia: 'https://www.google.com.au/search',
-  Global:    'https://www.google.com/search',
-}
-
-const getGoogleShoppingUrl = (brand: string, name: string, region = 'Global') => {
-  const domain = GOOGLE_DOMAINS[region] || GOOGLE_DOMAINS['Global']
-  return `${domain}?q=${encodeURIComponent(`${brand} ${name}`)}&tbm=shop`
-}
-
-const getRegionFromTimezone = (tz: string): string => {
-  if (tz.startsWith('Asia/')) return 'Asia'
-  if (tz.startsWith('America/')) return 'Americas'
-  if (tz.startsWith('Europe/')) return 'Europe'
-  if (tz.startsWith('Australia/') || tz.startsWith('Pacific/Auckland')) return 'Australia'
-  return 'Global'
 }
 
 interface AiProduct {

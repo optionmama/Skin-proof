@@ -3,7 +3,9 @@ import Link from 'next/link'
 import { Sparkles, Package, ExternalLink, Star } from 'lucide-react'
 import type { Recommendation } from '@/types/database'
 import ForYouEmptyState, { type RoutineProduct } from '@/components/ForYouEmptyState'
+import RecommendedToStart from '@/components/RecommendedToStart'
 import { getT } from '@/lib/i18n/server'
+import { ageRangeToGroup, mainConcernToSkinConcern } from '@/lib/utils'
 
 function ConfidenceBadge({ communityScore, type }: { communityScore?: number; type?: string }) {
   if (type === 'community' || (communityScore && communityScore >= 60)) {
@@ -31,7 +33,7 @@ export default async function RecommendationsPage({
 
   // recommendations table is empty for now (no official products DB)
   // — always falls through to ForYouEmptyState which uses AI recommendations
-  const [{ data: recommendations }, { data: routines }, { data: latestScan }] = await Promise.all([
+  const [{ data: recommendations }, { data: routines }, { data: latestScan }, { data: profile }] = await Promise.all([
     supabase
       .from('recommendations')
       .select('id')
@@ -51,6 +53,11 @@ export default async function RecommendationsPage({
       .order('created_at', { ascending: false })
       .limit(1)
       .single(),
+    supabase
+      .from('skin_profiles')
+      .select('age_range, primary_concerns')
+      .eq('user_id', user!.id)
+      .single(),
   ])
 
   const hasRecommendations = recommendations && recommendations.length > 0
@@ -58,6 +65,12 @@ export default async function RecommendationsPage({
   const scanRaw = latestScan?.ai_analysis_raw as Record<string, unknown> | null
   const dimensions = (scanRaw?.dimensions as Record<string, number> | null) || null
   const mainConcern = (scanRaw?.main_concern as string) || scanConcern || null
+
+  // "Recommended to start" matching inputs
+  const ageGroup = ageRangeToGroup(profile?.age_range)
+  const startConcerns = new Set(profile?.primary_concerns || [])
+  const mappedMainConcern = mainConcernToSkinConcern(mainConcern)
+  if (mappedMainConcern) startConcerns.add(mappedMainConcern)
 
   // Deduplicate routine products by product id; merge AM/PM into a single label
   const productMap = new Map<string, RoutineProduct>()
@@ -107,13 +120,16 @@ export default async function RecommendationsPage({
       </div>
 
       {!hasRecommendations ? (
-        <ForYouEmptyState
-          routineProducts={routineProducts}
-          scanDimensions={dimensions}
-          mainConcern={mainConcern}
-          fromScan={fromScan}
-          scanConcern={scanConcern}
-        />
+        <div className="space-y-8">
+          <RecommendedToStart ageGroup={ageGroup} concerns={Array.from(startConcerns)} />
+          <ForYouEmptyState
+            routineProducts={routineProducts}
+            scanDimensions={dimensions}
+            mainConcern={mainConcern}
+            fromScan={fromScan}
+            scanConcern={scanConcern}
+          />
+        </div>
       ) : (
         <div className="space-y-4">
           {recommendations.map((rec, index) => {
