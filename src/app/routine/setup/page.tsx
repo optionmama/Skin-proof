@@ -4,12 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, Trash2, GripVertical, ChevronRight, Loader2, CheckCircle2, Sparkles, Copy } from 'lucide-react'
-import { t } from '@/lib/i18n'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 type Category = 'cleanser' | 'toner' | 'serum' | 'moisturizer' | 'eye_cream' | 'sunscreen' | 'treatment' | 'other'
-
-const CATEGORY_LABELS = t.routine.categories as Record<Category, string>
-const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[]
 
 interface ProductDraft {
   id: string
@@ -25,6 +22,12 @@ interface ProductDraft {
 export default function RoutineSetupPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useLanguage()
+  const CATEGORY_LABELS: Record<Category, string> = {
+    cleanser: t('rcat_cleanser'), toner: t('rcat_toner'), serum: t('rcat_serum'),
+    moisturizer: t('rcat_moisturizer'), eye_cream: t('rcat_eye_cream'),
+    sunscreen: t('rcat_sunscreen'), treatment: t('rcat_treatment'), other: t('rcat_other'),
+  }
   const [userId, setUserId] = useState<string | null>(null)
   const [amProducts, setAmProducts] = useState<ProductDraft[]>([])
   const [pmProducts, setPmProducts] = useState<ProductDraft[]>([])
@@ -92,7 +95,7 @@ export default function RoutineSetupPage() {
         }
         // (empty state when no routine — user starts from scratch)
       } catch (err: any) {
-        setLoadError(err instanceof Error ? err.message : t.routine.load_error_title)
+        setLoadError(err instanceof Error ? err.message : t('rset_load_error'))
       } finally {
         setLoading(false)
       }
@@ -201,7 +204,7 @@ export default function RoutineSetupPage() {
     return (
       <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center gap-3">
         <Loader2 className="w-5 h-5 animate-spin text-rose-300" />
-        <span className="text-sm text-stone-400">{t.routine.loading}</span>
+        <span className="text-sm text-stone-400">{t('rset_loading')}</span>
       </div>
     )
   }
@@ -210,11 +213,11 @@ export default function RoutineSetupPage() {
     return (
       <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center gap-4 px-6">
         <div className="text-3xl">😵</div>
-        <p className="text-sm font-medium text-stone-700 text-center">{t.routine.load_error_title}</p>
+        <p className="text-sm font-medium text-stone-700 text-center">{t('rset_load_error')}</p>
         <p className="text-xs text-red-400 text-center">{loadError}</p>
         <button onClick={() => window.location.reload()}
           className="px-4 py-2 bg-rose-400 text-white rounded-xl text-sm font-medium">
-          {t.routine.reload}
+          {t('rset_reload')}
         </button>
       </div>
     )
@@ -225,17 +228,17 @@ export default function RoutineSetupPage() {
       <div className="bg-white border-b border-stone-100 px-4 py-5 text-center">
         <div className="flex items-center justify-center gap-2 mb-1">
           <Sparkles className="w-4 h-4 text-rose-400" />
-          <span className="text-xs font-medium text-rose-400 tracking-widest uppercase">Skincare</span>
+          <span className="text-xs font-medium text-rose-400 tracking-widest uppercase">{t('rset_eyebrow')}</span>
         </div>
-        <h1 className="text-xl font-semibold text-stone-800">{t.routine.title}</h1>
-        <p className="text-sm text-stone-500 mt-1">{t.routine.subtitle}</p>
+        <h1 className="text-xl font-semibold text-stone-800">{t('rset_title')}</h1>
+        <p className="text-sm text-stone-500 mt-1">{t('rset_subtitle')}</p>
       </div>
 
       <div className="flex mx-4 mt-4 bg-stone-100 rounded-xl p-1 gap-1">
         {(['am', 'pm'] as const).map(tab => (
           <button key={tab} onClick={() => { setActiveTab(tab); setShowAddForm(false) }}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500'}`}>
-            {tab === 'am' ? t.routine.tab_am : t.routine.tab_pm}
+            {tab === 'am' ? t('products_filter_am') : t('products_filter_pm')}
             {tab === 'am' && amProducts.length > 0 && <span className="ml-1 text-xs text-rose-400">({amProducts.length})</span>}
             {tab === 'pm' && pmProducts.length > 0 && <span className="ml-1 text-xs text-rose-400">({pmProducts.length})</span>}
           </button>
@@ -248,8 +251,8 @@ export default function RoutineSetupPage() {
             className="w-full flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-left hover:bg-amber-100 active:scale-[0.98] transition-all">
             <Copy className="w-4 h-4 text-amber-500 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-700">{t.routine.copy_am}</p>
-              <p className="text-xs text-amber-500 mt-0.5">{t.routine.copy_am_body(amProducts.length)}</p>
+              <p className="text-sm font-medium text-amber-700">{t('rset_copy_am')}</p>
+              <p className="text-xs text-amber-500 mt-0.5">{t('rset_copy_am_body', { n: amProducts.length })}</p>
             </div>
             <ChevronRight className="w-4 h-4 text-amber-400 flex-shrink-0" />
           </button>
@@ -260,8 +263,8 @@ export default function RoutineSetupPage() {
         {currentList.length === 0 && !showAddForm && (
           <div className="text-center py-12 text-stone-400">
             <div className="text-4xl mb-3">{activeTab === 'am' ? '☀️' : '🌙'}</div>
-            <p className="text-sm">{t.routine.empty_am}</p>
-            <p className="text-xs mt-1">{activeTab === 'pm' && amProducts.length > 0 ? t.routine.empty_hint_pm : t.routine.empty_hint_am}</p>
+            <p className="text-sm">{t('rset_empty')}</p>
+            <p className="text-xs mt-1">{activeTab === 'pm' && amProducts.length > 0 ? t('rset_empty_hint_pm') : t('rset_empty_hint_am')}</p>
           </div>
         )}
 
@@ -276,8 +279,8 @@ export default function RoutineSetupPage() {
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs text-stone-400">{product.brand}</span>
                 <span className="text-sm font-medium text-stone-800 truncate">{product.name}</span>
-                {product.isExisting && <span className="text-[10px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full">{t.routine.saved_badge}</span>}
-                {product.copiedFromAm && <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">{t.routine.copied_badge}</span>}
+                {product.isExisting && <span className="text-[10px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full">{t('rset_saved_badge')}</span>}
+                {product.copiedFromAm && <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">{t('rset_copied_badge')}</span>}
               </div>
               {product.category && <span className="text-xs text-stone-400 mt-0.5 block">{CATEGORY_LABELS[product.category as Category]}</span>}
             </div>
@@ -290,23 +293,23 @@ export default function RoutineSetupPage() {
 
         {showAddForm && (
           <div className="bg-white rounded-xl p-4 border border-rose-200 space-y-3">
-            <p className="text-sm font-medium text-stone-700">{activeTab === 'am' ? t.routine.form_title_am : t.routine.form_title_pm}</p>
-            <input type="text" placeholder={t.routine.brand_placeholder} value={draft.brand}
+            <p className="text-sm font-medium text-stone-700">{activeTab === 'am' ? t('rset_form_am') : t('rset_form_pm')}</p>
+            <input type="text" placeholder={t('rset_brand_ph')} value={draft.brand}
               onChange={e => setDraft(d => ({ ...d, brand: e.target.value }))}
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-rose-300" autoFocus />
-            <input type="text" placeholder={t.routine.name_placeholder} value={draft.name}
+            <input type="text" placeholder={t('rset_name_ph')} value={draft.name}
               onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-rose-300" />
             <select value={draft.category} onChange={e => setDraft(d => ({ ...d, category: e.target.value as Category }))}
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-rose-300 text-stone-600">
-              <option value="">{t.routine.category_placeholder}</option>
+              <option value="">{t('products_category')}</option>
               {(Object.keys(CATEGORY_LABELS) as Category[]).map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
             </select>
             <div className="flex gap-2">
               <button onClick={() => { setShowAddForm(false); setDraft({ brand: '', name: '', category: '' }) }}
-                className="flex-1 py-2 text-sm text-stone-500 border border-stone-200 rounded-lg">{t.general.cancel}</button>
+                className="flex-1 py-2 text-sm text-stone-500 border border-stone-200 rounded-lg">{t('general_cancel')}</button>
               <button onClick={handleAddProduct} disabled={!draft.brand.trim() || !draft.name.trim()}
-                className="flex-1 py-2 text-sm font-medium bg-rose-400 text-white rounded-lg disabled:opacity-40">{t.products.add}</button>
+                className="flex-1 py-2 text-sm font-medium bg-rose-400 text-white rounded-lg disabled:opacity-40">{t('products_add')}</button>
             </div>
           </div>
         )}
@@ -315,7 +318,7 @@ export default function RoutineSetupPage() {
           <button onClick={() => setShowAddForm(true)}
             className="w-full py-3 border-2 border-dashed border-stone-200 rounded-xl text-sm text-stone-400 flex items-center justify-center gap-2 hover:border-rose-300 hover:text-rose-400 transition-colors">
             <Plus className="w-4 h-4" />
-            {activeTab === 'pm' ? t.routine.add_pm : t.routine.add_am}
+            {activeTab === 'pm' ? t('rset_add_pm') : t('rset_add_am')}
           </button>
         )}
       </div>
@@ -324,18 +327,18 @@ export default function RoutineSetupPage() {
         {saved ? (
           <div className="flex items-center justify-center gap-2 py-4 text-emerald-500">
             <CheckCircle2 className="w-5 h-5" />
-            <span className="font-medium">{t.routine.saved}</span>
+            <span className="font-medium">{t('rset_saved')}</span>
           </div>
         ) : (
           <>
             <button onClick={handleSave} disabled={saving || newCount === 0}
               className="w-full py-3.5 bg-rose-400 text-white rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-40 transition-all active:scale-[0.98]">
               {saving
-                ? <><Loader2 className="w-4 h-4 animate-spin" />{t.routine.saving}</>
-                : newCount > 0 ? <>{t.routine.save(newCount)} <ChevronRight className="w-4 h-4" /></>
-                : t.routine.nothing_to_save}
+                ? <><Loader2 className="w-4 h-4 animate-spin" />{t('rset_saving')}</>
+                : newCount > 0 ? <>{t('rset_save', { n: newCount })} <ChevronRight className="w-4 h-4" /></>
+                : t('rset_nothing')}
             </button>
-            <button onClick={() => router.back()} className="w-full py-2 text-sm text-stone-400 text-center">{t.routine.back}</button>
+            <button onClick={() => router.back()} className="w-full py-2 text-sm text-stone-400 text-center">{t('general_back')}</button>
           </>
         )}
       </div>
