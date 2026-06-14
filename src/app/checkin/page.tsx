@@ -17,7 +17,7 @@ interface HabitsData {
 export default function CheckinPage() {
   const router = useRouter()
   const supabase = createClient()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   const STEPS = [
     { key: 'photo',    label: t('checkin_step_photo'),    icon: Camera },
@@ -104,7 +104,7 @@ export default function CheckinPage() {
         fetch('/api/analyze-skin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ photo_id: photoId, image_base64: imageBase64 }),
+          body: JSON.stringify({ photo_id: photoId, image_base64: imageBase64, lang }),
         })
       }
 

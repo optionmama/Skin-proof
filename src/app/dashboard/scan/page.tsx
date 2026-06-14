@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { AlertTriangle, Sparkles, TrendingUp, ChevronRight, Camera } from 'lucide-react'
 import { scoreToLabel } from '@/lib/utils'
+import { getT } from '@/lib/i18n/server'
 
 function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
   const radius = (size - 12) / 2
@@ -54,6 +55,7 @@ function MetricBar({ label, value, color = 'skin' }: { label: string; value: num
 
 export default async function ScanPage() {
   const supabase = await createClient()
+  const t = await getT()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: latestPhoto } = await supabase
@@ -81,21 +83,21 @@ export default async function ScanPage() {
   if (!latestPhoto) {
     return (
       <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
-        <h1 className="font-display text-3xl font-light text-charcoal-900 mb-4">AI Skin Analysis</h1>
+        <h1 className="font-display text-3xl font-light text-charcoal-900 mb-4">{t('scan_ai_title')}</h1>
         <div className="bg-white rounded-2xl border border-skin-200 p-8 text-center">
           <div className="w-14 h-14 rounded-2xl bg-skin-100 flex items-center justify-center mx-auto mb-4">
             <Camera className="w-7 h-7 text-skin-500" />
           </div>
-          <h2 className="font-display text-2xl font-light text-charcoal-900 mb-2">No analysis yet</h2>
+          <h2 className="font-display text-2xl font-light text-charcoal-900 mb-2">{t('scan_no_analysis')}</h2>
           <p className="text-charcoal-500 text-sm font-body mb-5">
-            Upload a skin photo in your daily check-in to receive an AI analysis.
+            {t('scan_no_analysis_body')}
           </p>
           <Link
             href="/dashboard/checkin"
             className="inline-flex items-center gap-2 bg-skin-500 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-skin-600 transition-all"
           >
             <Camera className="w-4 h-4" />
-            Start check-in
+            {t('scan_start_checkin')}
           </Link>
         </div>
       </div>
@@ -113,7 +115,7 @@ export default async function ScanPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="font-display text-3xl font-light text-charcoal-900">Skin Analysis</h1>
+          <h1 className="font-display text-3xl font-light text-charcoal-900">{t('scan_title')}</h1>
           <p className="text-charcoal-500 text-sm font-body">
             {latestPhoto.ai_analyzed_at
               ? new Date(latestPhoto.ai_analyzed_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
@@ -122,7 +124,7 @@ export default async function ScanPage() {
         </div>
         <Link href="/dashboard/checkin" className="flex items-center gap-1.5 text-sm text-skin-600 font-medium">
           <Camera className="w-4 h-4" />
-          New
+          {t('scan_new')}
         </Link>
       </div>
 
@@ -142,7 +144,7 @@ export default async function ScanPage() {
                   ? 'bg-sage-600/80 text-white'
                   : 'bg-amber-500/80 text-white'
               }`}>
-                Quality: {Math.round(latestPhoto.photo_quality_score)}%
+                {t('scan_quality')}: {Math.round(latestPhoto.photo_quality_score)}%
               </div>
             )}
             {latestPhoto.quality_flags && latestPhoto.quality_flags.length > 0 && (
@@ -161,14 +163,14 @@ export default async function ScanPage() {
         <div className="p-5 flex items-center gap-5">
           <ScoreRing score={latestPhoto.overall_skin_score || 0} size={88} />
           <div>
-            <p className="text-xs text-charcoal-500 mb-1 font-body">Overall skin score</p>
+            <p className="text-xs text-charcoal-500 mb-1 font-body">{t('scan_overall_score')}</p>
             <p className={`font-display text-2xl font-medium ${scoreColor}`}>{scoreLabel}</p>
             {scoreDelta !== null && (
               <p className={`text-sm font-body flex items-center gap-1 mt-1 ${
                 scoreDelta > 0 ? 'text-sage-600' : scoreDelta < 0 ? 'text-skin-500' : 'text-charcoal-400'
               }`}>
                 <TrendingUp className="w-3.5 h-3.5" />
-                {scoreDelta > 0 ? '+' : ''}{scoreDelta.toFixed(1)} vs last scan
+                {scoreDelta > 0 ? '+' : ''}{scoreDelta.toFixed(1)} {t('scan_vs_last')}
               </p>
             )}
           </div>
@@ -177,13 +179,13 @@ export default async function ScanPage() {
 
       {/* Metrics */}
       <div id="full-analysis" className="bg-white rounded-2xl border border-skin-100 p-5 mb-4 scroll-mt-4">
-        <h2 className="font-display text-xl font-light text-charcoal-900 mb-4">Skin metrics</h2>
+        <h2 className="font-display text-xl font-light text-charcoal-900 mb-4">{t('scan_metrics')}</h2>
         <div className="space-y-4">
           {[
-            { label: 'Hydration', value: latestPhoto.hydration_score, color: 'sage' },
-            { label: 'Texture', value: latestPhoto.texture_score, color: 'skin' },
-            { label: 'Pigmentation evenness', value: latestPhoto.pigmentation_score, color: 'cream' },
-            { label: 'Redness (inverted)', value: latestPhoto.redness_score ? 100 - latestPhoto.redness_score : undefined, color: 'red' },
+            { label: t('dim_hydration'), value: latestPhoto.hydration_score, color: 'sage' },
+            { label: t('scan_metric_texture'), value: latestPhoto.texture_score, color: 'skin' },
+            { label: t('scan_metric_pigmentation'), value: latestPhoto.pigmentation_score, color: 'cream' },
+            { label: t('scan_metric_redness'), value: latestPhoto.redness_score ? 100 - latestPhoto.redness_score : undefined, color: 'red' },
           ]
             .filter(m => m.value !== undefined && m.value !== null)
             .map(({ label, value, color }) => (
@@ -196,7 +198,7 @@ export default async function ScanPage() {
       {/* Detected concerns */}
       {latestPhoto.detected_concerns && latestPhoto.detected_concerns.length > 0 && (
         <div className="bg-white rounded-2xl border border-skin-100 p-5 mb-4">
-          <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">Detected concerns</h2>
+          <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">{t('scan_detected_concerns')}</h2>
           <div className="flex flex-wrap gap-2 mb-3">
             {latestPhoto.detected_concerns.map(concern => (
               <span key={concern} className="bg-skin-100 text-skin-700 text-sm px-3 py-1.5 rounded-full font-medium capitalize">
@@ -220,11 +222,15 @@ export default async function ScanPage() {
               latestPhoto.acne_severity === 'moderate' ? 'text-amber-500' : 'text-cream-500'
             }`} />
             <div>
-              <p className="text-sm font-semibold text-charcoal-800 capitalize">
-                {latestPhoto.acne_severity} acne detected
+              <p className="text-sm font-semibold text-charcoal-800">
+                {t('scan_acne_detected', { severity:
+                  latestPhoto.acne_severity === 'mild' ? t('acne_mild')
+                  : latestPhoto.acne_severity === 'moderate' ? t('acne_moderate')
+                  : latestPhoto.acne_severity === 'severe' ? t('acne_severe')
+                  : latestPhoto.acne_severity })}
               </p>
               <p className="text-xs text-charcoal-600 font-body mt-1">
-                AI tracking only. For treatment, consult a dermatologist.
+                {t('scan_acne_note')}
               </p>
             </div>
           </div>
@@ -234,7 +240,7 @@ export default async function ScanPage() {
       {/* AI version note */}
       {latestPhoto.ai_analysis_version && (
         <p className="text-xs text-charcoal-400 text-center font-mono mb-4">
-          Analysis: {latestPhoto.ai_analysis_version}
+          {t('scan_analysis_label')}: {latestPhoto.ai_analysis_version}
         </p>
       )}
 
@@ -242,7 +248,7 @@ export default async function ScanPage() {
       <div className="mb-4">
         <Link href="/dashboard/progress" className="flex items-center justify-center gap-2 bg-sage-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-sage-700 transition-colors">
           <TrendingUp className="w-4 h-4" />
-          View progress over time
+          {t('scan_view_progress')}
         </Link>
       </div>
 
@@ -253,24 +259,23 @@ export default async function ScanPage() {
         const href = `/dashboard/recommendations?from=scan&concern=${encodeURIComponent(mainConcern)}&date=${today}`
         return (
           <div className="bg-gradient-to-br from-skin-50 to-cream-50 border border-skin-200 rounded-2xl p-5 mb-4">
-            <p className="font-display text-lg font-medium text-charcoal-900 mb-1">What would you like to do next?</p>
+            <p className="font-display text-lg font-medium text-charcoal-900 mb-1">{t('scan_next_title')}</p>
             <p className="text-sm text-charcoal-600 font-body leading-relaxed mb-4">
-              Based on today&apos;s scan, we&apos;ve checked if your routine suits your skin
-              and prepared personalised recommendations.
+              {t('scan_next_body')}
             </p>
             <div className="space-y-2.5">
               <a
                 href="#full-analysis"
                 className="flex items-center justify-center gap-2 bg-white border border-skin-200 text-charcoal-800 py-3 rounded-xl font-medium hover:bg-skin-50 transition-colors text-sm"
               >
-                📊 View today&apos;s full analysis
+                📊 {t('scan_view_full')}
               </a>
               <Link
                 href={href}
                 className="flex items-center justify-center gap-2 bg-skin-500 text-white py-3.5 rounded-xl font-medium hover:bg-skin-600 transition-colors text-sm"
               >
                 <Sparkles className="w-4 h-4" />
-                See product recommendations →
+                {t('scan_see_recs')}
               </Link>
             </div>
           </div>

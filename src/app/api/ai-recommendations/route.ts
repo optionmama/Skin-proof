@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { aiLanguageInstruction } from '@/lib/i18n/ai-lang'
 
 export const maxDuration = 30
 
@@ -171,7 +172,7 @@ Return JSON array only, no other text:
     "available_at": "where to buy in ${userRegion}",
     "suitable_for": "skin type description"
   }
-]`,
+]${aiLanguageInstruction(request.nextUrl.searchParams.get('lang'), '"why", "price_range", "available_at", and "suitable_for"')}`,
         }],
       }),
     })

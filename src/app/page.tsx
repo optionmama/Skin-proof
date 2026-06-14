@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import StartButton from '@/components/StartButton'
 
 export default function Home() {
   return (
@@ -143,10 +144,10 @@ export default function Home() {
         <div className="nav-links" style={{display:'flex',gap:'28px',alignItems:'center'}}>
           <a href="#how" style={{fontSize:'13px',color:'#8B6355',textDecoration:'none',letterSpacing:'0.06em',textTransform:'uppercase'}}>How it works</a>
           <a href="#results" style={{fontSize:'13px',color:'#8B6355',textDecoration:'none',letterSpacing:'0.06em',textTransform:'uppercase'}}>Results</a>
-          <Link href="/auth" style={{background:'#C4836A',color:'#FAF7F5',padding:'10px 24px',borderRadius:'100px',fontSize:'13px',fontWeight:500,textDecoration:'none'}}>Start free →</Link>
+          <StartButton style={{background:'#C4836A',color:'#FAF7F5',padding:'10px 24px',borderRadius:'100px',fontSize:'13px',fontWeight:500,textDecoration:'none'}}>Start free →</StartButton>
         </div>
         <div className="mobile-nav-cta" style={{display:'none'}}>
-          <Link href="/auth" style={{background:'#C4836A',color:'#FAF7F5',padding:'8px 18px',borderRadius:'100px',fontSize:'13px',fontWeight:500,textDecoration:'none'}}>Start free</Link>
+          <StartButton style={{background:'#C4836A',color:'#FAF7F5',padding:'8px 18px',borderRadius:'100px',fontSize:'13px',fontWeight:500,textDecoration:'none'}}>Start free</StartButton>
         </div>
       </nav>
 
@@ -219,9 +220,9 @@ export default function Home() {
               Track your skin every day, log your products, and discover what <em>actually</em> works for skin like yours — backed by real data, not marketing claims.
             </p>
             <div className="hero-buttons" style={{display:'flex',gap:'14px',alignItems:'center',marginBottom:'44px',flexWrap:'wrap'}}>
-              <Link href="/auth" style={{background:'#C4836A',color:'#FAF7F5',padding:'15px 32px',borderRadius:'100px',fontSize:'14px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(196,131,106,0.3)'}}>
+              <StartButton style={{background:'#C4836A',color:'#FAF7F5',padding:'15px 32px',borderRadius:'100px',fontSize:'14px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(196,131,106,0.3)'}}>
                 Start tracking free →
-              </Link>
+              </StartButton>
               <a href="#how" style={{color:'#8B6355',fontSize:'14px',textDecoration:'none',display:'flex',alignItems:'center',gap:'8px'}}>
                 See how it works →
               </a>
@@ -307,9 +308,9 @@ export default function Home() {
         </div>
 
         <div className="steps-cta">
-          <Link href="/auth" style={{background:'#C4836A',color:'#FAF7F5',padding:'16px 40px',borderRadius:'100px',fontSize:'14px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(196,131,106,0.25)'}}>
+          <StartButton style={{background:'#C4836A',color:'#FAF7F5',padding:'16px 40px',borderRadius:'100px',fontSize:'14px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(196,131,106,0.25)'}}>
             Start tracking free →
-          </Link>
+          </StartButton>
         </div>
 
       </section>
@@ -370,9 +371,9 @@ export default function Home() {
         <p style={{fontSize:'16px',fontWeight:300,color:'#8B6355',marginBottom:'40px',maxWidth:'380px',marginLeft:'auto',marginRight:'auto',lineHeight:1.75}}>
           Start your free skin journal today. No credit card. No commitment. Just clarity.
         </p>
-        <Link href="/auth" className="cta-button" style={{background:'#C4836A',color:'#FAF7F5',padding:'16px 44px',borderRadius:'100px',fontSize:'15px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(196,131,106,0.3)'}}>
+        <StartButton className="cta-button" style={{background:'#C4836A',color:'#FAF7F5',padding:'16px 44px',borderRadius:'100px',fontSize:'15px',fontWeight:500,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:'8px',boxShadow:'0 8px 24px rgba(196,131,106,0.3)'}}>
           Start tracking free →
-        </Link>
+        </StartButton>
       </section>
 
       {/* FOOTER */}

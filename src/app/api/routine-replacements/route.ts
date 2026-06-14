@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { aiLanguageInstruction } from '@/lib/i18n/ai-lang'
 
 export const maxDuration = 30
 
@@ -25,10 +26,10 @@ export async function POST(request: NextRequest) {
   const {
     brand = '', productName = '', category = 'serum',
     flaggedIngredient = '', detectedConcern = 'general skin health',
-    region = 'Asia',
+    region = 'Asia', lang = 'en',
   } = body as {
     brand?: string; productName?: string; category?: string
-    flaggedIngredient?: string; detectedConcern?: string; region?: string
+    flaggedIngredient?: string; detectedConcern?: string; region?: string; lang?: string
   }
 
   const { data: profile } = await supabase
@@ -58,7 +59,7 @@ Return ONLY valid JSON, no other text:
   "why": "why this is a better alternative for today's skin",
   "price_range": "price",
   "available_at": "where to buy in ${region}"
-}]`
+}]${aiLanguageInstruction(lang, '"why", "price_range", and "available_at"')}`
 
   let products: Record<string, string>[] = []
   try {

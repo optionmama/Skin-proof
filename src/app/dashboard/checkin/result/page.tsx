@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { BookOpen, TrendingUp, Loader2, Sparkles, AlertCircle, Users } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n/translations'
 
 const COMEDOGENIC = ['coconut oil', 'lanolin', 'cocoa butter', 'isopropyl myristate', 'mineral oil', 'wheat germ oil']
 const HEAVY       = ['petrolatum', 'dimethicone', 'shea butter']
@@ -16,30 +17,26 @@ const COMEDOGENIC_INGREDIENTS = [...COMEDOGENIC, 'algae extract', 'flaxseed oil'
 
 type MainConcern = 'redness' | 'breakouts' | 'dryness' | 'oiliness' | 'pores' | 'none'
 
-function getTip(mainConcern: MainConcern, overallScore: number) {
-  if (overallScore >= 80) return {
-    emoji: '🌟', message: 'Your skin looks great today!',
-    tip: 'Keep up your current routine — it\'s working.',
-  }
-  const tips: Record<MainConcern, { emoji: string; message: string; tip: string }> = {
-    breakouts: { emoji: '🫧', message: 'Some breakouts detected today.', tip: 'Avoid touching your face. Check if you recently added any new products to your routine.' },
-    dryness:   { emoji: '💧', message: 'Your skin looks a bit dehydrated.', tip: 'Drink more water today. Tonight, apply hydrating toner before your moisturiser.' },
-    oiliness:  { emoji: '✨', message: 'T-zone is looking oily today.', tip: 'Try blotting this afternoon. Skip heavy cream tonight and use a lighter moisturiser.' },
-    redness:   { emoji: '🌿', message: 'Some redness detected.', tip: 'Use gentle, fragrance-free products today. Avoid exfoliating.' },
-    pores:     { emoji: '🔍', message: 'Pores appear more visible today.', tip: 'Make sure you\'re double-cleansing and using a BHA toner a few times a week.' },
-    none:      { emoji: '💚', message: 'Skin barrier looks healthy!', tip: 'No major concerns today — just maintain your routine.' },
+function getTip(mainConcern: MainConcern, overallScore: number): { emoji: string; msgKey: TranslationKey; tipKey: TranslationKey } {
+  if (overallScore >= 80) return { emoji: '🌟', msgKey: 'tip_great_msg', tipKey: 'tip_great_tip' }
+  const tips: Record<MainConcern, { emoji: string; msgKey: TranslationKey; tipKey: TranslationKey }> = {
+    breakouts: { emoji: '🫧', msgKey: 'tip_breakouts_msg', tipKey: 'tip_breakouts_tip' },
+    dryness:   { emoji: '💧', msgKey: 'tip_dryness_msg', tipKey: 'tip_dryness_tip' },
+    oiliness:  { emoji: '✨', msgKey: 'tip_oiliness_msg', tipKey: 'tip_oiliness_tip' },
+    redness:   { emoji: '🌿', msgKey: 'tip_redness_msg', tipKey: 'tip_redness_tip' },
+    pores:     { emoji: '🔍', msgKey: 'tip_pores_msg', tipKey: 'tip_pores_tip' },
+    none:      { emoji: '💚', msgKey: 'tip_none_msg', tipKey: 'tip_none_tip' },
   }
   return tips[mainConcern] || tips.none
 }
 
-function ScoreRing({ score }: { score: number }) {
+function ScoreRing({ score, label }: { score: number; label: string }) {
   const size = 96
   const radius = (size - 12) / 2
   const circumference = 2 * Math.PI * radius
   const offset = circumference - (score / 100) * circumference
 
   const color = score >= 80 ? '#6f8362' : score >= 60 ? '#cc6b47' : '#dc2626'
-  const label = score >= 80 ? 'Excellent' : score >= 65 ? 'Good' : score >= 50 ? 'Fair' : 'Needs care'
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -79,7 +76,7 @@ function ResultContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const supabase = createClient()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const checkinId = searchParams.get('checkin_id')
 
   const [analysis, setAnalysis] = useState<{
@@ -94,11 +91,35 @@ function ResultContent() {
   const [routineProducts, setRoutineProducts] = useState<{ name: string; brand: string; notes: string; flag?: string; flagType?: string }[]>([])
   const [noProducts, setNoProducts] = useState(false)
   const [checkinCount, setCheckinCount] = useState(1)
+  // Observations translated for display (backfills old English-only scans)
+  const [displayObs, setDisplayObs] = useState<string[] | null>(null)
 
   useEffect(() => {
     if (!checkinId) { router.replace('/dashboard'); return }
     loadData()
   }, [checkinId])
+
+  // Translate stored observations on display when they're in a different
+  // language than the UI (e.g. old scans generated before localization).
+  useEffect(() => {
+    const obs = analysis?.visible_observations
+    if (!obs || obs.length === 0) { setDisplayObs(null); return }
+    const hasCJK = /[一-鿿]/.test(obs.join(' '))
+    // English UI, or text already in a CJK language → show as stored.
+    if (lang === 'en' || hasCJK) { setDisplayObs(obs); return }
+    // English text but zh UI → show English now, swap in translation when ready.
+    let cancelled = false
+    setDisplayObs(obs)
+    fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: obs, targetLang: lang }),
+    })
+      .then(r => r.json())
+      .then((res: { texts?: string[] }) => { if (!cancelled && res.texts?.length) setDisplayObs(res.texts) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [analysis, lang])
 
   const loadData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -230,14 +251,17 @@ function ResultContent() {
       {analysis && (
         <div className="bg-white rounded-2xl border border-skin-100 p-5">
           <div className="flex items-center gap-6 mb-4">
-            <ScoreRing score={analysis.overall_score} />
+            <ScoreRing
+              score={analysis.overall_score}
+              label={analysis.overall_score >= 80 ? t('result_excellent') : analysis.overall_score >= 65 ? t('result_good') : analysis.overall_score >= 50 ? t('result_fair') : t('result_needs_care')}
+            />
             <div className="flex-1 space-y-3">
               {Object.keys(dims).length > 0 && (
                 <>
-                  <DimensionBar label="Hydration"  value={dims.hydration || 50} />
-                  <DimensionBar label="Clarity"    value={dims.breakouts || 50} inverted />
-                  <DimensionBar label="Calmness"   value={dims.redness   || 50} inverted />
-                  <DimensionBar label="Balance"    value={dims.oiliness  || 50} inverted />
+                  <DimensionBar label={t('dim_hydration')} value={dims.hydration || 50} />
+                  <DimensionBar label={t('dim_clarity')}   value={dims.breakouts || 50} inverted />
+                  <DimensionBar label={t('dim_calmness')}  value={dims.redness   || 50} inverted />
+                  <DimensionBar label={t('dim_balance')}   value={dims.oiliness  || 50} inverted />
                 </>
               )}
             </div>
@@ -245,17 +269,17 @@ function ResultContent() {
 
           {analysis.makeup_detected && (
             <p className="text-xs text-charcoal-400 font-body italic">
-              💄 Makeup detected — score based on visible skin areas
+              💄 {t('result_makeup')}
             </p>
           )}
 
           {analysis.visible_observations.length > 0 && (
             <div className="mt-3 pt-3 border-t border-skin-50">
               <p className="text-xs font-semibold text-charcoal-600 mb-2 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-skin-500" /> What I noticed
+                <Sparkles className="w-3 h-3 text-skin-500" /> {t('result_what_noticed')}
               </p>
               <ul className="space-y-1">
-                {analysis.visible_observations.map((obs, i) => (
+                {(displayObs ?? analysis.visible_observations).map((obs, i) => (
                   <li key={i} className="text-xs text-charcoal-600 font-body flex gap-1.5">
                     <span className="text-skin-400 shrink-0">•</span>{obs}
                   </li>
@@ -271,8 +295,8 @@ function ResultContent() {
         <div className="flex items-start gap-3">
           <span className="text-2xl shrink-0">{tip.emoji}</span>
           <div>
-            <p className="font-medium text-charcoal-900 text-sm">{tip.message}</p>
-            <p className="text-xs text-charcoal-600 font-body mt-1 leading-relaxed">{tip.tip}</p>
+            <p className="font-medium text-charcoal-900 text-sm">{t(tip.msgKey)}</p>
+            <p className="text-xs text-charcoal-600 font-body mt-1 leading-relaxed">{t(tip.tipKey)}</p>
           </div>
         </div>
       </div>
@@ -281,7 +305,7 @@ function ResultContent() {
       <div className="bg-white rounded-2xl border border-skin-100 overflow-hidden">
         <div className="px-4 pt-4 pb-3 border-b border-skin-50">
           <h2 className="font-display text-lg font-light text-charcoal-900">{t('result_your_routine')}</h2>
-          <p className="text-xs text-charcoal-500 font-body">Checked against today&apos;s AI results</p>
+          <p className="text-xs text-charcoal-500 font-body">{t('result_checked_ai')}</p>
         </div>
 
         {noProducts ? (
@@ -289,11 +313,11 @@ function ResultContent() {
             <span className="text-lg shrink-0">📝</span>
             <div>
               <p className="text-sm text-charcoal-700 font-body leading-relaxed">
-                Add products to your Diary and we&apos;ll check if they suit today&apos;s skin condition.
+                {t('result_add_diary_body')}
               </p>
               <Link href="/dashboard/diary/add"
                 className="inline-flex items-center gap-1.5 text-xs text-skin-600 font-medium mt-2 underline">
-                <BookOpen className="w-3 h-3" /> Go to Diary →
+                <BookOpen className="w-3 h-3" /> {t('result_go_diary')}
               </Link>
             </div>
           </div>
@@ -313,9 +337,7 @@ function ResultContent() {
                   </p>
                   {p.flag ? (
                     <p className="text-xs text-amber-700 font-body mt-0.5">
-                      Contains <em>{p.flag}</em> which may worsen{' '}
-                      {p.flagType === 'pores' ? 'oiliness or breakouts' : 'redness'}.
-                      Consider skipping tonight.
+                      {t('result_flag_contains', { ing: p.flag, what: p.flagType === 'pores' ? t('result_flag_pores') : t('result_flag_redness') })}
                     </p>
                   ) : (
                     <p className="text-xs text-charcoal-400 font-body mt-0.5">
@@ -333,28 +355,28 @@ function ResultContent() {
       <div className="bg-cream-50 border border-cream-200 rounded-2xl p-5">
         <div className="flex items-center gap-2 mb-3">
           <Users className="w-4 h-4 text-charcoal-500" />
-          <h3 className="text-sm font-semibold text-charcoal-800">What works for skin like yours</h3>
+          <h3 className="text-sm font-semibold text-charcoal-800">{t('result_community_title')}</h3>
         </div>
         <p className="text-xs text-charcoal-600 font-body leading-relaxed mb-3">
-          As more users join, you&apos;ll see what products helped people like you reach:
+          {t('result_community_intro')}
         </p>
         <div className="space-y-2 mb-3">
           <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2">
             <span className="text-sm">🟡</span>
-            <span className="text-xs text-charcoal-700 font-body"><strong>75+ score</strong> — working well</span>
+            <span className="text-xs text-charcoal-700 font-body"><strong>{t('result_tier_75')}</strong> — {t('community_working_well')}</span>
           </div>
           <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2">
             <span className="text-sm">🟢</span>
-            <span className="text-xs text-charcoal-700 font-body"><strong>80+ score</strong> — working great</span>
+            <span className="text-xs text-charcoal-700 font-body"><strong>{t('result_tier_80')}</strong> — {t('community_working_great')}</span>
           </div>
         </div>
         <p className="text-xs text-charcoal-500 font-body mb-3">
-          Same skin type · Similar concerns · Your age group.<br />
-          Real results. Real people. No guesswork.
+          {t('result_community_basis')}<br />
+          {t('result_community_real')}
         </p>
         <div className="inline-flex items-center gap-1.5 bg-white border border-cream-300 rounded-full px-3 py-1.5">
           <span className="w-2 h-2 rounded-full bg-red-400" />
-          <span className="text-xs text-charcoal-600 font-body">Community data: building — be an early tracker</span>
+          <span className="text-xs text-charcoal-600 font-body">{t('result_community_building_pill')}</span>
         </div>
       </div>
 

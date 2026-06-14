@@ -127,7 +127,7 @@ export default function ForYouEmptyState({
   fromScan?: boolean
   scanConcern?: string
 }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [products, setProducts] = useState<RoutineProduct[]>(routineProducts)
   const [data, setData] = useState<RecommendationData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -146,7 +146,7 @@ export default function ForYouEmptyState({
     setRegion(detectedRegion)
 
     if (routineProducts.length === 0) {
-      fetch(`/api/ai-recommendations?region=${encodeURIComponent(detectedRegion)}`)
+      fetch(`/api/ai-recommendations?region=${encodeURIComponent(detectedRegion)}&lang=${encodeURIComponent(lang)}`)
         .then(r => r.json())
         .then(setData)
         .catch(() => setData(null))
@@ -154,7 +154,7 @@ export default function ForYouEmptyState({
     } else {
       setLoading(false)
     }
-  }, [routineProducts.length])
+  }, [routineProducts.length, lang])
 
   // Background-fill ingredients for products missing data
   useEffect(() => {
@@ -201,6 +201,7 @@ export default function ForYouEmptyState({
         flaggedIngredient: result.flags[0]?.ingredient || '',
         detectedConcern: effectiveConcern || 'general skin health',
         region,
+        lang,
       }),
     })
       .then(r => r.json())

@@ -444,19 +444,19 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
           <div className="relative w-full max-w-lg bg-white rounded-t-2xl px-5 pt-5 pb-8 space-y-4 animate-slide-up">
             <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto mb-2" />
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-stone-800">Edit product</h3>
+              <h3 className="font-semibold text-stone-800">{t('products_edit_title')}</h3>
               <button onClick={() => setEditDraft(null)}><X className="w-4 h-4 text-stone-400" /></button>
             </div>
-            <input type="text" placeholder="Brand" value={editDraft.brand}
+            <input type="text" placeholder={t('products_brand')} value={editDraft.brand}
               onChange={e => setEditDraft(d => d ? { ...d, brand: e.target.value } : d)}
               className="w-full px-3 py-2.5 text-sm border border-stone-200 rounded-xl focus:outline-none focus:border-rose-300" />
-            <input type="text" placeholder="Product name" value={editDraft.name}
+            <input type="text" placeholder={t('products_name')} value={editDraft.name}
               onChange={e => setEditDraft(d => d ? { ...d, name: e.target.value } : d)}
               className="w-full px-3 py-2.5 text-sm border border-stone-200 rounded-xl focus:outline-none focus:border-rose-300" />
             <select value={editDraft.category}
               onChange={e => setEditDraft(d => d ? { ...d, category: e.target.value as Category } : d)}
               className="w-full px-3 py-2.5 text-sm border border-stone-200 rounded-xl focus:outline-none focus:border-rose-300 text-stone-700">
-              <option value="">Category (optional)</option>
+              <option value="">{t('products_category')}</option>
               {(Object.keys(CATEGORY_LABELS) as Category[]).map(c => (
                 <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
               ))}
@@ -465,17 +465,17 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
               {(['am', 'pm', 'both'] as const).map(rt => (
                 <button key={rt} onClick={() => setEditDraft(d => d ? { ...d, routine_type: rt } : d)}
                   className={`flex-1 py-2 rounded-xl text-xs font-medium border transition-all ${editDraft.routine_type === rt ? 'bg-rose-400 text-white border-rose-400' : 'bg-white text-stone-600 border-stone-200'}`}>
-                  {rt === 'am' ? '☀️ AM' : rt === 'pm' ? '🌙 PM' : '🔄 Both'}
+                  {rt === 'am' ? t('products_filter_am') : rt === 'pm' ? t('products_filter_pm') : `🔄 ${t('products_both')}`}
                 </button>
               ))}
             </div>
             <div className="flex gap-3">
               <button onClick={() => setEditDraft(null)}
-                className="flex-1 py-3 border border-stone-200 rounded-xl text-sm text-stone-600">Cancel</button>
+                className="flex-1 py-3 border border-stone-200 rounded-xl text-sm text-stone-600">{t('products_cancel')}</button>
               <button onClick={handleSaveEdit} disabled={saving || !editDraft.name.trim()}
                 className="flex-1 py-3 bg-rose-400 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                Save changes
+                {t('general_save')}
               </button>
             </div>
           </div>

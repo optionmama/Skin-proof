@@ -176,11 +176,11 @@ export default function DiaryPage() {
             <BookOpen className="w-7 h-7 text-skin-400" />
           </div>
           <h3 className="font-display text-xl font-light text-charcoal-800 mb-2">
-            {search ? 'No matches' : t('diary_no_products')}
+            {search ? t('diary_no_matches') : t('diary_no_products')}
           </h3>
           <p className="text-charcoal-500 text-sm font-body mb-5">
             {search
-              ? 'Try a different search term.'
+              ? t('diary_try_search')
               : t('diary_empty_body')}
           </p>
           {!search && (

@@ -106,12 +106,12 @@ export default async function DashboardPage() {
     || null
 
   const concernLabels: Record<string, string> = {
-    breakouts: 'Breakouts',
-    redness: 'Redness',
-    dryness: 'Dryness',
-    oiliness: 'Oiliness',
-    pores: 'Enlarged pores',
-    none: 'Looking good',
+    breakouts: t('concern_breakouts'),
+    redness: t('concern_redness'),
+    dryness: t('concern_dryness'),
+    oiliness: t('concern_oiliness'),
+    pores: t('concern_pores'),
+    none: t('concern_none'),
   }
 
   return (
@@ -135,10 +135,10 @@ export default async function DashboardPage() {
         <div className="bg-skin-500 text-white rounded-2xl p-5 mb-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-12 translate-x-12" />
           <div className="relative">
-            <p className="text-white/80 text-xs font-medium mb-2 font-body">TODAY&apos;S CHECK-IN</p>
-            <h2 className="font-display text-2xl font-light mb-4">Start today&apos;s skin check</h2>
+            <p className="text-white/80 text-xs font-medium mb-2 font-body">{t('home_today_label')}</p>
+            <h2 className="font-display text-2xl font-light mb-4">{t('home_start_title')}</h2>
             <div className="space-y-1.5 mb-5 font-body">
-              {['Take a photo', 'Confirm your products', 'Get your skin report'].map((s, i) => (
+              {[t('home_step_photo'), t('home_step_products'), t('home_step_report')].map((s, i) => (
                 <p key={i} className="text-white/80 text-xs flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold shrink-0">{i + 1}</span>
                   {s}
@@ -147,7 +147,7 @@ export default async function DashboardPage() {
             </div>
             <Link href="/checkin"
               className="inline-flex items-center gap-2 bg-white text-skin-600 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-skin-50 transition-colors active:scale-95">
-              Start Daily Check-in <ArrowRight className="w-4 h-4" />
+              {t('home_start_checkin')} <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
@@ -156,28 +156,28 @@ export default async function DashboardPage() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative flex items-center justify-between gap-3">
             <div>
-              <p className="text-sage-200 text-xs mb-1 font-body">✓ Today&apos;s check-in complete</p>
+              <p className="text-sage-200 text-xs mb-1 font-body">✓ {t('home_checkin_complete')}</p>
               {latestScore ? (
                 <>
                   <p className="font-display text-3xl font-light">
-                    Score: <strong>{Math.round(latestScore)}</strong>
+                    {t('home_score')}: <strong>{Math.round(latestScore)}</strong>
                     {scoreDelta !== null && (
                       <span className={`text-base ml-2 font-body ${scoreDelta >= 0 ? 'text-sage-200' : 'text-red-300'}`}>
-                        {scoreDelta >= 0 ? '↑' : '↓'} {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs prev
+                        {scoreDelta >= 0 ? '↑' : '↓'} {scoreDelta >= 0 ? '+' : ''}{scoreDelta} {t('home_vs_prev')}
                       </span>
                     )}
                   </p>
                   {mainConcern && mainConcern !== 'none' && (
                     <p className="text-sage-200 text-xs mt-1 font-body">
-                      Main concern: {concernLabels[mainConcern] || mainConcern}
+                      {t('home_main_concern')}: {concernLabels[mainConcern] || mainConcern}
                     </p>
                   )}
                 </>
               ) : (
-                <p className="font-display text-xl font-light text-sage-200">Analysing your skin…</p>
+                <p className="font-display text-xl font-light text-sage-200">{t('home_analysing')}</p>
               )}
               {streakCount > 1 && (
-                <p className="text-sage-200 text-xs mt-1 font-body">🔥 {streakCount} day streak</p>
+                <p className="text-sage-200 text-xs mt-1 font-body">🔥 {t('home_streak_days', { n: streakCount })}</p>
               )}
             </div>
             <Link href={`/dashboard/checkin/result?checkin_id=${todaysCheckin.id}`}
@@ -241,7 +241,7 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-xl font-light text-charcoal-900">{t('home_current_routine')}</h2>
             <Link href="/routine/setup" className="text-xs text-skin-600 font-medium flex items-center gap-1">
-              Edit <ChevronRight className="w-3 h-3" />
+              {t('home_edit')} <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
           <RoutineList items={routineItems} />

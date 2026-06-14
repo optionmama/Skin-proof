@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { aiLanguageInstruction } from '@/lib/i18n/ai-lang'
 
 export const maxDuration = 60
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { photo_id, image_base64 } = body
+  const { photo_id, image_base64, lang } = body
 
   if (!photo_id || !image_base64) {
     return NextResponse.json({ error: 'photo_id and image_base64 are required' }, { status: 400 })
@@ -98,7 +99,7 @@ Rules:
 - Every photo must be evaluated independently — never return 72 or 75 by default
 - visible_observations must name specific things (e.g. "3 small pimples on forehead", "dry patches on cheeks", "T-zone appears oily")
 - If makeup detected, add "Makeup detected" to observations and score visible areas only
-- Score range MUST vary: a clear skin photo should score 80+, a breakout photo 45-60`,
+- Score range MUST vary: a clear skin photo should score 80+, a breakout photo 45-60${aiLanguageInstruction(lang, '"visible_observations" (each observation string)')}`,
               },
             ],
           },

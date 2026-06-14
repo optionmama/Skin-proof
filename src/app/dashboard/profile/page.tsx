@@ -4,25 +4,12 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n/translations'
 import { createClient } from '@/lib/supabase/client'
 import {
   User, Shield, Bell, ChevronRight, LogOut, Edit2, Moon, Sun,
   ExternalLink, Globe, Trash2, Download, X, Check, Loader2, Sparkles,
 } from 'lucide-react'
-
-const SKIN_TYPE_LABELS: Record<string, string> = {
-  normal: 'Normal', dry: 'Dry', oily: 'Oily',
-  combination: 'Combination', sensitive: 'Sensitive',
-}
-
-const FITZPATRICK_LABELS: Record<number, string> = {
-  1: 'Type I — Very fair, always burns',
-  2: 'Type II — Fair, usually burns',
-  3: 'Type III — Medium, sometimes burns',
-  4: 'Type IV — Olive, rarely burns',
-  5: 'Type V — Brown, very rarely burns',
-  6: 'Type VI — Dark, never burns',
-}
 
 interface UserProfile { display_name: string | null; email: string | null; is_admin: boolean }
 interface SkinProfile {
@@ -43,12 +30,12 @@ interface UserSettings {
 }
 
 const REGIONS = [
-  { value: 'Asia',      label: 'Asia',      desc: 'Taiwan · Korea · Japan · Southeast Asia' },
-  { value: 'Americas',  label: 'Americas',  desc: 'US · Canada · Latin America' },
-  { value: 'Europe',    label: 'Europe',    desc: 'UK · EU · Rest of Europe' },
-  { value: 'Australia', label: 'Australia', desc: 'Australia & New Zealand' },
-  { value: 'Global',    label: 'Global',    desc: 'International / online shipping' },
-]
+  { value: 'Asia',      key: 'asia' },
+  { value: 'Americas',  key: 'americas' },
+  { value: 'Europe',    key: 'europe' },
+  { value: 'Australia', key: 'australia' },
+  { value: 'Global',    key: 'global' },
+] as const
 
 const DEFAULT_SETTINGS: UserSettings = {
   notif_daily_scan: true, notif_daily_scan_time: '08:00',
@@ -63,7 +50,7 @@ const LANG_OPTIONS = [
 ]
 
 function LangSelector({ currentLang, onSave }: { currentLang: string; onSave: (l: string) => Promise<void> }) {
-  const { setLang } = useLanguage()
+  const { setLang, t } = useLanguage()
   return (
     <div className="space-y-2">
       {LANG_OPTIONS.map(opt => (
@@ -78,7 +65,7 @@ function LangSelector({ currentLang, onSave }: { currentLang: string; onSave: (l
           {currentLang === opt.value && <Check size={16} className="text-skin-500" />}
         </button>
       ))}
-      <p className="text-xs text-charcoal-400 font-body pt-1 text-center">App switches immediately.</p>
+      <p className="text-xs text-charcoal-400 font-body pt-1 text-center">{t('profile_app_switches')}</p>
     </div>
   )
 }
@@ -97,6 +84,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 export default function ProfilePage() {
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useLanguage()
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [skinProfile, setSkinProfile] = useState<SkinProfile | null>(null)
@@ -223,16 +211,16 @@ export default function ProfilePage() {
               <input autoFocus value={newName} onChange={e => setNewName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSaveName()}
                 className="bg-white/20 border border-white/40 rounded-xl px-3 py-1.5 text-white placeholder:text-white/60 text-center text-sm focus:outline-none focus:bg-white/30"
-                placeholder="Your name" />
+                placeholder={t('profile_default_name')} />
               <button onClick={handleSaveName} disabled={savingName}
                 className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl transition-colors">
-                {savingName ? '…' : 'Save'}
+                {savingName ? '…' : t('profile_save')}
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2 justify-center">
               <h1 className="font-display text-2xl font-semibold">
-                {userProfile?.display_name || 'Skincare User'}
+                {userProfile?.display_name || t('profile_default_name')}
               </h1>
               <button onClick={() => setEditingName(true)} className="opacity-70 hover:opacity-100">
                 <Edit2 size={14} />
@@ -242,7 +230,7 @@ export default function ProfilePage() {
           <p className="text-white/70 text-sm">{userProfile?.email}</p>
           {userProfile?.is_admin && (
             <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
-              <Shield size={10} /> Admin
+              <Shield size={10} /> {t('profile_admin_badge')}
             </span>
           )}
         </div>
@@ -258,9 +246,9 @@ export default function ProfilePage() {
               <Sparkles size={16} className="text-rose-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-charcoal-800">My Skincare Routine</p>
+              <p className="text-sm font-semibold text-charcoal-800">{t('profile_routine')}</p>
               <p className="text-xs text-charcoal-400 mt-0.5">
-                {routineCount > 0 ? `${routineCount} product${routineCount !== 1 ? 's' : ''} added` : 'Not set up yet — tap to start'}
+                {routineCount > 0 ? t('profile_products_added', { n: routineCount }) : t('profile_routine_none')}
               </p>
             </div>
           </div>
@@ -270,40 +258,40 @@ export default function ProfilePage() {
         {/* Skin Profile */}
         <div className="bg-white border border-skin-100 rounded-2xl overflow-hidden">
           <div className="px-5 py-3 border-b border-skin-50 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-charcoal-700">Skin Profile</h2>
+            <h2 className="text-sm font-semibold text-charcoal-700">{t('profile_skin_profile')}</h2>
             <Link href="/onboarding" className="text-xs text-skin-600 hover:underline flex items-center gap-1">
-              <Edit2 size={11} /> Edit
+              <Edit2 size={11} /> {t('general_edit')}
             </Link>
           </div>
           <div className="p-5 space-y-3">
             {skinProfile?.skin_type && (
               <div className="flex justify-between text-sm">
-                <span className="text-charcoal-500">Skin Type</span>
-                <span className="text-charcoal-800 font-medium">{SKIN_TYPE_LABELS[skinProfile.skin_type]}</span>
+                <span className="text-charcoal-500">{t('profile_skin_type')}</span>
+                <span className="text-charcoal-800 font-medium">{t(`skintype_${skinProfile.skin_type}` as TranslationKey)}</span>
               </div>
             )}
             {skinProfile?.fitzpatrick_scale && (
               <div className="flex justify-between text-sm">
-                <span className="text-charcoal-500">Fitzpatrick</span>
+                <span className="text-charcoal-500">{t('profile_fitzpatrick')}</span>
                 <span className="text-charcoal-800 font-medium text-right max-w-[180px]">
-                  {FITZPATRICK_LABELS[skinProfile.fitzpatrick_scale]}
+                  {t(`fitz_${skinProfile.fitzpatrick_scale}` as TranslationKey)}
                 </span>
               </div>
             )}
             {/* Age Range — Task 3 */}
             <div className="flex justify-between text-sm">
-              <span className="text-charcoal-500">Age Range</span>
+              <span className="text-charcoal-500">{t('profile_age_range')}</span>
               {skinProfile?.age_range ? (
                 <span className="text-charcoal-800 font-medium">{skinProfile.age_range}</span>
               ) : (
                 <Link href="/onboarding" className="text-skin-600 text-xs flex items-center gap-0.5 hover:underline">
-                  Not set <ChevronRight size={12} />
+                  {t('profile_not_set')} <ChevronRight size={12} />
                 </Link>
               )}
             </div>
             {skinProfile?.primary_concerns && skinProfile.primary_concerns.length > 0 && (
               <div className="space-y-1.5">
-                <span className="text-sm text-charcoal-500">Concerns</span>
+                <span className="text-sm text-charcoal-500">{t('profile_concerns')}</span>
                 <div className="flex flex-wrap gap-1.5">
                   {skinProfile.primary_concerns.map(c => (
                     <span key={c} className="text-xs bg-skin-50 text-skin-700 px-2 py-0.5 rounded-full border border-skin-200 capitalize">
@@ -315,7 +303,7 @@ export default function ProfilePage() {
             )}
             {skinProfile?.known_allergies && skinProfile.known_allergies.length > 0 && (
               <div className="space-y-1.5">
-                <span className="text-sm text-charcoal-500">Allergies / Sensitivities</span>
+                <span className="text-sm text-charcoal-500">{t('profile_allergies')}</span>
                 <div className="flex flex-wrap gap-1.5">
                   {skinProfile.known_allergies.map(a => (
                     <span key={a} className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-200">{a}</span>
@@ -325,8 +313,8 @@ export default function ProfilePage() {
             )}
             {!skinProfile && (
               <p className="text-sm text-charcoal-400 text-center py-2">
-                No profile yet.{' '}
-                <Link href="/onboarding" className="text-skin-600 hover:underline">Complete onboarding →</Link>
+                {t('profile_no_profile')}{' '}
+                <Link href="/onboarding" className="text-skin-600 hover:underline">{t('profile_complete_onboarding')}</Link>
               </p>
             )}
           </div>
@@ -335,7 +323,7 @@ export default function ProfilePage() {
         {/* Settings */}
         <div className="bg-white border border-skin-100 rounded-2xl overflow-hidden divide-y divide-skin-50">
           <div className="px-5 py-3">
-            <h2 className="text-sm font-semibold text-charcoal-700">Settings</h2>
+            <h2 className="text-sm font-semibold text-charcoal-700">{t('profile_settings')}</h2>
           </div>
 
           {/* Notifications */}
@@ -343,7 +331,7 @@ export default function ProfilePage() {
             className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
             <div className="flex items-center gap-3">
               <Bell size={16} className="text-charcoal-400" />
-              <span className="text-sm text-charcoal-700">Notifications</span>
+              <span className="text-sm text-charcoal-700">{t('profile_notifications')}</span>
             </div>
             <ChevronRight size={16} className="text-charcoal-300" />
           </button>
@@ -352,7 +340,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between px-5 py-3.5">
             <div className="flex items-center gap-3">
               {settings.dark_mode ? <Moon size={16} className="text-charcoal-400" /> : <Sun size={16} className="text-charcoal-400" />}
-              <span className="text-sm text-charcoal-700">Dark Mode</span>
+              <span className="text-sm text-charcoal-700">{t('profile_dark_mode')}</span>
             </div>
             <Toggle checked={settings.dark_mode} onChange={v => saveSettings({ dark_mode: v })} />
           </div>
@@ -362,7 +350,7 @@ export default function ProfilePage() {
             className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
             <div className="flex items-center gap-3">
               <Globe size={16} className="text-charcoal-400" />
-              <span className="text-sm text-charcoal-700">Language</span>
+              <span className="text-sm text-charcoal-700">{t('profile_language')}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-charcoal-400">{LANG_OPTIONS.find(o => o.value === settings.language)?.label || 'English'}</span>
@@ -375,7 +363,7 @@ export default function ProfilePage() {
             className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
             <div className="flex items-center gap-3">
               <Globe size={16} className="text-charcoal-400" />
-              <span className="text-sm text-charcoal-700">Region</span>
+              <span className="text-sm text-charcoal-700">{t('profile_region')}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-charcoal-400">{settings.region}</span>
@@ -388,7 +376,7 @@ export default function ProfilePage() {
             className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
             <div className="flex items-center gap-3">
               <Shield size={16} className="text-charcoal-400" />
-              <span className="text-sm text-charcoal-700">Privacy & Data</span>
+              <span className="text-sm text-charcoal-700">{t('profile_privacy')}</span>
             </div>
             <ChevronRight size={16} className="text-charcoal-300" />
           </button>
@@ -400,7 +388,7 @@ export default function ProfilePage() {
             className="flex items-center justify-between bg-skin-600 text-white px-5 py-4 rounded-2xl hover:bg-skin-700 transition-colors">
             <div className="flex items-center gap-3">
               <Shield size={16} />
-              <span className="text-sm font-medium">Admin Dashboard</span>
+              <span className="text-sm font-medium">{t('profile_admin_dashboard')}</span>
             </div>
             <ChevronRight size={16} className="opacity-70" />
           </Link>
@@ -409,24 +397,24 @@ export default function ProfilePage() {
         {/* Legal */}
         <div className="bg-white border border-skin-100 rounded-2xl overflow-hidden divide-y divide-skin-50">
           <Link href="/privacy" className="flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
-            <span className="text-sm text-charcoal-700">Privacy Policy</span>
+            <span className="text-sm text-charcoal-700">{t('profile_privacy_policy')}</span>
             <ExternalLink size={14} className="text-charcoal-300" />
           </Link>
           <Link href="/terms" className="flex items-center justify-between px-5 py-3.5 hover:bg-skin-50 transition-colors">
-            <span className="text-sm text-charcoal-700">Terms of Service</span>
+            <span className="text-sm text-charcoal-700">{t('profile_terms')}</span>
             <ExternalLink size={14} className="text-charcoal-300" />
           </Link>
         </div>
 
         <div className="text-center space-y-1 pb-2">
           <p className="text-xs text-charcoal-400">SkinProof v1.0.0</p>
-          <p className="text-xs text-charcoal-300">© 2026 SkinProof. All rights reserved.</p>
+          <p className="text-xs text-charcoal-300">{t('profile_rights')}</p>
         </div>
 
         <button onClick={handleSignOut} disabled={signingOut}
           className="w-full py-3.5 border border-red-200 text-red-500 hover:bg-red-50 font-medium text-sm rounded-2xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
           <LogOut size={16} />
-          {signingOut ? 'Signing out…' : 'Sign Out'}
+          {signingOut ? t('profile_signing_out') : t('profile_sign_out')}
         </button>
       </div>
 
@@ -441,20 +429,20 @@ export default function ProfilePage() {
               <div className="px-5 pt-5 pb-8">
                 <div className="w-10 h-1 bg-skin-200 rounded-full mx-auto mb-4" />
                 <div className="flex items-center justify-between mb-5">
-                  <h2 className="font-display text-xl font-light text-charcoal-900">Notifications</h2>
+                  <h2 className="font-display text-xl font-light text-charcoal-900">{t('profile_notifications')}</h2>
                   <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-skin-50 rounded-lg"><X size={16} /></button>
                 </div>
                 <div className="space-y-0 divide-y divide-skin-50 rounded-2xl border border-skin-100 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3.5 bg-white">
                     <div>
-                      <p className="text-sm font-medium text-charcoal-800">Daily scan reminder</p>
-                      <p className="text-xs text-charcoal-400 mt-0.5">Remind me to check in each day</p>
+                      <p className="text-sm font-medium text-charcoal-800">{t('profile_notif_daily')}</p>
+                      <p className="text-xs text-charcoal-400 mt-0.5">{t('profile_notif_daily_sub')}</p>
                     </div>
                     <Toggle checked={settings.notif_daily_scan} onChange={v => saveSettings({ notif_daily_scan: v })} />
                   </div>
                   {settings.notif_daily_scan && (
                     <div className="flex items-center justify-between px-4 py-3.5 bg-white">
-                      <p className="text-sm text-charcoal-700">Reminder time</p>
+                      <p className="text-sm text-charcoal-700">{t('profile_notif_time')}</p>
                       <input type="time" value={settings.notif_daily_scan_time}
                         onChange={e => saveSettings({ notif_daily_scan_time: e.target.value })}
                         className="text-sm text-charcoal-800 border border-skin-200 rounded-lg px-2 py-1 focus:outline-none focus:border-skin-400" />
@@ -462,21 +450,21 @@ export default function ProfilePage() {
                   )}
                   <div className="flex items-center justify-between px-4 py-3.5 bg-white">
                     <div>
-                      <p className="text-sm font-medium text-charcoal-800">Weekly skin report</p>
-                      <p className="text-xs text-charcoal-400 mt-0.5">Summary every Sunday</p>
+                      <p className="text-sm font-medium text-charcoal-800">{t('profile_notif_weekly')}</p>
+                      <p className="text-xs text-charcoal-400 mt-0.5">{t('profile_notif_weekly_sub')}</p>
                     </div>
                     <Toggle checked={settings.notif_weekly_report} onChange={v => saveSettings({ notif_weekly_report: v })} />
                   </div>
                   <div className="flex items-center justify-between px-4 py-3.5 bg-white">
                     <div>
-                      <p className="text-sm font-medium text-charcoal-800">Tips & recommendations</p>
-                      <p className="text-xs text-charcoal-400 mt-0.5">Occasional skincare tips</p>
+                      <p className="text-sm font-medium text-charcoal-800">{t('profile_notif_tips')}</p>
+                      <p className="text-xs text-charcoal-400 mt-0.5">{t('profile_notif_tips_sub')}</p>
                     </div>
                     <Toggle checked={settings.notif_tips} onChange={v => saveSettings({ notif_tips: v })} />
                   </div>
                 </div>
                 <p className="text-xs text-charcoal-400 font-body mt-3 text-center">
-                  Changes save automatically.
+                  {t('profile_changes_auto')}
                 </p>
               </div>
             )}
@@ -486,7 +474,7 @@ export default function ProfilePage() {
               <div className="px-5 pt-5 pb-8">
                 <div className="w-10 h-1 bg-skin-200 rounded-full mx-auto mb-4" />
                 <div className="flex items-center justify-between mb-5">
-                  <h2 className="font-display text-xl font-light text-charcoal-900">Language</h2>
+                  <h2 className="font-display text-xl font-light text-charcoal-900">{t('profile_language')}</h2>
                   <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-skin-50 rounded-lg"><X size={16} /></button>
                 </div>
                 <LangSelector currentLang={settings.language} onSave={async (l) => { await saveSettings({ language: l }) }} />
@@ -498,11 +486,11 @@ export default function ProfilePage() {
               <div className="px-5 pt-5 pb-8">
                 <div className="w-10 h-1 bg-skin-200 rounded-full mx-auto mb-4" />
                 <div className="flex items-center justify-between mb-5">
-                  <h2 className="font-display text-xl font-light text-charcoal-900">Region</h2>
+                  <h2 className="font-display text-xl font-light text-charcoal-900">{t('profile_region')}</h2>
                   <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-skin-50 rounded-lg"><X size={16} /></button>
                 </div>
                 <p className="text-xs text-charcoal-500 font-body mb-4">
-                  Used to tailor product recommendations to brands available near you.
+                  {t('profile_region_intro')}
                 </p>
                 <div className="space-y-2">
                   {REGIONS.map(r => (
@@ -511,8 +499,8 @@ export default function ProfilePage() {
                         settings.region === r.value ? 'border-skin-400 bg-skin-50' : 'border-skin-100 bg-white hover:border-skin-200'
                       }`}>
                       <div>
-                        <p className="font-medium text-charcoal-900 text-sm">{r.label}</p>
-                        <p className="text-xs text-charcoal-500 font-body">{r.desc}</p>
+                        <p className="font-medium text-charcoal-900 text-sm">{t(`region_${r.key}` as TranslationKey)}</p>
+                        <p className="text-xs text-charcoal-500 font-body">{t(`region_${r.key}_desc` as TranslationKey)}</p>
                       </div>
                       {settings.region === r.value && <Check size={16} className="text-skin-500 shrink-0" />}
                     </button>
@@ -526,61 +514,61 @@ export default function ProfilePage() {
               <div className="px-5 pt-5 pb-8">
                 <div className="w-10 h-1 bg-skin-200 rounded-full mx-auto mb-4" />
                 <div className="flex items-center justify-between mb-5">
-                  <h2 className="font-display text-xl font-light text-charcoal-900">Your Data</h2>
+                  <h2 className="font-display text-xl font-light text-charcoal-900">{t('profile_data_title')}</h2>
                   <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-skin-50 rounded-lg"><X size={16} /></button>
                 </div>
 
                 <div className="space-y-4">
                   {/* Photos */}
                   <div className="bg-skin-50 border border-skin-200 rounded-2xl p-4">
-                    <p className="text-sm font-semibold text-charcoal-800 mb-1">Photos</p>
+                    <p className="text-sm font-semibold text-charcoal-800 mb-1">{t('profile_photos')}</p>
                     <p className="text-xs text-charcoal-500 font-body mb-3">
-                      All your skin photos are encrypted and stored securely. Only you can see them.
+                      {t('profile_photos_body')}
                     </p>
                     {confirmDeletePhotos ? (
                       <div className="space-y-2">
-                        <p className="text-xs text-red-600 font-medium">This will permanently delete all your photos.</p>
+                        <p className="text-xs text-red-600 font-medium">{t('profile_delete_photos_warn')}</p>
                         <div className="flex gap-2">
                           <button onClick={() => setConfirmDeletePhotos(false)}
-                            className="flex-1 py-2 border border-skin-200 rounded-xl text-xs text-charcoal-600">Cancel</button>
+                            className="flex-1 py-2 border border-skin-200 rounded-xl text-xs text-charcoal-600">{t('general_cancel')}</button>
                           <button onClick={handleDeletePhotos} disabled={deletingPhotos}
                             className="flex-1 py-2 bg-red-500 text-white rounded-xl text-xs font-medium disabled:opacity-60">
-                            {deletingPhotos ? 'Deleting…' : 'Delete all photos'}
+                            {deletingPhotos ? t('profile_deleting') : t('profile_delete_photos_confirm')}
                           </button>
                         </div>
                       </div>
                     ) : (
                       <button onClick={() => setConfirmDeletePhotos(true)}
                         className="flex items-center gap-2 text-xs text-red-500 font-medium border border-red-200 px-3 py-2 rounded-xl hover:bg-red-50 transition-colors">
-                        <Trash2 size={12} /> Delete all my photos
+                        <Trash2 size={12} /> {t('profile_delete_photos_btn')}
                       </button>
                     )}
                   </div>
 
                   {/* Account */}
                   <div className="bg-skin-50 border border-skin-200 rounded-2xl p-4">
-                    <p className="text-sm font-semibold text-charcoal-800 mb-3">Account Data</p>
+                    <p className="text-sm font-semibold text-charcoal-800 mb-3">{t('profile_account_data')}</p>
                     <div className="space-y-2">
                       <button className="flex items-center gap-2 text-xs text-charcoal-600 font-medium border border-skin-200 px-3 py-2 rounded-xl hover:bg-skin-100 transition-colors w-full">
-                        <Download size={12} /> Download my data
-                        <span className="text-charcoal-400 ml-auto">(coming soon)</span>
+                        <Download size={12} /> {t('profile_download_data')}
+                        <span className="text-charcoal-400 ml-auto">{t('profile_coming_soon')}</span>
                       </button>
                       {confirmDeleteAccount ? (
                         <div className="space-y-2 mt-2">
-                          <p className="text-xs text-red-600 font-medium">This permanently deletes your account and all data.</p>
+                          <p className="text-xs text-red-600 font-medium">{t('profile_delete_account_warn')}</p>
                           <div className="flex gap-2">
                             <button onClick={() => setConfirmDeleteAccount(false)}
-                              className="flex-1 py-2 border border-skin-200 rounded-xl text-xs text-charcoal-600">Cancel</button>
+                              className="flex-1 py-2 border border-skin-200 rounded-xl text-xs text-charcoal-600">{t('general_cancel')}</button>
                             <button onClick={handleDeleteAccount} disabled={deletingAccount}
                               className="flex-1 py-2 bg-red-600 text-white rounded-xl text-xs font-medium disabled:opacity-60">
-                              {deletingAccount ? 'Deleting…' : 'Delete account'}
+                              {deletingAccount ? t('profile_deleting') : t('profile_delete_account_confirm')}
                             </button>
                           </div>
                         </div>
                       ) : (
                         <button onClick={() => setConfirmDeleteAccount(true)}
                           className="flex items-center gap-2 text-xs text-red-500 font-medium border border-red-200 px-3 py-2 rounded-xl hover:bg-red-50 transition-colors w-full">
-                          <Trash2 size={12} /> Delete my account
+                          <Trash2 size={12} /> {t('profile_delete_account_btn')}
                         </button>
                       )}
                     </div>

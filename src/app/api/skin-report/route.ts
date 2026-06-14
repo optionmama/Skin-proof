@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { aiLanguageInstruction } from '@/lib/i18n/ai-lang'
 
 export const maxDuration = 60
 
@@ -8,8 +9,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { period } = await request.json() as { period: 14 | 30 | 90 }
+  const { period, lang } = await request.json() as { period: 14 | 30 | 90; lang?: string }
   if (![14, 30, 90].includes(period)) return NextResponse.json({ error: 'Invalid period' }, { status: 400 })
+  const reportLang = lang ?? 'en'
 
   // Check if a report was already generated today
   const today = new Date().toISOString().split('T')[0]
@@ -21,7 +23,12 @@ export async function POST(request: NextRequest) {
     .gte('generated_at', today + 'T00:00:00')
     .single()
 
-  if (existing) return NextResponse.json({ report: existing.report_data, cached: true })
+  // Reuse the cached report only if it's in the language the user is viewing in —
+  // otherwise regenerate so insights never stay in a stale language.
+  const cachedLang = (existing?.report_data as { language?: string } | null)?.language ?? 'en'
+  if (existing && cachedLang === reportLang) {
+    return NextResponse.json({ report: existing.report_data, cached: true })
+  }
 
   // Fetch data for the period
   const fromDate = new Date()
@@ -88,7 +95,7 @@ Return ONLY valid JSON, no other text:
   ],
   "recommendations": ["<actionable recommendation 1>", "<actionable recommendation 2>", "<actionable recommendation 3>"],
   "next_goal": "<one encouraging sentence about what to focus on next>"
-}`
+}${aiLanguageInstruction(reportLang, '"key_findings", "most_improved", "needs_attention", each "product_insights[].insight", "recommendations", and "next_goal"')}`
 
   try {
     const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -101,9 +108,19 @@ Return ONLY valid JSON, no other text:
     const aiData = await aiResponse.json()
     const rawText = aiData.content?.[0]?.text || '{}'
     const reportData = JSON.parse(rawText.replace(/```json|```/g, '').trim())
+    // Tag the report with the language it was generated in so we can detect
+    // stale-language cache hits on future requests.
+    reportData.language = reportLang
 
-    // Store in DB
-    await supabase.from('skin_reports').insert({ user_id: user.id, period_days: period, report_data: reportData })
+    // Store in DB — update today's row if one already exists (e.g. regenerating
+    // in a new language), otherwise insert a fresh report.
+    if (existing) {
+      await supabase.from('skin_reports')
+        .update({ report_data: reportData, generated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+    } else {
+      await supabase.from('skin_reports').insert({ user_id: user.id, period_days: period, report_data: reportData })
+    }
 
     return NextResponse.json({ report: reportData, cached: false })
   } catch (err) {
