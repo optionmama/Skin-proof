@@ -288,10 +288,6 @@ function ProductDetail({
                   <ChevronRight className="w-4 h-4 text-charcoal-400" />
                 </div>
               </a>
-              <p className="flex items-start gap-1.5 text-[11px] text-charcoal-400 font-body leading-relaxed mt-3">
-                <span>ⓘ</span>
-                <span>{t('foryou_detail_disclosure')}</span>
-              </p>
             </div>
           )}
         </div>

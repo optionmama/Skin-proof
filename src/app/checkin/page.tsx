@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Camera, Droplets, Moon, Zap, CheckCircle2, Loader2 } from 'lucide-react'
 import ProductsStep, { CheckinProduct } from '@/components/checkin/ProductsStep'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import DashboardNav from '@/components/DashboardNav'
 
 interface HabitsData {
   sleep_hours: number
@@ -116,7 +117,7 @@ export default function CheckinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] flex flex-col">
+    <div className="min-h-screen bg-[#FAF8F5] flex flex-col pb-20">
       {/* Progress steps */}
       <div className="bg-white border-b border-stone-100 px-4 py-3">
         <div className="flex items-center gap-0">
@@ -169,10 +170,12 @@ export default function CheckinPage() {
       )}
 
       {error && (
-        <div className="fixed bottom-4 left-4 right-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+        <div className="fixed bottom-20 left-4 right-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
           {error}
         </div>
       )}
+
+      <DashboardNav />
     </div>
   )
 }
