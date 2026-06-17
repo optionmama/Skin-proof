@@ -4,11 +4,15 @@ import { aiLanguageName } from '@/lib/i18n/ai-lang'
 
 export const maxDuration = 30
 
+const SUPPORTED = ['en', 'zh-TW', 'zh-CN']
+
 /**
- * Translates short, already-generated AI strings (e.g. historical skin
- * observations that were stored in English) into the user's current language,
- * so the UI never shows mixed-language dynamic content. Forward-generated
- * content is already localized at creation; this only backfills old data.
+ * Translates short, already-generated AI strings (e.g. stored skin
+ * observations) into the requested locale, so the UI never shows
+ * mixed-language dynamic content. The caller decides when a translation is
+ * actually needed (stored language ≠ current locale); this endpoint always
+ * translates into `targetLang`, including back into English when the stored
+ * text is in another language.
  */
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -22,8 +26,8 @@ export async function POST(request: NextRequest) {
   if (!Array.isArray(texts) || texts.length === 0) {
     return NextResponse.json({ texts: [] })
   }
-  // Nothing to do for English (source language) or unknown targets.
-  if (!targetLang || targetLang === 'en') {
+  // Unknown / unsupported target → return as-is rather than guessing.
+  if (!targetLang || !SUPPORTED.includes(targetLang)) {
     return NextResponse.json({ texts })
   }
 

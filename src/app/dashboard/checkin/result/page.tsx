@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -16,6 +16,23 @@ const IRRITANTS   = ['fragrance', 'alcohol denat', 'sodium lauryl sulfate', 'men
 const COMEDOGENIC_INGREDIENTS = [...COMEDOGENIC, 'algae extract', 'flaxseed oil', 'acetylated lanolin']
 
 type MainConcern = 'redness' | 'breakouts' | 'dryness' | 'oiliness' | 'pores' | 'none'
+
+// Detect the language a stored observation string was written in, so we only
+// translate when it doesn't match the current locale.
+const CJK = /[一-鿿]/
+// Characters that exist only in Traditional vs only in Simplified Chinese.
+// Used to seed the right zh bucket and avoid needless cross-variant calls.
+const TRAD_ONLY = /[們這個時為點觀區應乾發顯潤質紋較鬆樣現會臉裡邊額顆頰兩過細緊澤對開閉變問頭診療膚紅塊澀勻癢]/
+const SIMP_ONLY = /[们这个时为点观区应干发显润质纹较松样现会脸里边额颗颊两过细紧泽对开闭变问头诊疗肤红块涩匀痒]/
+
+function detectObsLang(text: string): 'en' | 'zh-TW' | 'zh-CN' | 'zh' {
+  if (!CJK.test(text)) return 'en'
+  const trad = TRAD_ONLY.test(text)
+  const simp = SIMP_ONLY.test(text)
+  if (trad && !simp) return 'zh-TW'
+  if (simp && !trad) return 'zh-CN'
+  return 'zh' // Chinese, variant unknown
+}
 
 function getTip(mainConcern: MainConcern, overallScore: number): { emoji: string; msgKey: TranslationKey; tipKey: TranslationKey } {
   if (overallScore >= 80) return { emoji: '🌟', msgKey: 'tip_great_msg', tipKey: 'tip_great_tip' }
@@ -91,32 +108,53 @@ function ResultContent() {
   const [routineProducts, setRoutineProducts] = useState<{ name: string; brand: string; notes: string; flag?: string; flagType?: string }[]>([])
   const [noProducts, setNoProducts] = useState(false)
   const [checkinCount, setCheckinCount] = useState(1)
-  // Observations translated for display (backfills old English-only scans)
+  // Observations rendered in the current locale. Stored observations are kept
+  // in whatever language they were generated in; we translate per-locale and
+  // cache so switching languages always matches the UI without re-hitting the API.
   const [displayObs, setDisplayObs] = useState<string[] | null>(null)
+  const obsCacheRef = useRef<{ key: string; map: Record<string, string[]> }>({ key: '', map: {} })
 
   useEffect(() => {
     if (!checkinId) { router.replace('/dashboard'); return }
     loadData()
   }, [checkinId])
 
-  // Translate stored observations on display when they're in a different
-  // language than the UI (e.g. old scans generated before localization).
+  // Show observations in the active locale, translating on demand when the
+  // stored text doesn't match. Handles every direction (en↔zh, zh-TW↔zh-CN)
+  // and old rows that only have a single stored language.
   useEffect(() => {
     const obs = analysis?.visible_observations
     if (!obs || obs.length === 0) { setDisplayObs(null); return }
-    const hasCJK = /[一-鿿]/.test(obs.join(' '))
-    // English UI, or text already in a CJK language → show as stored.
-    if (lang === 'en' || hasCJK) { setDisplayObs(obs); return }
-    // English text but zh UI → show English now, swap in translation when ready.
+
+    // Reset the cache when the observation set changes, seeding the bucket(s)
+    // for the language the text is already written in (free, no API call).
+    const cacheKey = obs.join('|||')
+    if (obsCacheRef.current.key !== cacheKey) {
+      const detected = detectObsLang(obs.join(' '))
+      const seed: Record<string, string[]> = {}
+      if (detected === 'en') seed['en'] = obs
+      else if (detected === 'zh') { seed['zh-TW'] = obs; seed['zh-CN'] = obs }
+      else seed[detected] = obs // a specific zh variant
+      obsCacheRef.current = { key: cacheKey, map: seed }
+    }
+
+    const cache = obsCacheRef.current.map
+    if (cache[lang]) { setDisplayObs(cache[lang]); return }
+
+    // Not cached for this locale → translate from the stored text.
     let cancelled = false
-    setDisplayObs(obs)
+    setDisplayObs(obs) // show stored text immediately, swap when ready
     fetch('/api/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ texts: obs, targetLang: lang }),
     })
       .then(r => r.json())
-      .then((res: { texts?: string[] }) => { if (!cancelled && res.texts?.length) setDisplayObs(res.texts) })
+      .then((res: { texts?: string[] }) => {
+        if (cancelled || !res.texts?.length) return
+        obsCacheRef.current.map[lang] = res.texts
+        setDisplayObs(res.texts)
+      })
       .catch(() => {})
     return () => { cancelled = true }
   }, [analysis, lang])
