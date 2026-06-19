@@ -127,7 +127,7 @@ export default async function RecommendationsPage({
 
       {!hasRecommendations ? (
         <div className="space-y-8">
-          <RecommendedToStart ageGroup={ageGroup} concerns={Array.from(startConcerns)} />
+          <RecommendedToStart ageGroup={ageGroup} concerns={Array.from(startConcerns)} scanConcerns={scanConcerns} />
           <ForYouEmptyState
             routineProducts={routineProducts}
             scanDimensions={dimensions}

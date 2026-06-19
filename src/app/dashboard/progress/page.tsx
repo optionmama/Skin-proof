@@ -22,6 +22,10 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true)
   const [compareA, setCompareA] = useState<SkinPhoto | null>(null)
   const [compareB, setCompareB] = useState<SkinPhoto | null>(null)
+  // All-time signals (not windowed by the period tab) used for report unlocking
+  // and the header counter, so those numbers stay stable and unambiguous.
+  const [totalCheckins, setTotalCheckins] = useState(0)
+  const [daysTracked, setDaysTracked] = useState(0)
 
   useEffect(() => { loadData() }, [period])
 
@@ -35,7 +39,7 @@ export default function ProgressPage() {
     fromDate.setDate(fromDate.getDate() - days)
     const fromStr = fromDate.toISOString().split('T')[0]
 
-    const [{ data: ci }, { data: ph }] = await Promise.all([
+    const [{ data: ci }, { data: ph }, { data: firstCi, count: total }] = await Promise.all([
       supabase.from('skin_checkins')
         .select('*')
         .eq('user_id', user.id)
@@ -46,10 +50,26 @@ export default function ProgressPage() {
         .eq('user_id', user.id)
         .gte('created_at', fromDate.toISOString())
         .order('created_at', { ascending: false }),
+      // Earliest check-in (all-time) + total count, for calendar-span unlocking
+      supabase.from('skin_checkins')
+        .select('checkin_date', { count: 'exact' })
+        .eq('user_id', user.id)
+        .order('checkin_date', { ascending: true })
+        .limit(1),
     ])
 
     setCheckins(ci || [])
     setPhotos(ph || [])
+    setTotalCheckins(total ?? 0)
+    const firstDate = firstCi?.[0]?.checkin_date
+    if (firstDate) {
+      const MS_DAY = 86_400_000
+      const start = new Date(firstDate + 'T00:00:00')
+      const today = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00')
+      setDaysTracked(Math.max(0, Math.round((today.getTime() - start.getTime()) / MS_DAY)))
+    } else {
+      setDaysTracked(0)
+    }
     setLoading(false)
   }
 
@@ -111,7 +131,7 @@ export default function ProgressPage() {
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
       <div className="mb-5">
         <h1 className="font-display text-3xl font-light text-charcoal-900">{t('progress_title')}</h1>
-        <p className="text-charcoal-500 text-sm font-body">{t('progress_checkins_tracked', { n: checkins.length })}</p>
+        <p className="text-charcoal-500 text-sm font-body">{t('progress_checkins_tracked', { n: totalCheckins })}</p>
       </div>
 
       {/* Period selector */}
@@ -317,14 +337,18 @@ export default function ProgressPage() {
           </div>
 
           {/* Periodic Reports */}
-          <SkinReports checkinCount={checkins.length} />
+          <SkinReports daysTracked={daysTracked} />
         </>
       )}
     </div>
   )
 }
 
-function SkinReports({ checkinCount }: { checkinCount: number }) {
+// Reports unlock by CALENDAR-DAY SPAN since the user's first check-in (a
+// "14-day report" needs a real 14-day journey), matching the day-window tabs
+// above. This avoids the old confusion where "14" meant cumulative check-ins
+// in one place and calendar days in another.
+function SkinReports({ daysTracked }: { daysTracked: number }) {
   const { t } = useLanguage()
   const PERIODS = [
     { days: 14 as const, label: t('progress_report_14d'), icon: '📊', needed: 14 },
@@ -337,7 +361,7 @@ function SkinReports({ checkinCount }: { checkinCount: number }) {
       <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">{t('progress_reports')}</h2>
       <div className="space-y-2">
         {PERIODS.map(({ days, label, icon, needed }) => {
-          const unlocked = checkinCount >= needed
+          const unlocked = daysTracked >= needed
           return (
             <div key={days} className={`bg-white rounded-xl border p-4 flex items-center justify-between ${unlocked ? 'border-skin-200' : 'border-skin-100 opacity-70'}`}>
               <div className="flex items-center gap-3">
@@ -345,11 +369,11 @@ function SkinReports({ checkinCount }: { checkinCount: number }) {
                 <div>
                   <p className="text-sm font-medium text-charcoal-800">{label}</p>
                   {unlocked ? (
-                    <p className="text-xs text-charcoal-400 font-body">AI analysis of your {days}-day journey</p>
+                    <p className="text-xs text-charcoal-400 font-body">{t('progress_report_journey', { days })}</p>
                   ) : (
                     <p className="text-xs text-charcoal-400 font-body">
-                      {t('progress_locked', { needed: needed - checkinCount })}
-                      <span className="ml-1 text-charcoal-300">({checkinCount}/{needed})</span>
+                      {t('progress_locked_days', { needed: needed - daysTracked })}
+                      <span className="ml-1 text-charcoal-300">({daysTracked}/{needed}d)</span>
                     </p>
                   )}
                 </div>
@@ -362,7 +386,7 @@ function SkinReports({ checkinCount }: { checkinCount: number }) {
               ) : (
                 <div className="w-10 h-2.5 bg-skin-100 rounded-full overflow-hidden">
                   <div className="h-full bg-skin-400 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (checkinCount / needed) * 100)}%` }} />
+                    style={{ width: `${Math.min(100, (daysTracked / needed) * 100)}%` }} />
                 </div>
               )}
             </div>

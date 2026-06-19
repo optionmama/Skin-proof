@@ -41,7 +41,11 @@ function ReportContent() {
   const [error, setError] = useState('')
   const [generating, setGenerating] = useState(false)
 
-  useEffect(() => { generateReport() }, [period])
+  // Regenerate when the period OR the active locale changes. The locale matters
+  // because LanguageProvider hydrates from 'en' to the user's real locale after
+  // mount — without `lang` here the report would stay in the language it first
+  // generated in (usually English) even after the UI switches.
+  useEffect(() => { generateReport() }, [period, lang])
 
   const generateReport = async () => {
     setLoading(true)

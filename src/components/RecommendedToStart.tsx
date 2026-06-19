@@ -128,14 +128,16 @@ function KV({ label, value }: { label: string; value: string }) {
 }
 
 function ProductCard({
-  product, concerns, t, onSelect,
+  product, concerns, scanConcerns, t, onSelect,
 }: {
   product: SeedProduct
   concerns: string[]
+  scanConcerns: string[]
   t: TFn
   onSelect: () => void
 }) {
   const concern = matchedConcern(product, concerns)
+  const scanConcern = matchedConcern(product, scanConcerns)
   const chips = [
     concern ? skinConcernLabel(concern) : cap(product.concerns[0] || ''),
     cap(product.concerns[1] || ''),
@@ -156,6 +158,11 @@ function ProductCard({
             <PriceTier product={product} t={t} />
           </div>
           <ProductBadge type={badgeType(product)} t={t} />
+          {scanConcern && (
+            <p className="text-[11px] text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2 py-1 mt-2 leading-snug">
+              {t('foryou_why_scan', { concern: skinConcernLabel(scanConcern) })}
+            </p>
+          )}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {chips.map((chip, i) => (
               <span key={i} className="text-[11px] text-charcoal-500 bg-skin-50 border border-skin-100 px-2 py-0.5 rounded-full">
@@ -178,16 +185,18 @@ function ProductCard({
 }
 
 function ProductDetail({
-  product, concerns, region, t, onClose,
+  product, concerns, scanConcerns, region, t, onClose,
 }: {
   product: SeedProduct
   concerns: string[]
+  scanConcerns: string[]
   region: string
   t: TFn
   onClose: () => void
 }) {
   const concern = matchedConcern(product, concerns)
   const concernLabel = concern ? skinConcernLabel(concern) : cap(product.concerns[0] || '')
+  const scanConcern = matchedConcern(product, scanConcerns)
 
   return (
     <div className="fixed inset-0 z-[60] bg-skin-50 overflow-y-auto">
@@ -231,6 +240,11 @@ function ProductDetail({
               <Sparkles className="w-4 h-4 text-skin-500" />
               {t('foryou_detail_why_suits')}
             </h5>
+            {scanConcern && (
+              <p className="text-xs text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2.5 py-1.5 mb-2.5 leading-snug">
+                {t('foryou_why_scan', { concern: skinConcernLabel(scanConcern) })}
+              </p>
+            )}
             <KV label={t('foryou_detail_your_concern')} value={concernLabel} />
             <KV label={t('foryou_detail_key_ingredient')} value={cap(product.ingredients[0] || '')} />
             <KV label={t('foryou_detail_typical_results')} value={timelineLabel(product.timelineDays, t)} />
@@ -302,9 +316,13 @@ function ProductDetail({
 export default function RecommendedToStart({
   ageGroup,
   concerns,
+  scanConcerns = [],
 }: {
   ageGroup: SeedAgeGroup | null
   concerns: string[]
+  /** Concerns derived from the user's LATEST scan, used to show an explicit
+   *  "recommended because your scan shows X" line. Subset of `concerns`. */
+  scanConcerns?: string[]
 }) {
   const { t } = useLanguage()
   const [region, setRegion] = useState('Asia')
@@ -347,12 +365,12 @@ export default function RecommendedToStart({
 
       <div className="space-y-3">
         {products.map(product => (
-          <ProductCard key={product.id} product={product} concerns={concerns} t={t} onSelect={() => setSelected(product)} />
+          <ProductCard key={product.id} product={product} concerns={concerns} scanConcerns={scanConcerns} t={t} onSelect={() => setSelected(product)} />
         ))}
       </div>
 
       {selected && (
-        <ProductDetail product={selected} concerns={concerns} region={region} t={t} onClose={() => setSelected(null)} />
+        <ProductDetail product={selected} concerns={concerns} scanConcerns={scanConcerns} region={region} t={t} onClose={() => setSelected(null)} />
       )}
     </div>
   )
