@@ -20,6 +20,9 @@ CREATE TABLE public.users (
   location_country TEXT,
   onboarding_completed BOOLEAN DEFAULT FALSE,
   is_admin BOOLEAN DEFAULT FALSE,
+  -- Premium entitlement (groundwork only; defaults TRUE so everyone is unlocked
+  -- while the app is free). See migrations/002_add_is_premium.sql.
+  is_premium BOOLEAN NOT NULL DEFAULT TRUE,
   marketing_consent BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

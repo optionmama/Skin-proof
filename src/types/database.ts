@@ -22,6 +22,8 @@ export interface User {
   location_country?: string
   onboarding_completed: boolean
   is_admin: boolean
+  /** Premium entitlement (groundwork; defaults true while the app is free). */
+  is_premium: boolean
   marketing_consent: boolean
   created_at: string
   updated_at: string

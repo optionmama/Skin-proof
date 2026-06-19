@@ -7,6 +7,7 @@ import { Camera, Droplets, Moon, Zap, CheckCircle2, Loader2 } from 'lucide-react
 import ProductsStep, { CheckinProduct } from '@/components/checkin/ProductsStep'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
+import { useEntitlement } from '@/lib/entitlement/useEntitlement'
 
 interface HabitsData {
   sleep_hours: number
@@ -19,6 +20,13 @@ export default function CheckinPage() {
   const router = useRouter()
   const supabase = createClient()
   const { t, lang } = useLanguage()
+  // Unlimited scans is an intended premium feature. Premium = no cap; the free
+  // tier would limit daily scans here. No cap is enforced while the app is free
+  // (everyone is_premium), so scanning is always allowed today.
+  // TODO: paywall UI when monetization launches
+  const { isPremium } = useEntitlement()
+  const FREE_DAILY_SCAN_LIMIT: number | null = null // null = unlimited for all
+  const scanAllowed = isPremium || FREE_DAILY_SCAN_LIMIT === null
 
   const STEPS = [
     { key: 'photo',    label: t('checkin_step_photo'),    icon: Camera },
@@ -35,6 +43,9 @@ export default function CheckinPage() {
   const [error, setError] = useState<string | null>(null)
 
   const handlePhotoCapture = async (file: File) => {
+    // Entitlement seam for unlimited scans — always allowed while the app is free.
+    // TODO: paywall UI when monetization launches
+    if (!scanAllowed) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const reader = new FileReader()

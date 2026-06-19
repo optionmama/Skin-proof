@@ -10,6 +10,7 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import type { SkinCheckin, SkinPhoto } from '@/types/database'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { PremiumGate } from '@/components/PremiumGate'
 
 type Period = '14d' | '30d' | '90d'
 
@@ -350,19 +351,20 @@ export default function ProgressPage() {
 // in one place and calendar days in another.
 function SkinReports({ daysTracked }: { daysTracked: number }) {
   const { t } = useLanguage()
+  // The 14-day report is free; deeper 30/90-day reports are intended premium.
   const PERIODS = [
-    { days: 14 as const, label: t('progress_report_14d'), icon: '📊', needed: 14 },
-    { days: 30 as const, label: t('progress_report_30d'), icon: '📈', needed: 30 },
-    { days: 90 as const, label: t('progress_report_90d'), icon: '🏆', needed: 90 },
+    { days: 14 as const, label: t('progress_report_14d'), icon: '📊', needed: 14, premium: false },
+    { days: 30 as const, label: t('progress_report_30d'), icon: '📈', needed: 30, premium: true },
+    { days: 90 as const, label: t('progress_report_90d'), icon: '🏆', needed: 90, premium: true },
   ]
 
   return (
     <div className="mt-2">
       <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">{t('progress_reports')}</h2>
       <div className="space-y-2">
-        {PERIODS.map(({ days, label, icon, needed }) => {
+        {PERIODS.map(({ days, label, icon, needed, premium }) => {
           const unlocked = daysTracked >= needed
-          return (
+          const card = (
             <div key={days} className={`bg-white rounded-xl border p-4 flex items-center justify-between ${unlocked ? 'border-skin-200' : 'border-skin-100 opacity-70'}`}>
               <div className="flex items-center gap-3">
                 <span className="text-xl">{unlocked ? icon : '🔒'}</span>
@@ -391,6 +393,10 @@ function SkinReports({ daysTracked }: { daysTracked: number }) {
               )}
             </div>
           )
+          // Deeper reports are intended premium. PremiumGate renders the card
+          // normally today (everyone is_premium), so there is no behavior change.
+          // TODO: paywall UI when monetization launches
+          return premium ? <PremiumGate key={days}>{card}</PremiumGate> : card
         })}
       </div>
     </div>
