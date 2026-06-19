@@ -5,7 +5,7 @@ import type { Recommendation } from '@/types/database'
 import ForYouEmptyState, { type RoutineProduct } from '@/components/ForYouEmptyState'
 import RecommendedToStart from '@/components/RecommendedToStart'
 import { getT } from '@/lib/i18n/server'
-import { ageRangeToGroup, mainConcernToSkinConcern } from '@/lib/utils'
+import { ageRangeToGroup, mainConcernToSkinConcern, deriveScanConcerns, type ScanAnalysis } from '@/lib/utils'
 
 function ConfidenceBadge({ communityScore, type }: { communityScore?: number; type?: string }) {
   if (type === 'community' || (communityScore && communityScore >= 60)) {
@@ -66,11 +66,17 @@ export default async function RecommendationsPage({
   const dimensions = (scanRaw?.dimensions as Record<string, number> | null) || null
   const mainConcern = (scanRaw?.main_concern as string) || scanConcern || null
 
-  // "Recommended to start" matching inputs
+  // "Recommended to start" matching inputs.
+  // Scan concerns are PRIMARY (they reflect the user's latest skin state and
+  // change scan to scan); the onboarding profile is a soft fallback. Listing
+  // scan-derived concerns first makes the displayed "based on" labels and the
+  // recommendation set track the most recent scan rather than a static profile.
   const ageGroup = ageRangeToGroup(profile?.age_range)
-  const startConcerns = new Set(profile?.primary_concerns || [])
+  const scanConcerns = deriveScanConcerns(scanRaw as ScanAnalysis | null)
+  const startConcerns = new Set<string>(scanConcerns)
   const mappedMainConcern = mainConcernToSkinConcern(mainConcern)
   if (mappedMainConcern) startConcerns.add(mappedMainConcern)
+  for (const c of profile?.primary_concerns || []) startConcerns.add(c)
 
   // Deduplicate routine products by product id; merge AM/PM into a single label
   const productMap = new Map<string, RoutineProduct>()

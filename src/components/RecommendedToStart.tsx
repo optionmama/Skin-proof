@@ -288,6 +288,9 @@ function ProductDetail({
                   <ChevronRight className="w-4 h-4 text-charcoal-400" />
                 </div>
               </a>
+              <p className="text-[11px] text-charcoal-400 mt-2 leading-relaxed">
+                {t('foryou_detail_look_for', { product: `${product.brand} ${product.name}` })}
+              </p>
             </div>
           )}
         </div>

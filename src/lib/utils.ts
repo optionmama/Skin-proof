@@ -70,7 +70,9 @@ export const GOOGLE_DOMAINS: Record<string, string> = {
 
 export function getGoogleShoppingUrl(brand: string, name: string, region = 'Global'): string {
   const domain = GOOGLE_DOMAINS[region] || GOOGLE_DOMAINS['Global']
-  return `${domain}?q=${encodeURIComponent(`${brand} ${name}`)}&tbm=shop`
+  // Wrap in quotes for exact-phrase matching so Shopping surfaces the specific
+  // product rather than a loose mix of the brand's other lines.
+  return `${domain}?q=${encodeURIComponent(`"${brand} ${name}"`)}&tbm=shop`
 }
 
 export function getRegionFromTimezone(tz: string): string {
@@ -103,6 +105,67 @@ export function ageRangeToGroup(ageRange: string | null | undefined): SeedAgeGro
 export function mainConcernToSkinConcern(concern: string | null | undefined): string | null {
   if (!concern || concern === 'none') return null
   if (concern === 'breakouts') return 'acne'
+  if (concern === 'pores') return 'pores'
   return concern
+}
+
+/** Shape of the relevant parts of a scan's `ai_analysis_raw`. */
+export interface ScanAnalysis {
+  main_concern?: string | null
+  visible_observations?: string[] | null
+  dimensions?: Record<string, number> | null
+}
+
+// Keyword → canonical concern rules for free-text observations. Order doesn't
+// matter; every matching rule contributes its concern.
+const OBSERVATION_CONCERN_RULES: { re: RegExp; concern: string }[] = [
+  { re: /blackhead|whitehead|comedone/i,                         concern: 'blackheads' },
+  { re: /pore|clogg|congest/i,                                   concern: 'pores' },
+  { re: /pimple|acne|breakout|blemish|\bspot\b|zit|pustule|papule/i, concern: 'acne' },
+  { re: /textur|bumpy|rough|uneven|grainy|patchy/i,              concern: 'texture' },
+  { re: /oil|shine|shiny|sebum|greasy|t-?zone/i,                 concern: 'oiliness' },
+  { re: /dry|flak|dehydrat|tight|\bpatch/i,                      concern: 'dryness' },
+  { re: /red(?!uc)|irritat|inflam|rosace|blotch/i,               concern: 'redness' },
+  { re: /sensitiv/i,                                             concern: 'sensitivity' },
+  { re: /dark spot|hyperpigment|pigment|sun damage|melasma|\bmark/i, concern: 'hyperpigmentation' },
+  { re: /wrinkle|fine line|aging|ageing|sagg|firm|elasticity/i,  concern: 'wrinkles' },
+  { re: /dark circle|under-?eye/i,                               concern: 'dark_circles' },
+  { re: /dull|tired|lacklustre|lackluster/i,                     concern: 'dullness' },
+]
+
+/**
+ * Derives the canonical concern set from a user's LATEST scan so that "For You"
+ * recommendations track real, scan-specific findings (and change scan to scan)
+ * rather than the static onboarding profile.
+ *
+ * Primary signal is the structured `dimensions` (0–100; semantics fixed by the
+ * analyze-skin prompt: higher redness/breakouts/oiliness/pores = worse, lower
+ * hydration/evenness = worse). Free-text `visible_observations` and the single
+ * `main_concern` are folded in as supplements.
+ */
+export function deriveScanConcerns(scan: ScanAnalysis | null | undefined): string[] {
+  if (!scan) return []
+  const found = new Set<string>()
+
+  const mc = mainConcernToSkinConcern(scan.main_concern)
+  if (mc) found.add(mc)
+
+  const d = scan.dimensions || {}
+  const num = (k: string) => (typeof d[k] === 'number' ? d[k] : null)
+  const redness = num('redness'); if (redness !== null && redness >= 50) found.add('redness')
+  const breakouts = num('breakouts'); if (breakouts !== null && breakouts >= 40) found.add('acne')
+  const hydration = num('hydration'); if (hydration !== null && hydration <= 55) found.add('dryness')
+  const oiliness = num('oiliness'); if (oiliness !== null && oiliness >= 55) found.add('oiliness')
+  const pores = num('pores'); if (pores !== null && pores >= 50) found.add('pores')
+  const evenness = num('evenness'); if (evenness !== null && evenness <= 55) found.add('texture')
+
+  for (const obs of scan.visible_observations || []) {
+    if (typeof obs !== 'string') continue
+    for (const rule of OBSERVATION_CONCERN_RULES) {
+      if (rule.re.test(obs)) found.add(rule.concern)
+    }
+  }
+
+  return Array.from(found)
 }
 

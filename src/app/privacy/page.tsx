@@ -101,7 +101,7 @@ To exercise these rights, contact us at privacy@skinproof.app or use the Data & 
               title: '7. Third-Party Services',
               content: `We use the following third-party services:
 • Supabase: database, authentication, and file storage
-• Anthropic Claude API (or similar): AI image analysis
+• Anthropic API (or similar): AI image analysis
 • Vercel: application hosting and edge delivery
 
 Each service has its own privacy policy. We only share the minimum data required for each service to function.`
