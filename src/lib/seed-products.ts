@@ -186,6 +186,10 @@ function baseScore(product: SeedProduct, input: SeedMatchInput): number {
  */
 export function recommendSeedProducts(input: SeedMatchInput, limit = 4): SeedRecommendation[] {
   const scored = SEED_PRODUCTS
+    // v1 compliance: OTC only — prescription items are never recommended (they
+    // remain in the catalog as data but are excluded from the For You engine to
+    // avoid presenting medical/treatment guidance to the user).
+    .filter(product => !product.isRx)
     .map(product => ({ product, score: baseScore(product, input) }))
     .sort((a, b) => b.score - a.score)
 
