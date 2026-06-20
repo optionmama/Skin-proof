@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Camera, Droplets, Moon, Zap, CheckCircle2, Loader2 } from 'lucide-react'
@@ -8,6 +8,7 @@ import ProductsStep, { CheckinProduct } from '@/components/checkin/ProductsStep'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
 import { useEntitlement } from '@/lib/entitlement/useEntitlement'
+import { isNativePlatform, captureNativePhoto, pickNativePhoto } from '@/lib/native/camera'
 
 interface HabitsData {
   sleep_hours: number
@@ -192,10 +193,30 @@ export default function CheckinPage() {
 }
 
 function PhotoStep({ onCapture, t }: { onCapture: (file: File) => void; t: (k: string) => string }) {
+  // Detect the native shell on the client. When native, use the real device
+  // camera/library via @capacitor/camera; on web/PWA keep the <input capture>
+  // flow as the fallback. Either path hands a File to the same onCapture.
+  const [native, setNative] = useState(false)
+  useEffect(() => { isNativePlatform().then(setNative) }, [])
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) onCapture(file)
   }
+
+  const handleNativeCamera = async () => {
+    try {
+      const file = await captureNativePhoto()
+      if (file) onCapture(file)
+    } catch { /* user cancelled or unavailable — stay on this step */ }
+  }
+  const handleNativeLibrary = async () => {
+    try {
+      const file = await pickNativePhoto()
+      if (file) onCapture(file)
+    } catch { /* cancelled */ }
+  }
+
   return (
     <div className="flex flex-col items-center justify-center py-8 gap-6">
       <div className="w-32 h-32 rounded-full bg-rose-50 flex items-center justify-center">
@@ -205,18 +226,34 @@ function PhotoStep({ onCapture, t }: { onCapture: (file: File) => void; t: (k: s
         <h2 className="text-xl font-semibold text-stone-800">{t('checkin_photo_title')}</h2>
         <p className="text-sm text-stone-500 mt-2">{t('checkin_photo_subtitle')}</p>
       </div>
-      <label className="w-full">
-        <input type="file" accept="image/*" capture="user" onChange={handleFileChange} className="sr-only" />
-        <div className="w-full py-4 bg-rose-400 text-white rounded-xl text-center font-medium cursor-pointer active:scale-[0.98] transition-all">
-          📷 {t('checkin_open_camera')}
-        </div>
-      </label>
-      <label className="w-full">
-        <input type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
-        <div className="w-full py-3 border border-stone-200 text-stone-600 rounded-xl text-center text-sm cursor-pointer">
-          {t('checkin_choose_library')}
-        </div>
-      </label>
+
+      {native ? (
+        <>
+          <button onClick={handleNativeCamera}
+            className="w-full py-4 bg-rose-400 text-white rounded-xl text-center font-medium cursor-pointer active:scale-[0.98] transition-all">
+            📷 {t('checkin_open_camera')}
+          </button>
+          <button onClick={handleNativeLibrary}
+            className="w-full py-3 border border-stone-200 text-stone-600 rounded-xl text-center text-sm cursor-pointer">
+            {t('checkin_choose_library')}
+          </button>
+        </>
+      ) : (
+        <>
+          <label className="w-full">
+            <input type="file" accept="image/*" capture="user" onChange={handleFileChange} className="sr-only" />
+            <div className="w-full py-4 bg-rose-400 text-white rounded-xl text-center font-medium cursor-pointer active:scale-[0.98] transition-all">
+              📷 {t('checkin_open_camera')}
+            </div>
+          </label>
+          <label className="w-full">
+            <input type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
+            <div className="w-full py-3 border border-stone-200 text-stone-600 rounded-xl text-center text-sm cursor-pointer">
+              {t('checkin_choose_library')}
+            </div>
+          </label>
+        </>
+      )}
     </div>
   )
 }
