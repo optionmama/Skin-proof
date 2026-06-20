@@ -5,7 +5,7 @@ import { ChevronRight, ArrowLeft, ShoppingCart, Sparkles, AlertTriangle, BookOpe
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { getGoogleShoppingUrl, getRegionFromTimezone, skinConcernLabel } from '@/lib/utils'
-import { matchSeedProducts, matchedConcern, type SeedProduct, type SeedAgeGroup, type SeedCategory } from '@/lib/seed-products'
+import { recommendSeedProducts, matchedConcern, type SeedProduct, type SeedAgeGroup, type SeedCategory } from '@/lib/seed-products'
 
 type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string
 type Variant = 'clinical' | 'blue' | 'coral' | 'amber'
@@ -128,16 +128,20 @@ function KV({ label, value }: { label: string; value: string }) {
 }
 
 function ProductCard({
-  product, concerns, scanConcerns, t, onSelect,
+  product, concerns, reasonConcern, scanConcerns, t, onSelect,
 }: {
   product: SeedProduct
   concerns: string[]
+  /** The specific scan concern this product was picked to address (per-card). */
+  reasonConcern: string | null
   scanConcerns: string[]
   t: TFn
   onSelect: () => void
 }) {
   const concern = matchedConcern(product, concerns)
-  const scanConcern = matchedConcern(product, scanConcerns)
+  // Show "Recommended because your latest scan shows: X" only when the concern
+  // this product was actually selected for is one of the scan's concerns.
+  const scanConcern = reasonConcern && scanConcerns.includes(reasonConcern) ? reasonConcern : null
   const chips = [
     concern ? skinConcernLabel(concern) : cap(product.concerns[0] || ''),
     cap(product.concerns[1] || ''),
@@ -185,18 +189,19 @@ function ProductCard({
 }
 
 function ProductDetail({
-  product, concerns, scanConcerns, region, t, onClose,
+  product, concerns, reasonConcern, scanConcerns, region, t, onClose,
 }: {
   product: SeedProduct
   concerns: string[]
+  reasonConcern: string | null
   scanConcerns: string[]
   region: string
   t: TFn
   onClose: () => void
 }) {
-  const concern = matchedConcern(product, concerns)
+  const concern = reasonConcern ?? matchedConcern(product, concerns)
   const concernLabel = concern ? skinConcernLabel(concern) : cap(product.concerns[0] || '')
-  const scanConcern = matchedConcern(product, scanConcerns)
+  const scanConcern = reasonConcern && scanConcerns.includes(reasonConcern) ? reasonConcern : null
 
   return (
     <div className="fixed inset-0 z-[60] bg-skin-50 overflow-y-auto">
@@ -333,7 +338,13 @@ export default function RecommendedToStart({
     setRegion(getRegionFromTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone))
   }, [])
 
-  const products = matchSeedProducts({ ageGroup, concerns }, 4)
+  // Prioritise the latest scan's concerns so the diverse picks (and their
+  // per-card reasons) lead with what the scan actually found, then fall back to
+  // the rest of the merged concern set.
+  const orderedConcerns = [...scanConcerns, ...concerns.filter(c => !scanConcerns.includes(c))]
+  const recs = recommendSeedProducts({ ageGroup, concerns: orderedConcerns }, 4)
+  const reasonById = new Map(recs.map(r => [r.product.id, r.reasonConcern]))
+  const products = recs.map(r => r.product)
   const concernLabels = concerns.map(skinConcernLabel)
 
   return (
@@ -365,12 +376,16 @@ export default function RecommendedToStart({
 
       <div className="space-y-3">
         {products.map(product => (
-          <ProductCard key={product.id} product={product} concerns={concerns} scanConcerns={scanConcerns} t={t} onSelect={() => setSelected(product)} />
+          <ProductCard key={product.id} product={product} concerns={concerns}
+            reasonConcern={reasonById.get(product.id) ?? null}
+            scanConcerns={scanConcerns} t={t} onSelect={() => setSelected(product)} />
         ))}
       </div>
 
       {selected && (
-        <ProductDetail product={selected} concerns={concerns} scanConcerns={scanConcerns} region={region} t={t} onClose={() => setSelected(null)} />
+        <ProductDetail product={selected} concerns={concerns}
+          reasonConcern={reasonById.get(selected.id) ?? null}
+          scanConcerns={scanConcerns} region={region} t={t} onClose={() => setSelected(null)} />
       )}
     </div>
   )

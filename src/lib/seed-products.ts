@@ -123,12 +123,14 @@ const CONCERN_SYNONYMS: Record<string, string[]> = {
   dryness: ['dryness', 'hydration', 'barrier repair', 'plumping', 'nourishment'],
   oiliness: ['oily skin', 'oil balance', 'enlarged pores'],
   redness: ['redness', 'sensitivity', 'soothing'],
-  pores: ['enlarged pores', 'clogged pores', 'blackheads', 'bumpy texture'],
+  pores: ['enlarged pores', 'clogged pores', 'blackheads'],
   dark_circles: ['under-eye fine lines', 'puffiness', "crow's feet"],
   texture: ['texture', 'bumpy texture', 'gentle exfoliation'],
   sensitivity: ['sensitivity', 'redness', 'barrier repair', 'soothing'],
   dullness: ['dullness', 'glass skin', 'brightening', 'antioxidant'],
-  blackheads: ['blackheads', 'clogged pores', 'bumpy texture'],
+  // Note: 'bumpy texture' intentionally excluded here — it cross-matched any
+  // 'texture'-tagged product (e.g. retinoids) and mislabelled them as blackheads.
+  blackheads: ['blackheads', 'clogged pores'],
 }
 
 const CONFIDENCE_WEIGHT: Record<SeedConfidence, number> = { high: 2, medium: 1, estimated: 0 }
@@ -139,44 +141,104 @@ export interface SeedMatchInput {
   concerns: string[]
 }
 
-/**
- * Ranks the seed catalog for a user. Falls back to broadly-trusted, affordable
- * picks (by confidence + price) when there's no age/concern signal yet, so new
- * users without a scan still get a sensible starter set.
- */
-export function matchSeedProducts(input: SeedMatchInput, limit = 4): SeedProduct[] {
-  const tags = new Set<string>()
-  for (const c of input.concerns) {
-    for (const syn of CONCERN_SYNONYMS[c] || [c]) tags.add(syn.toLowerCase())
-  }
-
-  return SEED_PRODUCTS
-    .map(product => {
-      let score = CONFIDENCE_WEIGHT[product.confidence] - product.priceUsd * 0.02
-      const productConcerns = product.concerns.map(c => c.toLowerCase())
-      for (const tag of tags) {
-        if (productConcerns.some(pc => pc.includes(tag) || tag.includes(pc))) score += 10
-      }
-      if (input.ageGroup && product.ageGroups.includes(input.ageGroup)) score += 5
-      if (product.category === 'sunscreen') score += 3
-      return { product, score }
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map(({ product }) => product)
+/** A recommended product plus the specific user-concern it was chosen to address. */
+export interface SeedRecommendation {
+  product: SeedProduct
+  /** Canonical concern key this product addresses for THIS user, or null. */
+  reasonConcern: string | null
 }
 
 /**
- * Returns the canonical concern (from `concerns`) that best explains why this
- * product was recommended, for display in the product detail view.
+ * True when `product` genuinely addresses canonical `concern`. Matches the
+ * concern's synonyms against the product's own concern tags with word-boundary
+ * awareness, so e.g. a 'texture' product no longer matches 'blackheads'.
+ */
+export function productAddressesConcern(product: SeedProduct, concern: string): boolean {
+  const syns = (CONCERN_SYNONYMS[concern] || [concern]).map(s => s.toLowerCase())
+  const productConcerns = product.concerns.map(c => c.toLowerCase())
+  return productConcerns.some(pc =>
+    syns.some(s => s === pc || pc.split(' ').includes(s) || s.split(' ').includes(pc))
+  )
+}
+
+function baseScore(product: SeedProduct, input: SeedMatchInput): number {
+  // Quality/value proxy for the PRD's ingredient-match / outcome / price-value /
+  // irritation weighting: trusted + affordable + age-appropriate products rank
+  // higher, with a small penalty for irritation risk.
+  let score = CONFIDENCE_WEIGHT[product.confidence] * 5 - product.priceUsd * 0.02
+  for (const c of input.concerns) {
+    if (productAddressesConcern(product, c)) score += 10
+  }
+  if (input.ageGroup && product.ageGroups.includes(input.ageGroup)) score += 5
+  if (product.irritationRisk === 'high') score -= 3
+  if (product.category === 'sunscreen') score += 3
+  return score
+}
+
+/**
+ * Diversity-aware recommendation. When the user has multiple concerns, this
+ * spreads the picks ACROSS those concerns (one strong product per concern, in
+ * the concern priority order given) instead of returning several products that
+ * all serve the same single concern/ingredient class. Each pick carries the
+ * specific concern it was selected to address, for an accurate per-card "why".
+ *
+ * Falls back to top quality/value picks when there's no concern signal yet.
+ */
+export function recommendSeedProducts(input: SeedMatchInput, limit = 4): SeedRecommendation[] {
+  const scored = SEED_PRODUCTS
+    .map(product => ({ product, score: baseScore(product, input) }))
+    .sort((a, b) => b.score - a.score)
+
+  // No concern signal → quality/value ordering, no per-card reason.
+  if (input.concerns.length === 0) {
+    return scored.slice(0, limit).map(({ product }) => ({ product, reasonConcern: null }))
+  }
+
+  const picked: SeedRecommendation[] = []
+  const usedIds = new Set<string>()
+  const coveredConcerns = new Set<string>()
+
+  // Greedy pass 1: cover each concern (in priority order) with its best product.
+  for (const concern of input.concerns) {
+    if (picked.length >= limit) break
+    if (coveredConcerns.has(concern)) continue
+    const best = scored.find(s => !usedIds.has(s.product.id) && productAddressesConcern(s.product, concern))
+    if (best) {
+      picked.push({ product: best.product, reasonConcern: concern })
+      usedIds.add(best.product.id)
+      coveredConcerns.add(concern)
+    }
+  }
+
+  // Pass 2: fill any remaining slots with the next best products overall, each
+  // tagged with the highest-priority concern it still addresses.
+  for (const s of scored) {
+    if (picked.length >= limit) break
+    if (usedIds.has(s.product.id)) continue
+    const reason = input.concerns.find(c => productAddressesConcern(s.product, c)) ?? null
+    picked.push({ product: s.product, reasonConcern: reason })
+    usedIds.add(s.product.id)
+  }
+
+  return picked.slice(0, limit)
+}
+
+/**
+ * Backward-compatible: ranks the seed catalog and returns just the products,
+ * now with cross-concern diversity (see `recommendSeedProducts`).
+ */
+export function matchSeedProducts(input: SeedMatchInput, limit = 4): SeedProduct[] {
+  return recommendSeedProducts(input, limit).map(r => r.product)
+}
+
+/**
+ * Returns the canonical concern (from `concerns`, in priority order) that this
+ * specific product actually addresses — for the per-card "why" text. Uses the
+ * precise word-aware matcher so labels reflect the real matched concern.
  */
 export function matchedConcern(product: SeedProduct, concerns: string[]): string | null {
-  const productConcerns = product.concerns.map(c => c.toLowerCase())
   for (const concern of concerns) {
-    const syns = (CONCERN_SYNONYMS[concern] || [concern]).map(s => s.toLowerCase())
-    if (productConcerns.some(pc => syns.some(s => pc.includes(s) || s.includes(pc)))) {
-      return concern
-    }
+    if (productAddressesConcern(product, concern)) return concern
   }
   return null
 }
