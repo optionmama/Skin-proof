@@ -1,54 +1,58 @@
-# Codemagic CI/CD — SkinProof iOS (Capacitor)
-#
-# NOTE: This is a standard Capacitor→App Store config generated as a placeholder
-# because the project-specific codemagic.yaml was not included. Replace it with
-# your own if you have one. Placeholders you fill in the Codemagic / App Store
-# Connect dashboards (do not hardcode secrets here):
-#   - App Store Connect API key integration name: "SkinProof ASC Key"
-#   - APP_STORE_APP_ID: the numeric Apple ID of the app once created in ASC
 workflows:
-  ios-release:
-    name: SkinProof iOS Release
-    instance_type: mac_mini_m1
-    max_build_duration: 60
+  ios-skinproof:
+    name: SkinProof iOS (App Store)
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+
     integrations:
       app_store_connect: SkinProof ASC Key
+
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: app.skinproof.ios
       vars:
-        BUNDLE_ID: "app.skinproof.ios"
-        APP_STORE_APP_ID: 0000000000
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
+        APP_STORE_APP_ID: 0000000000
       node: 20
-      xcode: latest
+      xcode: 26.2
       cocoapods: default
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+
     scripts:
-      - name: Install npm dependencies
+      - name: 安裝 npm 套件
         script: npm ci
-      - name: Sync Capacitor iOS
-        script: npx cap sync ios
-      - name: Install CocoaPods dependencies
+      - name: 同步前端到 iOS 原生專案
+        script: |
+          npx cap sync ios
+      - name: 安裝 CocoaPods
         script: |
           cd ios/App && pod install
-      - name: Set up code signing settings on Xcode project
+      - name: 套用簽章描述檔
         script: xcode-project use-profiles
-      - name: Increment build number
+      - name: 自動遞增 build number
         script: |
-          cd ios/App
-          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID") + 1))
-      - name: Build ipa for distribution
+          cd "$CM_BUILD_DIR/ios/App"
+          LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID")
+          agvtool new-version -all $(($LATEST + 1))
+      - name: 打包 IPA
         script: |
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        submit_to_app_store: false
