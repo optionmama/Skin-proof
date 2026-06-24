@@ -6,7 +6,6 @@ workflows:
 
     integrations:
       app_store_connect: SkinProof ASC Key
-      developer_portal: SkinProof ASC Key
 
     environment:
       ios_signing:
