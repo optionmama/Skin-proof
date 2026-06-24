@@ -8,9 +8,6 @@ workflows:
       app_store_connect: SkinProof ASC Key
 
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: app.skinproof.ios
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
@@ -37,10 +34,13 @@ workflows:
           cd ios/App && pod install
       - name: 取得/建立簽章檔並套用
         script: |
+          keychain initialize
+          # --create generates the missing iOS Distribution certificate (the
+          # account currently has none) AND the App Store provisioning profile
+          # for app.skinproof.ios, using the App Manager API key.
           app-store-connect fetch-signing-files "app.skinproof.ios" \
             --type IOS_APP_STORE \
             --create
-          keychain initialize
           keychain add-certificates
           xcode-project use-profiles
       - name: 自動遞增 build number
