@@ -35,8 +35,14 @@ workflows:
       - name: 安裝 CocoaPods
         script: |
           cd ios/App && pod install
-      - name: 套用簽章描述檔
-        script: xcode-project use-profiles
+      - name: 取得/建立簽章檔並套用
+        script: |
+          app-store-connect fetch-signing-files "app.skinproof.ios" \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
       - name: 自動遞增 build number
         script: |
           cd "$CM_BUILD_DIR/ios/App"
