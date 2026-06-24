@@ -51,12 +51,6 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
-          # Fail loudly if no profile was applied, instead of proceeding to a
-          # confusing build-ipa error.
-          if ! ls "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision >/dev/null 2>&1; then
-            echo "FATAL: no provisioning profile was downloaded — check CERTIFICATE_PRIVATE_KEY and API key permissions."
-            exit 1
-          fi
       - name: 自動遞增 build number
         script: |
           cd "$CM_BUILD_DIR/ios/App"
