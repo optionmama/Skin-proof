@@ -34,21 +34,32 @@ workflows:
           cd ios/App && pod install
       - name: 取得/建立簽章檔並套用
         script: |
+          set -e
+          echo "===== STEP A: keychain initialize ====="
           keychain initialize
-          # The account has no distribution certificate. fetch-signing-files
-          # --create only makes the PROFILE (which must be based on a cert), so
-          # we explicitly create the distribution certificate first. The CLI
-          # generates its own private key — no manual CSR needed. Guarded so a
-          # re-run (cert already exists / limit reached) doesn't fail the build.
-          # NOTE: unguarded on purpose so any auth/permission error surfaces in
-          # the log (instead of being silently swallowed).
+
+          echo "===== STEP B: create iOS distribution certificate (CLI generates the private key) ====="
           app-store-connect create-certificate --type IOS_DISTRIBUTION --save
-          # Now create + fetch the App Store profile for the bundle id and apply.
+
+          echo "===== STEP C: fetch/create App Store profile for app.skinproof.ios ====="
           app-store-connect fetch-signing-files "app.skinproof.ios" \
             --type IOS_APP_STORE \
             --create
+
+          echo "===== STEP D: provisioning profiles present on disk ====="
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" || echo "(none found)"
+
+          echo "===== STEP E: add certificates to keychain ====="
           keychain add-certificates
+
+          echo "===== STEP F: apply profiles to Xcode project ====="
           xcode-project use-profiles
+
+          echo "===== STEP G: verify a profile was actually applied ====="
+          if ! ls "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision >/dev/null 2>&1; then
+            echo "FATAL: no provisioning profile was downloaded — signing cannot proceed."
+            exit 1
+          fi
       - name: 自動遞增 build number
         script: |
           cd "$CM_BUILD_DIR/ios/App"
