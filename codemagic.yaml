@@ -35,9 +35,14 @@ workflows:
       - name: 取得/建立簽章檔並套用
         script: |
           keychain initialize
-          # --create generates the missing iOS Distribution certificate (the
-          # account currently has none) AND the App Store provisioning profile
-          # for app.skinproof.ios, using the App Manager API key.
+          # The account has no distribution certificate. fetch-signing-files
+          # --create only makes the PROFILE (which must be based on a cert), so
+          # we explicitly create the distribution certificate first. The CLI
+          # generates its own private key — no manual CSR needed. Guarded so a
+          # re-run (cert already exists / limit reached) doesn't fail the build.
+          app-store-connect create-certificate --type IOS_DISTRIBUTION --save || \
+            echo "create-certificate skipped (a distribution certificate likely already exists)"
+          # Now create + fetch the App Store profile for the bundle id and apply.
           app-store-connect fetch-signing-files "app.skinproof.ios" \
             --type IOS_APP_STORE \
             --create
