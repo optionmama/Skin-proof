@@ -8,6 +8,11 @@ workflows:
       app_store_connect: SkinProof ASC Key
 
     environment:
+      groups:
+        # Must contain CERTIFICATE_PRIVATE_KEY (a PEM RSA private key, marked
+        # Secure) — used to create/sign the iOS distribution certificate, which
+        # Apple's API cannot create without a private key.
+        - appstore_credentials
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
@@ -35,29 +40,21 @@ workflows:
       - name: 取得/建立簽章檔並套用
         script: |
           set -e
-          echo "===== STEP A: keychain initialize ====="
           keychain initialize
-
-          echo "===== STEP B: create iOS distribution certificate (CLI generates the private key) ====="
-          app-store-connect create-certificate --type IOS_DISTRIBUTION --save
-
-          echo "===== STEP C: fetch/create App Store profile for app.skinproof.ios ====="
+          # Create (if missing) + fetch the distribution certificate AND the App
+          # Store provisioning profile for the bundle id, then apply to Xcode.
+          # --certificate-key supplies the private key Apple's API requires to
+          # create/sign the distribution certificate (stored as a secure env var).
           app-store-connect fetch-signing-files "app.skinproof.ios" \
             --type IOS_APP_STORE \
+            --certificate-key "@env:CERTIFICATE_PRIVATE_KEY" \
             --create
-
-          echo "===== STEP D: provisioning profiles present on disk ====="
-          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" || echo "(none found)"
-
-          echo "===== STEP E: add certificates to keychain ====="
           keychain add-certificates
-
-          echo "===== STEP F: apply profiles to Xcode project ====="
           xcode-project use-profiles
-
-          echo "===== STEP G: verify a profile was actually applied ====="
+          # Fail loudly if no profile was applied, instead of proceeding to a
+          # confusing build-ipa error.
           if ! ls "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision >/dev/null 2>&1; then
-            echo "FATAL: no provisioning profile was downloaded — signing cannot proceed."
+            echo "FATAL: no provisioning profile was downloaded — check CERTIFICATE_PRIVATE_KEY and API key permissions."
             exit 1
           fi
       - name: 自動遞增 build number
