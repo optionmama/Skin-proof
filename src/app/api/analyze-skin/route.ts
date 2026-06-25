@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { aiLanguageInstruction } from '@/lib/i18n/ai-lang'
+import { aiLanguageInstruction, aiLanguageName } from '@/lib/i18n/ai-lang'
 
 export const maxDuration = 60
 
@@ -55,6 +55,11 @@ export async function POST(request: NextRequest) {
   // back to claude-opus-4-5, which is verified working with this key.
   const MODELS = ['claude-haiku-4-5', 'claude-opus-4-5']
 
+  const langName = aiLanguageName(lang)
+  const langSystem = langName === 'English'
+    ? ''
+    : ` The "visible_observations" strings MUST be written in ${langName}. All JSON keys and enum values stay in English. This language rule is mandatory.`
+
   const callModel = async (model: string) => {
     return fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model,
         max_tokens: 1024,
-        system: `You are a skin analysis assistant. Return ONLY valid JSON — no markdown, no explanation.`,
+        system: `You are a skin analysis assistant. Return ONLY valid JSON — no markdown, no explanation.${langSystem}`,
         messages: [
           {
             role: 'user',

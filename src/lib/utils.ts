@@ -70,9 +70,13 @@ export const GOOGLE_DOMAINS: Record<string, string> = {
 
 export function getGoogleShoppingUrl(brand: string, name: string, region = 'Global'): string {
   const domain = GOOGLE_DOMAINS[region] || GOOGLE_DOMAINS['Global']
-  // Wrap in quotes for exact-phrase matching so Shopping surfaces the specific
-  // product rather than a loose mix of the brand's other lines.
-  return `${domain}?q=${encodeURIComponent(`"${brand} ${name}"`)}&tbm=shop`
+  // Use a regular Google search with an exact-phrase query (quotes) rather than
+  // the Shopping tab (&tbm=shop). The Shopping tab ignores quotes and returns a
+  // loose mix of the brand's other products — so users couldn't tell which item
+  // was actually recommended. A plain search honours the quoted phrase and lands
+  // on the specific product (with shopping listings shown inline).
+  const query = `${brand} ${name}`.trim()
+  return `${domain}?q=${encodeURIComponent(`"${query}"`)}`
 }
 
 export function getRegionFromTimezone(tz: string): string {

@@ -18,6 +18,18 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+
+/* Snappier taps inside the Capacitor WebView: kill the iOS tap-delay/grey
+   flash and give every interactive control instant press feedback so buttons
+   like "View today's report" feel responsive even while the next page loads. */
+a, button, [role="button"], summary, label {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+a:active, button:active, [role="button"]:active {
+  opacity: 0.6;
+  transition: opacity 0.05s ease;
+}
 body {
   font-family: 'Outfit', sans-serif;
   background: var(--pearl);
