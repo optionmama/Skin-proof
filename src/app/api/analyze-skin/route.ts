@@ -48,8 +48,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Photo not found' }, { status: 404 })
   }
 
-  try {
-    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+  // Cheap+fast model first, with a guaranteed-working fallback so users never
+  // get a missing score again. Haiku is ~5x cheaper and faster than Opus and is
+  // plenty for this structured "look at photo → output JSON scores" task. If the
+  // API key can't use Haiku (or it errors / returns unparseable output), we fall
+  // back to claude-opus-4-5, which is verified working with this key.
+  const MODELS = ['claude-haiku-4-5', 'claude-opus-4-5']
+
+  const callModel = async (model: string) => {
+    return fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -57,10 +64,7 @@ export async function POST(request: NextRequest) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        // Reverted to the model that is verified working with this API key.
-        // (A previous switch to a different model id broke analysis — the API
-        // rejected it, so no score was ever written.)
-        model: 'claude-opus-4-5',
+        model,
         max_tokens: 1024,
         system: `You are a skin analysis assistant. Return ONLY valid JSON — no markdown, no explanation.`,
         messages: [
@@ -109,21 +113,30 @@ Rules:
         ],
       }),
     })
+  }
 
-    if (!aiResponse.ok) {
-      console.error('AI API error:', await aiResponse.text())
-      return NextResponse.json({ error: 'AI analysis failed' }, { status: 500 })
+  try {
+    // Try each model in order; first one that returns parseable JSON wins.
+    let analysis: AnalysisResult | null = null
+    for (const model of MODELS) {
+      try {
+        const aiResponse = await callModel(model)
+        if (!aiResponse.ok) {
+          console.error(`AI API error (${model}):`, await aiResponse.text())
+          continue
+        }
+        const aiData = await aiResponse.json()
+        const rawText = aiData.content?.[0]?.text || '{}'
+        analysis = JSON.parse(rawText.replace(/```json|```/g, '').trim())
+        break
+      } catch (e) {
+        console.error(`Model ${model} failed:`, e)
+        continue
+      }
     }
 
-    const aiData = await aiResponse.json()
-    const rawText = aiData.content?.[0]?.text || '{}'
-
-    let analysis: AnalysisResult
-    try {
-      analysis = JSON.parse(rawText.replace(/```json|```/g, '').trim())
-    } catch {
-      console.error('Failed to parse AI response:', rawText)
-      return NextResponse.json({ error: 'Failed to parse AI analysis' }, { status: 500 })
+    if (!analysis) {
+      return NextResponse.json({ error: 'AI analysis failed' }, { status: 500 })
     }
 
     const clamp = (v: unknown, lo = 0, hi = 100): number => {
