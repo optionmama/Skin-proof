@@ -171,7 +171,6 @@ function baseScore(product: SeedProduct, input: SeedMatchInput): number {
   }
   if (input.ageGroup && product.ageGroups.includes(input.ageGroup)) score += 5
   if (product.irritationRisk === 'high') score -= 3
-  if (product.category === 'sunscreen') score += 3
   return score
 }
 
@@ -193,9 +192,27 @@ export function recommendSeedProducts(input: SeedMatchInput, limit = 4): SeedRec
     .map(product => ({ product, score: baseScore(product, input) }))
     .sort((a, b) => b.score - a.score)
 
-  // No concern signal → quality/value ordering, no per-card reason.
+  // No concern signal → a well-rounded STARTER SET spread across categories
+  // (so we don't show e.g. three sunscreens). Pick the best product per
+  // category first, then fill any remaining slots by score.
   if (input.concerns.length === 0) {
-    return scored.slice(0, limit).map(({ product }) => ({ product, reasonConcern: null }))
+    const picked: SeedRecommendation[] = []
+    const usedIds = new Set<string>()
+    const usedCategories = new Set<string>()
+    for (const s of scored) {
+      if (picked.length >= limit) break
+      if (usedCategories.has(s.product.category)) continue
+      picked.push({ product: s.product, reasonConcern: null })
+      usedIds.add(s.product.id)
+      usedCategories.add(s.product.category)
+    }
+    for (const s of scored) {
+      if (picked.length >= limit) break
+      if (usedIds.has(s.product.id)) continue
+      picked.push({ product: s.product, reasonConcern: null })
+      usedIds.add(s.product.id)
+    }
+    return picked.slice(0, limit)
   }
 
   const picked: SeedRecommendation[] = []

@@ -14,7 +14,7 @@ function ConfidenceBadge({ communityScore, type }: { communityScore?: number; ty
   if (communityScore && communityScore >= 30) {
     return <span className="inline-flex items-center gap-1 bg-cream-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium">🟡 Community: Growing</span>
   }
-  return <span className="inline-flex items-center gap-1 bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium">🔴 AI Estimate</span>
+  return <span className="inline-flex items-center gap-1 bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium">🔴 Estimate</span>
 }
 
 export default async function RecommendationsPage({

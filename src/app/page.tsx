@@ -137,7 +137,7 @@ export default function Home() {
       `}</style>
 
       {/* NAV */}
-      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,padding:'16px 48px',display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(250,247,245,0.92)',backdropFilter:'blur(20px)',borderBottom:'1px solid rgba(196,131,106,0.12)'}}>
+      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,padding:'calc(16px + env(safe-area-inset-top)) 48px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(250,247,245,0.92)',backdropFilter:'blur(20px)',borderBottom:'1px solid rgba(196,131,106,0.12)'}}>
         <div style={{fontFamily:"'Playfair Display',serif",fontSize:'22px',color:'#2C1810'}}>
           Skin<span style={{color:'#C4836A',fontStyle:'italic'}}>Proof</span>
         </div>
@@ -152,7 +152,7 @@ export default function Home() {
       </nav>
 
       {/* HERO — original design restored */}
-      <section style={{paddingTop:'64px'}}>
+      <section style={{paddingTop:'calc(64px + env(safe-area-inset-top))'}}>
         <div className="hero-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',minHeight:'100vh'}}>
 
           {/* Photo side with floating cards */}
@@ -172,7 +172,7 @@ export default function Home() {
             {/* AI Scanning pill */}
             <div style={{position:'absolute',top:'7%',right:'5%',background:'rgba(0,0,0,0.72)',color:'white',borderRadius:'999px',padding:'8px 16px',fontSize:'13px',fontWeight:500,display:'flex',alignItems:'center',gap:'7px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',zIndex:10}}>
               <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#4CAF50',boxShadow:'0 0 0 2px rgba(76,175,80,0.35)'}}/>
-              AI Scanning...
+              Scanning...
             </div>
 
             {/* Score card: HYDRATION — top left */}
@@ -210,7 +210,7 @@ export default function Home() {
           <div className="hero-text-side" style={{display:'flex',flexDirection:'column',justifyContent:'center',padding:'60px 72px 60px 48px',background:'#FAF7F5'}}>
             <div style={{display:'inline-flex',alignItems:'center',gap:'10px',fontSize:'11px',fontWeight:500,letterSpacing:'0.14em',textTransform:'uppercase',color:'#C4836A',marginBottom:'24px'}}>
               <span style={{width:'28px',height:'1px',background:'#C4836A',display:'inline-block'}}/>
-              AI-powered skin tracking
+              Daily skin tracking
             </div>
             <h1 className="hero-title" style={{fontFamily:"'Playfair Display',serif",fontSize:'62px',lineHeight:1.1,color:'#2C1810',marginBottom:'20px',marginTop:0}}>
               Your skin story,<br/>
@@ -263,7 +263,7 @@ export default function Home() {
           <div className="step-block-text">
             <span className="landing-label">01 · DAILY SCAN</span>
             <h3 className="landing-headline">Snap.<br/>Score.<br/>Track.</h3>
-            <p className="landing-body">30 seconds a day. AI scores 6 skin dimensions — no guesswork.</p>
+            <p className="landing-body">30 seconds a day. We score 6 skin dimensions — no guesswork.</p>
           </div>
         </div>
 
