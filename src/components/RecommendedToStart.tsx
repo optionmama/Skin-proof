@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react'
 import { ChevronRight, ArrowLeft, ShoppingCart, Sparkles, AlertTriangle, BookOpen, Stethoscope } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
-import { getGoogleShoppingUrl, getRegionFromTimezone, skinConcernLabel } from '@/lib/utils'
+import { getGoogleShoppingUrl, getRegionFromTimezone } from '@/lib/utils'
 import { recommendSeedProducts, matchedConcern, type SeedProduct, type SeedAgeGroup, type SeedCategory } from '@/lib/seed-products'
 
 type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string
+
+// Localised label for a canonical concern key (e.g. 'oiliness' → 出油).
+const clabel = (t: TFn, concern: string) => t(`clabel_${concern}` as TranslationKey)
 type Variant = 'clinical' | 'blue' | 'coral' | 'amber'
 type BadgeType = 'derm' | 'review' | 'rx'
 
@@ -143,7 +146,7 @@ function ProductCard({
   // this product was actually selected for is one of the scan's concerns.
   const scanConcern = reasonConcern && scanConcerns.includes(reasonConcern) ? reasonConcern : null
   const chips = [
-    concern ? skinConcernLabel(concern) : cap(product.concerns[0] || ''),
+    concern ? clabel(t, concern) : cap(product.concerns[0] || ''),
     cap(product.concerns[1] || ''),
     cap(product.ingredients[0] || ''),
   ].filter(Boolean).slice(0, 3)
@@ -164,7 +167,7 @@ function ProductCard({
           <ProductBadge type={badgeType(product)} t={t} />
           {scanConcern && (
             <p className="text-[11px] text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2 py-1 mt-2 leading-snug">
-              {t('foryou_why_scan', { concern: skinConcernLabel(scanConcern) })}
+              {t('foryou_why_scan', { concern: clabel(t, scanConcern) })}
             </p>
           )}
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -200,7 +203,7 @@ function ProductDetail({
   onClose: () => void
 }) {
   const concern = reasonConcern ?? matchedConcern(product, concerns)
-  const concernLabel = concern ? skinConcernLabel(concern) : cap(product.concerns[0] || '')
+  const concernLabel = concern ? clabel(t, concern) : cap(product.concerns[0] || '')
   const scanConcern = reasonConcern && scanConcerns.includes(reasonConcern) ? reasonConcern : null
 
   return (
@@ -247,7 +250,7 @@ function ProductDetail({
             </h5>
             {scanConcern && (
               <p className="text-xs text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2.5 py-1.5 mb-2.5 leading-snug">
-                {t('foryou_why_scan', { concern: skinConcernLabel(scanConcern) })}
+                {t('foryou_why_scan', { concern: clabel(t, scanConcern) })}
               </p>
             )}
             <KV label={t('foryou_detail_your_concern')} value={concernLabel} />
@@ -345,7 +348,7 @@ export default function RecommendedToStart({
   const recs = recommendSeedProducts({ ageGroup, concerns: orderedConcerns }, 4)
   const reasonById = new Map(recs.map(r => [r.product.id, r.reasonConcern]))
   const products = recs.map(r => r.product)
-  const concernLabels = concerns.map(skinConcernLabel)
+  const concernLabels = concerns.map(c => clabel(t, c))
 
   return (
     <div className="space-y-4">
