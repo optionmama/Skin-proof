@@ -31,6 +31,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Required so iOS exposes env(safe-area-inset-*) — without it the notch /
+  // Dynamic Island overlaps the app's top content.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({

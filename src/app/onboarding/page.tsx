@@ -99,7 +99,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-skin-50 flex flex-col">
       {/* Progress bar */}
-      <div className="fixed top-0 inset-x-0 z-50 bg-skin-50/80 backdrop-blur-md px-6 pt-4 pb-3">
+      <div className="fixed top-0 inset-x-0 z-50 bg-skin-50/80 backdrop-blur-md px-6 pt-[calc(env(safe-area-inset-top)+1rem)] pb-3">
         <div className="flex items-center gap-3 max-w-lg mx-auto">
           <div className="w-6 h-6 rounded-full bg-skin-500 flex items-center justify-center shrink-0">
             <Sparkles className="w-3 h-3 text-white" />

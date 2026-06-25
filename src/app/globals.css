@@ -42,3 +42,8 @@ body {
   100% { transform: translateY(0); }
 }
 .animate-slide-up { animation: slide-up 0.25s ease-out; }
+
+/* iOS safe-area helpers (notch / Dynamic Island / home indicator).
+   Needs viewport-fit=cover (set in layout.tsx) for env() to resolve. */
+.safe-area-pt { padding-top: env(safe-area-inset-top); }
+.safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }

@@ -129,7 +129,7 @@ export default function CheckinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] flex flex-col pb-20">
+    <div className="min-h-screen bg-[#FAF8F5] flex flex-col pb-20 safe-area-pt">
       {/* Progress steps */}
       <div className="bg-white border-b border-stone-100 px-4 py-3">
         <div className="flex items-center gap-0">

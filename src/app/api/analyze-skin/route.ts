@@ -57,7 +57,9 @@ export async function POST(request: NextRequest) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
+        // Sonnet 4.6 is much faster than Opus for this real-time vision scan,
+        // with strong enough visual assessment — keeps the post-photo wait short.
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: `You are a skin analysis assistant. Return ONLY valid JSON — no markdown, no explanation.`,
         messages: [
