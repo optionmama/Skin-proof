@@ -51,11 +51,14 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
-      - name: 自動遞增 build number
+      - name: 設定 build number（用 Codemagic 遞增的 BUILD_NUMBER，保證每次都更高）
         script: |
           cd "$CM_BUILD_DIR/ios/App"
-          LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID")
-          agvtool new-version -all $(($LATEST + 1))
+          # The app isn't on the App Store yet, so get-latest-app-store-build-number
+          # returned 0 and produced a duplicate build number (1). Codemagic's
+          # BUILD_NUMBER is monotonic per build, so it's always higher than any
+          # previously uploaded build.
+          agvtool new-version -all "$BUILD_NUMBER"
       - name: 打包 IPA
         script: |
           xcode-project build-ipa \
