@@ -20,7 +20,7 @@ interface HabitsData {
 export default function CheckinPage() {
   const router = useRouter()
   const supabase = createClient()
-  const { t, lang } = useLanguage()
+  const { t } = useLanguage()
   // Unlimited scans is an intended premium feature. Premium = no cap; the free
   // tier would limit daily scans here. No cap is enforced while the app is free
   // (everyone is_premium), so scanning is always allowed today.
@@ -107,19 +107,11 @@ export default function CheckinPage() {
         )
       }
 
-      if (photoId) {
-        // Tiny body (photo_id only — the server reads the image from Storage) +
-        // keepalive so the request survives the router.push navigation below.
-        // Previously we sent the full base64 image and navigated immediately,
-        // which aborted the request and left the report with no score.
-        fetch('/api/analyze-skin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ photo_id: photoId, lang }),
-          keepalive: true,
-        }).catch(() => {})
-      }
-
+      // NOTE: we intentionally do NOT trigger analysis here. A fire-and-forget
+      // fetch was aborted by the navigation below (keepalive is unreliable in the
+      // WebView), which is why scores kept going missing. The result page now
+      // OWNS the analysis: it triggers /api/analyze-skin awaited, on a mounted
+      // component that won't be torn down mid-request. See result/page.tsx.
       router.push(`/dashboard/checkin/result?checkin_id=${checkin.id}`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('checkin_submit_error'))

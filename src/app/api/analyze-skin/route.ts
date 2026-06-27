@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { photo_id, lang } = body
+  const { photo_id, lang, acknowledged_disclaimer } = body
   let { image_base64 } = body
 
   if (!photo_id) {
@@ -213,7 +213,7 @@ Rules:
         main_concern: safeAnalysis.main_concern,
         visible_observations: safeAnalysis.visible_observations,
         makeup_detected: safeAnalysis.makeup_detected,
-        user_acknowledged_disclaimer: true,
+        user_acknowledged_disclaimer: acknowledged_disclaimer ?? true,
         analyzed_at: new Date().toISOString(),
       })
       .eq('id', photo_id)

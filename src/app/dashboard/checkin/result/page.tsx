@@ -98,6 +98,7 @@ function ResultContent() {
     makeup_detected: boolean
   } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [comedogenicAlerts, setComedogenicAlerts] = useState<{ name: string; flag: string }[]>([])
   const [routineProducts, setRoutineProducts] = useState<{ name: string; brand: string; status: 'good' | 'warning' | 'loading' | 'fallback'; flag?: string; flagType?: string }[]>([])
   const [noProducts, setNoProducts] = useState(false)
@@ -164,47 +165,73 @@ function ResultContent() {
       .eq('user_id', user.id)
     setCheckinCount(count || 1)
 
-    // Poll for the latest analyzed photo (analysis runs async)
-    let attempts = 0
-    const poll = async () => {
-      const { data: photoData } = await supabase
-        .from('skin_photos')
-        .select('ai_analysis_raw, overall_skin_score, main_concern, visible_observations, makeup_detected')
-        .eq('user_id', user.id)
-        .not('overall_skin_score', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+    // Resolve THIS check-in's photo, then ensure it's analyzed. The analysis is
+    // triggered and AWAITED here on the (mounted) result page so it can never be
+    // aborted by navigation — the root cause of the recurring missing-score bug,
+    // where the check-in fired analyze-skin fire-and-forget and immediately
+    // navigated away, killing the request before it wrote a score.
+    const { data: checkin } = await supabase
+      .from('skin_checkins')
+      .select('photo_id')
+      .eq('id', checkinId)
+      .eq('user_id', user.id)
+      .single()
+    const photoId = checkin?.photo_id as string | undefined
 
-      if (photoData?.overall_skin_score) {
-        const raw = photoData.ai_analysis_raw as Record<string, unknown> | null
-        setAnalysis({
-          overall_score: photoData.overall_skin_score || (raw?.overall_score as number) || 70,
-          dimensions: (raw?.dimensions as Record<string, number>) || {},
-          // prefer dedicated column, fall back to raw JSON
-          main_concern: (photoData.main_concern as MainConcern)
-            || (raw?.main_concern as MainConcern)
-            || 'none',
-          visible_observations: (photoData.visible_observations as string[])
-            || (raw?.visible_observations as string[])
-            || [],
-          makeup_detected: photoData.makeup_detected ?? Boolean(raw?.makeup_detected),
-        })
-        const dimensions = (raw?.dimensions as Record<string, number>) || {}
-        setLoading(false)
-        const concern = (photoData.main_concern as MainConcern)
-          || (raw?.main_concern as MainConcern)
-          || 'none'
-        checkProducts(user.id, concern, dimensions)
-      } else if (attempts < 8) {
-        attempts++
-        setTimeout(poll, 2500)
-      } else {
-        setLoading(false)
-        checkProducts(user.id, 'none', {})
-      }
+    const PHOTO_FIELDS = 'ai_analysis_raw, overall_skin_score, main_concern, visible_observations, makeup_detected'
+    const fetchPhoto = async () => {
+      if (!photoId) return null
+      const { data } = await supabase.from('skin_photos').select(PHOTO_FIELDS)
+        .eq('id', photoId).eq('user_id', user.id).single()
+      return data as Record<string, unknown> | null
     }
-    poll()
+
+    let photoData = await fetchPhoto()
+
+    // Not analyzed yet → trigger analysis with a hard 10s timeout so the user is
+    // never left on an infinite spinner.
+    if (photoId && !photoData?.overall_skin_score) {
+      try {
+        const analyze = fetch('/api/analyze-skin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photo_id: photoId, lang, acknowledged_disclaimer: true }),
+        }).then(r => r.json())
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Analysis timeout')), 10000))
+        await Promise.race([analyze, timeout])
+      } catch {
+        // Fall through and re-read — the server may have finished just after.
+      }
+      photoData = await fetchPhoto()
+    }
+
+    if (photoData?.overall_skin_score) {
+      const raw = photoData.ai_analysis_raw as Record<string, unknown> | null
+      setAnalysis({
+        overall_score: (photoData.overall_skin_score as number) || (raw?.overall_score as number) || 70,
+        dimensions: (raw?.dimensions as Record<string, number>) || {},
+        // prefer dedicated column, fall back to raw JSON
+        main_concern: (photoData.main_concern as MainConcern)
+          || (raw?.main_concern as MainConcern)
+          || 'none',
+        visible_observations: (photoData.visible_observations as string[])
+          || (raw?.visible_observations as string[])
+          || [],
+        makeup_detected: (photoData.makeup_detected as boolean) ?? Boolean(raw?.makeup_detected),
+      })
+      setLoading(false)
+      const dimensions = (raw?.dimensions as Record<string, number>) || {}
+      const concern = (photoData.main_concern as MainConcern)
+        || (raw?.main_concern as MainConcern)
+        || 'none'
+      checkProducts(user.id, concern, dimensions)
+    } else {
+      // Analysis failed/timed out — show an error with retry, never a silent
+      // blank or an endless spinner.
+      setLoading(false)
+      setError(true)
+    }
   }
 
   const checkProducts = async (userId: string, mainConcern: MainConcern, dims: Record<string, number>) => {
@@ -290,6 +317,24 @@ function ResultContent() {
         </div>
         <p className="font-display text-xl font-light text-charcoal-800">{t('result_loading')}</p>
         <p className="text-sm text-charcoal-500 font-body">{t('result_loading_sub')}</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-4 px-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-amber-500" />
+        </div>
+        <p className="font-display text-xl font-light text-charcoal-800">{t('result_failed_title')}</p>
+        <p className="text-sm text-charcoal-500 font-body">{t('result_failed_sub')}</p>
+        <button
+          onClick={() => { setError(false); setLoading(true); loadData() }}
+          className="mt-2 bg-skin-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium active:opacity-60"
+        >
+          {t('result_retry')}
+        </button>
       </div>
     )
   }

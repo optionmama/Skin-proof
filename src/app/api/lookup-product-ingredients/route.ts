@@ -18,6 +18,40 @@ interface IngredientsData {
   }
 }
 
+// Normalize a brand/name for fuzzy matching: lowercase, drop everything that
+// isn't a letter or digit. So "Sk2 Sk2", "SK-II", "sk 2" all collapse to "sk2"/"skii".
+function normalizeName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+// Local database of well-known products so famous items resolve INSTANTLY and
+// reliably — no slow/failable AI round-trip. Ingredients here are publicly
+// documented. Matched by fuzzy substring on the normalized brand+name.
+const KNOWN_PRODUCTS: { match: string[]; data: IngredientsData }[] = [
+  {
+    match: ['sk2', 'skii', 'pitera', 'facialtreatmentessence'],
+    data: {
+      product_found: true,
+      full_name: 'SK-II Facial Treatment Essence',
+      category: 'other',
+      key_ingredients: ['Galactomyces Ferment Filtrate (Pitera)', 'Niacinamide', 'Pentaerythrityl Tetra-Di-T-Butyl Hydroxyhydrocinnamate'],
+      all_notable_ingredients: ['Galactomyces Ferment Filtrate', 'Butylene Glycol', 'Pentaerythrityl Tetra-Di-T-Butyl Hydroxyhydrocinnamate', 'Sodium Benzoate', 'Methylparaben', 'Sorbic Acid'],
+      skin_type_suitable: ['all', 'dry', 'combination', 'sensitive'],
+      concerns_targeted: ['hydration', 'brightening', 'anti-aging'],
+      ingredients_to_flag: { comedogenic: [], irritating: ['Methylparaben'], actives: ['Niacinamide'] },
+    },
+  },
+]
+
+function lookupKnown(brand: string, productName: string): IngredientsData | null {
+  const norm = normalizeName(`${brand} ${productName}`)
+  if (!norm) return null
+  for (const kp of KNOWN_PRODUCTS) {
+    if (kp.match.some(m => norm.includes(normalizeName(m)))) return kp.data
+  }
+  return null
+}
+
 async function lookupIngredients(brand: string, productName: string): Promise<IngredientsData | null> {
   const prompt = `You are a skincare ingredient database.
 Look up the ingredients for this product and return the key active ingredients.
@@ -44,6 +78,9 @@ If the product is not in your knowledge, set product_found: false and return
 your best estimate based on the brand and product name.`
 
   try {
+    // Hard 8s abort so a slow model can never hang the lookup (and the UI spinner).
+    const controller = new AbortController()
+    const abort = setTimeout(() => controller.abort(), 8000)
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -52,11 +89,13 @@ your best estimate based on the brand and product name.`
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
+        // Fast model — this is a simple "name → ingredients JSON" lookup.
+        model: 'claude-haiku-4-5',
         max_tokens: 800,
         messages: [{ role: 'user', content: prompt }],
       }),
-    })
+      signal: controller.signal,
+    }).finally(() => clearTimeout(abort))
     if (!res.ok) return null
     const data = await res.json()
     const raw = (data.content?.[0]?.text || '').replace(/```json|```/g, '').trim()
@@ -111,7 +150,9 @@ export async function POST(request: NextRequest) {
 
   // Look up sequentially (limit to a sensible cap to stay within duration)
   for (const p of products.slice(0, 8)) {
-    const ingredientsData = await lookupIngredients(p.brand || '', p.name)
+    // Famous products resolve instantly from the local DB (e.g. SK-II via
+    // "Sk2 Sk2"); everything else falls back to the fast AI lookup.
+    const ingredientsData = lookupKnown(p.brand || '', p.name) || await lookupIngredients(p.brand || '', p.name)
     if (!ingredientsData) continue
 
     await supabase

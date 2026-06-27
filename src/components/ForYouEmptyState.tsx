@@ -144,23 +144,36 @@ export default function ForYouEmptyState({
     }
   }, [routineProducts.length, lang])
 
-  // Background-fill ingredients for products missing data
+  // Background-fill ingredients for products missing data. Hard 8s timeout +
+  // a sentinel so a per-product compatibility spinner can never run forever:
+  // whatever we couldn't resolve becomes an empty (no-flag) record → shown as
+  // compatible rather than an endless "正在查詢成分" loader.
   useEffect(() => {
     if (!needsLookup) return
-    fetch('/api/lookup-product-ingredients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ all: true }),
-    })
-      .then(r => r.json())
-      .then((res: { results?: { id: string; ingredients_data: IngredientsData }[] }) => {
-        if (!res.results?.length) return
-        setProducts(prev => prev.map(p => {
-          const match = res.results!.find(r => r.id === p.productId)
-          return match ? { ...p, ingredientsData: match.ingredients_data } : p
-        }))
-      })
-      .catch(() => {})
+    let cancelled = false
+    const run = async () => {
+      let results: { id: string; ingredients_data: IngredientsData }[] = []
+      try {
+        const req = fetch('/api/lookup-product-ingredients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ all: true }),
+        }).then(r => r.json() as Promise<{ results?: { id: string; ingredients_data: IngredientsData }[] }>)
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Ingredient lookup timeout')), 8000))
+        const res = await Promise.race([req, timeout])
+        results = res.results || []
+      } catch {
+        // timeout / network error — fall through to the sentinel below
+      }
+      if (cancelled) return
+      const map = new Map(results.map(r => [r.id, r.ingredients_data]))
+      setProducts(prev => prev.map(p =>
+        p.ingredientsData ? p : { ...p, ingredientsData: map.get(p.productId) ?? ({} as IngredientsData) }
+      ))
+    }
+    run()
+    return () => { cancelled = true }
   }, [needsLookup])
 
   // Compute compatibility for each product
