@@ -385,6 +385,16 @@ function ResultContent() {
                 </div>
               </div>
             ))}
+            {comedogenicAlerts.length > 0 && (
+              <div className="px-4 py-3">
+                <Link
+                  href={`/dashboard/recommendations?from=scan&concern=${encodeURIComponent(analysis?.main_concern || '')}`}
+                  className="inline-block text-xs text-skin-600 font-medium underline"
+                >
+                  {t('foryou_find_replacement')}
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -26,7 +26,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-skin-50 pb-20 safe-area-pt">
+    <div className="min-h-screen bg-skin-50 pb-20 overflow-y-auto pt-[max(env(safe-area-inset-top),2.75rem)]">
       <main className="max-w-lg mx-auto">{children}</main>
       <DashboardNav />
     </div>

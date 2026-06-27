@@ -84,7 +84,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 export default function ProfilePage() {
   const router = useRouter()
   const supabase = createClient()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [skinProfile, setSkinProfile] = useState<SkinProfile | null>(null)
@@ -353,7 +353,7 @@ export default function ProfilePage() {
               <span className="text-sm text-charcoal-700">{t('profile_language')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-charcoal-400">{LANG_OPTIONS.find(o => o.value === settings.language)?.label || 'English'}</span>
+              <span className="text-xs text-charcoal-400">{LANG_OPTIONS.find(o => o.value === lang)?.label || 'English'}</span>
               <ChevronRight size={16} className="text-charcoal-300" />
             </div>
           </button>
@@ -477,7 +477,7 @@ export default function ProfilePage() {
                   <h2 className="font-display text-xl font-light text-charcoal-900">{t('profile_language')}</h2>
                   <button onClick={() => setPanel(null)} className="p-1.5 hover:bg-skin-50 rounded-lg"><X size={16} /></button>
                 </div>
-                <LangSelector currentLang={settings.language} onSave={async (l) => { await saveSettings({ language: l }) }} />
+                <LangSelector currentLang={lang} onSave={async (l) => { await saveSettings({ language: l }) }} />
               </div>
             )}
 

@@ -209,12 +209,13 @@ function ProductDetail({
   return (
     <div className="fixed inset-0 z-[60] bg-skin-50 overflow-y-auto">
       <div className="max-w-lg mx-auto min-h-screen pb-12">
-        <div className="px-4 pt-4 pb-2">
+        <div className="px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-2">
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-white border border-skin-100 flex items-center justify-center"
+            aria-label="Back"
+            className="w-11 h-11 rounded-full bg-white border border-skin-200 shadow-md flex items-center justify-center active:scale-95 transition-transform"
           >
-            <ArrowLeft className="w-4 h-4 text-charcoal-700" />
+            <ArrowLeft className="w-5 h-5 text-charcoal-800" />
           </button>
         </div>
 

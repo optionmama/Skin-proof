@@ -288,7 +288,7 @@ export default function ForYouEmptyState({
               {t('foryou_keep_checking')}
             </p>
           </div>
-        ) : !stillLoading && warningItems.length > 0 ? (
+        ) : !stillLoading && warningItems.length > 0 && (loadingReplacements || replacements === null || replacements.length > 0) ? (
           <div id="replacements">
             <h2 className="font-display text-xl font-light text-charcoal-900 mb-1">{t('foryou_found_issue')}</h2>
             <p className="text-xs text-charcoal-500 font-body mb-4">
@@ -299,10 +299,6 @@ export default function ForYouEmptyState({
                 <Loader2 className="w-4 h-4 animate-spin text-skin-400" />
                 <span className="text-sm text-charcoal-500 font-body">{t('foryou_finding_alts')}</span>
               </div>
-            ) : replacements.length === 0 ? (
-              <p className="text-sm text-charcoal-500 font-body text-center py-4">
-                {t('foryou_no_alts')}
-              </p>
             ) : (
               <div className="space-y-3">
                 {replacements.map((product, i) => (
