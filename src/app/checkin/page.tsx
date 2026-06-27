@@ -36,7 +36,6 @@ export default function CheckinPage() {
   ]
   const [currentStep, setCurrentStep] = useState(0)
   const [photoId, setPhotoId] = useState<string | null>(null)
-  const [imageBase64, setImageBase64] = useState<string | null>(null)
   const [habits, setHabits] = useState<HabitsData>({
     sleep_hours: 7, water_intake_ml: 1500, stress_level: 3, notes: '',
   })
@@ -49,23 +48,18 @@ export default function CheckinPage() {
     if (!scanAllowed) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      const base64 = (e.target?.result as string).split(',')[1]
-      setImageBase64(base64)
-      const date = new Date().toISOString().split('T')[0]
-      const path = `${user.id}/${date}/front-${Date.now()}.jpg`
-      const { error: uploadError } = await supabase.storage.from('skin-photos').upload(path, file)
-      if (!uploadError) {
-        const { data: photo } = await supabase
-          .from('skin_photos')
-          .insert({ user_id: user.id, storage_path: path })
-          .select('id').single()
-        if (photo) setPhotoId(photo.id)
-      }
-    }
-    reader.readAsDataURL(file)
+    // Advance the UI immediately; upload + row insert happen in the background.
     setCurrentStep(1)
+    const date = new Date().toISOString().split('T')[0]
+    const path = `${user.id}/${date}/front-${Date.now()}.jpg`
+    const { error: uploadError } = await supabase.storage.from('skin-photos').upload(path, file)
+    if (!uploadError) {
+      const { data: photo } = await supabase
+        .from('skin_photos')
+        .insert({ user_id: user.id, storage_path: path })
+        .select('id').single()
+      if (photo) setPhotoId(photo.id)
+    }
   }
 
   const handleProductsComplete = (selectedProducts: CheckinProduct[]) => {
@@ -113,12 +107,17 @@ export default function CheckinPage() {
         )
       }
 
-      if (photoId && imageBase64) {
+      if (photoId) {
+        // Tiny body (photo_id only — the server reads the image from Storage) +
+        // keepalive so the request survives the router.push navigation below.
+        // Previously we sent the full base64 image and navigated immediately,
+        // which aborted the request and left the report with no score.
         fetch('/api/analyze-skin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ photo_id: photoId, image_base64: imageBase64, lang }),
-        })
+          body: JSON.stringify({ photo_id: photoId, lang }),
+          keepalive: true,
+        }).catch(() => {})
       }
 
       router.push(`/dashboard/checkin/result?checkin_id=${checkin.id}`)

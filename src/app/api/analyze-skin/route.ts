@@ -31,21 +31,43 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { photo_id, image_base64, lang } = body
+  const { photo_id, lang } = body
+  let { image_base64 } = body
 
-  if (!photo_id || !image_base64) {
-    return NextResponse.json({ error: 'photo_id and image_base64 are required' }, { status: 400 })
+  if (!photo_id) {
+    return NextResponse.json({ error: 'photo_id is required' }, { status: 400 })
   }
 
   const { data: photo, error: photoError } = await supabase
     .from('skin_photos')
-    .select('id, user_id')
+    .select('id, user_id, storage_path')
     .eq('id', photo_id)
     .eq('user_id', user.id)
     .single()
 
   if (photoError || !photo) {
     return NextResponse.json({ error: 'Photo not found' }, { status: 404 })
+  }
+
+  // Reliability fix (Bug 2 "score disappeared"): the client used to POST the
+  // image as a large base64 body in a fire-and-forget fetch, then immediately
+  // navigate — which aborted the request mid-flight on mobile, so analysis
+  // (and the score) silently never ran. Now the client only needs to send
+  // photo_id (tiny body → survives navigation via keepalive); we read the
+  // already-uploaded image from Supabase Storage here on the server.
+  if (!image_base64 && photo.storage_path) {
+    const { data: file, error: dlError } = await supabase.storage
+      .from('skin-photos')
+      .download(photo.storage_path)
+    if (dlError || !file) {
+      return NextResponse.json({ error: 'Could not load photo from storage' }, { status: 404 })
+    }
+    const buf = Buffer.from(await file.arrayBuffer())
+    image_base64 = buf.toString('base64')
+  }
+
+  if (!image_base64) {
+    return NextResponse.json({ error: 'No image available to analyze' }, { status: 400 })
   }
 
   // Cheap+fast model first, with a guaranteed-working fallback so users never

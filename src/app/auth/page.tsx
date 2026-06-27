@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, Sparkles, ArrowLeft, Loader2, Mail, Lock, User } from 'lucide-react'
@@ -18,7 +18,6 @@ function AuthForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const router = useRouter()
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,8 +40,12 @@ function AuthForm() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-        router.push('/dashboard')
-        router.refresh()
+        // Full-page navigation (not router.push) so the freshly-set Supabase
+        // session cookie is sent to the SSR middleware on the FIRST attempt.
+        // router.push raced the cookie write, so the middleware saw no session,
+        // bounced back to /auth, and the user had to tap "Sign in" twice.
+        window.location.assign('/dashboard')
+        return
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -52,7 +55,7 @@ function AuthForm() {
   }
 
   return (
-    <div className="min-h-screen bg-skin-50 flex flex-col">
+    <div className="min-h-screen bg-skin-50 flex flex-col safe-area-pt safe-area-pb overflow-x-hidden">
       {/* Header */}
       <div className="px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-1.5 text-charcoal-600 hover:text-charcoal-900 transition-colors">
