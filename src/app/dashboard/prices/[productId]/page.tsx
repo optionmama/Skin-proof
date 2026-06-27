@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ExternalLink, Check, AlertTriangle, TrendingDown, Package } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
+import { getT } from '@/lib/i18n/server'
 
 export default async function PriceComparisonPage({
   params,
@@ -11,6 +12,7 @@ export default async function PriceComparisonPage({
 }) {
   const { productId } = await params
   const supabase = await createClient()
+  const t = await getT()
 
   const { data: product } = await supabase
     .from('products')
@@ -40,7 +42,7 @@ export default async function PriceComparisonPage({
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
       {/* Back */}
       <Link href="/dashboard/recommendations" className="text-sm text-skin-600 hover:text-skin-700 mb-4 inline-block font-body">
-        ← Back to recommendations
+        {t('prices_back')}
       </Link>
 
       {/* Product header */}
@@ -74,19 +76,19 @@ export default async function PriceComparisonPage({
       {prices && prices.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-sage-50 border border-sage-200 rounded-xl p-3 text-center">
-            <p className="text-xs text-sage-600 font-body mb-1">Lowest</p>
+            <p className="text-xs text-sage-600 font-body mb-1">{t('prices_lowest')}</p>
             <p className="font-display text-xl font-medium text-sage-700">
               {formatCurrency(lowestPrice!.price, lowestPrice!.currency)}
             </p>
           </div>
           <div className="bg-skin-50 border border-skin-200 rounded-xl p-3 text-center">
-            <p className="text-xs text-charcoal-500 font-body mb-1">Average</p>
+            <p className="text-xs text-charcoal-500 font-body mb-1">{t('prices_average')}</p>
             <p className="font-display text-xl font-medium text-charcoal-700">
               {formatCurrency(avgPrice, prices[0].currency)}
             </p>
           </div>
           <div className="bg-white border border-skin-200 rounded-xl p-3 text-center">
-            <p className="text-xs text-charcoal-500 font-body mb-1">Highest</p>
+            <p className="text-xs text-charcoal-500 font-body mb-1">{t('prices_highest')}</p>
             <p className="font-display text-xl font-medium text-charcoal-700">
               {formatCurrency(highestPrice!.price, highestPrice!.currency)}
             </p>
@@ -98,21 +100,19 @@ export default async function PriceComparisonPage({
       <div className="bg-sage-50 border border-sage-200 rounded-xl p-4 mb-4 flex gap-3">
         <Check className="w-5 h-5 text-sage-600 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-sage-800 mb-1">Price comparison transparency</p>
+          <p className="text-sm font-semibold text-sage-800 mb-1">{t('prices_transparency_title')}</p>
           <p className="text-xs text-sage-700 font-body leading-relaxed">
-            Prices are sorted from lowest to highest. Any affiliate relationships are
-            <strong> clearly disclosed below each retailer</strong>. Affiliate status
-            does not affect the order of results.
+            {t('prices_transparency_body')}
           </p>
         </div>
       </div>
 
       {/* Prices list */}
-      <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">Available from</h2>
+      <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">{t('prices_available_from')}</h2>
 
       {!prices || prices.length === 0 ? (
         <div className="bg-white rounded-2xl border border-skin-100 p-6 text-center">
-          <p className="text-charcoal-500 font-body text-sm">No prices available yet.</p>
+          <p className="text-charcoal-500 font-body text-sm">{t('prices_none')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -140,7 +140,7 @@ export default async function PriceComparisonPage({
                 {index === 0 && (
                   <div className="bg-sage-500 text-white text-xs font-medium px-4 py-1.5 flex items-center gap-1.5">
                     <TrendingDown className="w-3.5 h-3.5" />
-                    Best price
+                    {t('prices_best')}
                   </div>
                 )}
 
@@ -151,14 +151,14 @@ export default async function PriceComparisonPage({
                         <p className="font-medium text-charcoal-900">{retailer?.name}</p>
                         {retailer?.is_verified_seller && (
                           <span className="bg-sage-100 text-sage-700 text-xs px-1.5 py-0.5 rounded font-medium">
-                            ✓ Verified
+                            {t('prices_verified')}
                           </span>
                         )}
                       </div>
                       {price.is_sale && (
                         <span className="bg-skin-100 text-skin-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                          🏷 On sale
-                          {price.sale_ends_at && ` · ends ${new Date(price.sale_ends_at).toLocaleDateString()}`}
+                          {t('prices_on_sale')}
+                          {price.sale_ends_at && ` · ${t('prices_sale_ends', { date: new Date(price.sale_ends_at).toLocaleDateString() })}`}
                         </span>
                       )}
                     </div>
@@ -174,7 +174,7 @@ export default async function PriceComparisonPage({
                       )}
                       {priceDiff > 0 && (
                         <p className="text-xs text-skin-500 font-body">
-                          +{formatCurrency(priceDiff, price.currency)} more
+                          {t('prices_more', { amount: formatCurrency(priceDiff, price.currency) })}
                         </p>
                       )}
                     </div>
@@ -189,7 +189,7 @@ export default async function PriceComparisonPage({
                         rel="noopener noreferrer nofollow"
                         className="flex-1 flex items-center justify-center gap-1.5 border border-skin-200 text-charcoal-700 text-sm py-2.5 rounded-xl hover:bg-skin-50 transition-colors font-medium"
                       >
-                        View product
+                        {t('prices_view_product')}
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     )}
@@ -200,7 +200,7 @@ export default async function PriceComparisonPage({
                         rel="noopener noreferrer nofollow sponsored"
                         className="flex-1 flex items-center justify-center gap-1.5 bg-skin-500 text-white text-sm py-2.5 rounded-xl hover:bg-skin-600 transition-colors font-medium"
                       >
-                        Shop now
+                        {t('prices_shop_now')}
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     )}
@@ -211,10 +211,10 @@ export default async function PriceComparisonPage({
                     <div className="mt-3 flex gap-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                       <p className="text-xs text-amber-800 font-body leading-relaxed">
-                        <strong>Affiliate disclosure:</strong>{' '}
+                        <strong>{t('prices_affiliate_label')}</strong>{' '}
                         {price.affiliate_disclosure ||
                          retailer?.affiliate_disclosure ||
-                         'SkinProof may earn a commission from purchases made via this link at no extra cost to you.'}
+                         t('prices_affiliate_default')}
                       </p>
                     </div>
                   )}
@@ -227,7 +227,7 @@ export default async function PriceComparisonPage({
                       rel="noopener noreferrer"
                       className="text-xs text-charcoal-400 hover:text-skin-600 font-body mt-2 inline-block"
                     >
-                      View return policy →
+                      {t('prices_return_policy')}
                     </a>
                   )}
                 </div>
@@ -238,7 +238,7 @@ export default async function PriceComparisonPage({
       )}
 
       <p className="text-xs text-center text-charcoal-400 font-body mt-4">
-        Prices last updated by community. May not reflect current prices.
+        {t('prices_updated_note')}
       </p>
     </div>
   )

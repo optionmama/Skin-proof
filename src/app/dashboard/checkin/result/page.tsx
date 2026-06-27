@@ -7,13 +7,7 @@ import Link from 'next/link'
 import { BookOpen, TrendingUp, Loader2, Sparkles, AlertCircle, Users } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
-
-const COMEDOGENIC = ['coconut oil', 'lanolin', 'cocoa butter', 'isopropyl myristate', 'mineral oil', 'wheat germ oil']
-const HEAVY       = ['petrolatum', 'dimethicone', 'shea butter']
-const IRRITANTS   = ['fragrance', 'alcohol denat', 'sodium lauryl sulfate', 'menthol', 'eucalyptus']
-
-// Legacy arrays kept for checkProducts function
-const COMEDOGENIC_INGREDIENTS = [...COMEDOGENIC, 'algae extract', 'flaxseed oil', 'acetylated lanolin']
+import { checkProductCompatibility, type CompatibilityIngredients } from '@/lib/compatibility'
 
 type MainConcern = 'redness' | 'breakouts' | 'dryness' | 'oiliness' | 'pores' | 'none'
 
@@ -105,7 +99,7 @@ function ResultContent() {
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [comedogenicAlerts, setComedogenicAlerts] = useState<{ name: string; flag: string }[]>([])
-  const [routineProducts, setRoutineProducts] = useState<{ name: string; brand: string; notes: string; flag?: string; flagType?: string }[]>([])
+  const [routineProducts, setRoutineProducts] = useState<{ name: string; brand: string; status: 'good' | 'warning' | 'loading'; flag?: string; flagType?: string }[]>([])
   const [noProducts, setNoProducts] = useState(false)
   const [checkinCount, setCheckinCount] = useState(1)
   // Observations rendered in the current locale. Stored observations are kept
@@ -216,7 +210,7 @@ function ResultContent() {
   const checkProducts = async (userId: string, mainConcern: MainConcern, dims: Record<string, number>) => {
     const { data: routines } = await supabase
       .from('user_routines')
-      .select('user_products(name, brand, notes)')
+      .select('user_products(name, brand, ingredients_data)')
       .eq('user_id', userId)
       .eq('is_active', true)
 
@@ -225,37 +219,29 @@ function ResultContent() {
       return
     }
 
-    const oilinessBad  = (dims.oiliness  || 0) > 60
-    const breakoutsBad = (dims.breakouts || 0) > 60
-    const rednessBad   = (dims.redness   || 0) > 60
-
     // Deduplicate by brand+name
     const seen = new Set<string>()
-    const products: { name: string; brand: string; notes: string; flag?: string; flagType?: string }[] = []
+    const products: { name: string; brand: string; status: 'good' | 'warning' | 'loading'; flag?: string; flagType?: string }[] = []
     const alerts: { name: string; flag: string }[] = []
 
     for (const r of routines) {
-      const p = r.user_products as { name?: string; brand?: string; notes?: string } | null
+      const p = r.user_products as { name?: string; brand?: string; ingredients_data?: CompatibilityIngredients | null } | null
       if (!p?.name) continue
       const key = `${(p.brand||'').toLowerCase()}|${p.name.toLowerCase()}`
       if (seen.has(key)) continue
       seen.add(key)
 
-      const notesLower = (p.notes || '').toLowerCase()
+      // Shared verdict — identical to the For You page (lib/compatibility.ts).
+      const compat = checkProductCompatibility(p.ingredients_data ?? null, dims, mainConcern)
       let flag: string | undefined
       let flagType: string | undefined
-
-      if ((oilinessBad || breakoutsBad) && !flag) {
-        const hit = [...COMEDOGENIC, ...HEAVY].find(c => notesLower.includes(c))
-        if (hit) { flag = hit; flagType = 'pores' }
+      if (compat.status === 'warning') {
+        const f = compat.flags[0]
+        flag = f.ingredient
+        flagType = f.kind === 'comedogenic' ? 'pores' : 'redness'
+        alerts.push({ name: p.name, flag })
       }
-      if (rednessBad && !flag) {
-        const hit = IRRITANTS.find(c => notesLower.includes(c))
-        if (hit) { flag = hit; flagType = 'redness' }
-      }
-
-      if (flag) alerts.push({ name: p.name, flag })
-      products.push({ name: p.name, brand: p.brand || '', notes: p.notes || '', flag, flagType })
+      products.push({ name: p.name, brand: p.brand || '', status: compat.status, flag, flagType })
     }
 
     setComedogenicAlerts(alerts)
@@ -363,8 +349,10 @@ function ResultContent() {
           <div className="divide-y divide-skin-50">
             {routineProducts.map((p, i) => (
               <div key={i} className="px-4 py-3 flex items-start gap-3">
-                {p.flag ? (
+                {p.status === 'warning' ? (
                   <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                ) : p.status === 'loading' ? (
+                  <Loader2 className="w-4 h-4 text-charcoal-300 shrink-0 mt-0.5 animate-spin" />
                 ) : (
                   <span className="text-sm shrink-0 mt-0.5">✅</span>
                 )}
@@ -373,9 +361,13 @@ function ResultContent() {
                     {p.brand && <span className="text-charcoal-500 font-normal">{p.brand} </span>}
                     {p.name}
                   </p>
-                  {p.flag ? (
+                  {p.status === 'warning' ? (
                     <p className="text-xs text-amber-700 font-body mt-0.5">
-                      {t('result_flag_contains', { ing: p.flag, what: p.flagType === 'pores' ? t('result_flag_pores') : t('result_flag_redness') })}
+                      {t('result_flag_contains', { ing: p.flag || '', what: p.flagType === 'pores' ? t('result_flag_pores') : t('result_flag_redness') })}
+                    </p>
+                  ) : p.status === 'loading' ? (
+                    <p className="text-xs text-charcoal-400 font-body mt-0.5">
+                      {t('foryou_looking_up')}
                     </p>
                   ) : (
                     <p className="text-xs text-charcoal-400 font-body mt-0.5">

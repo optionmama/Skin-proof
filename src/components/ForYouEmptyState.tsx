@@ -7,6 +7,7 @@ import CommunityPicks from './CommunityPicks'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { getGoogleShoppingUrl, getRegionFromTimezone } from '@/lib/utils'
+import { checkProductCompatibility } from '@/lib/compatibility'
 
 type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string
 
@@ -71,47 +72,34 @@ type CompatResult =
   | { status: 'good'; message: string }
   | { status: 'warning'; flags: { ingredient: string; message: string }[] }
 
+// Compatibility verdict comes from the shared checkProductCompatibility() so it
+// can never disagree with the Today's Skin page (see lib/compatibility.ts).
+// This wrapper just localizes the structured result into display strings.
 function checkCompatibility(
   product: RoutineProduct,
   scanDimensions: Record<string, number> | null,
   mainConcern: string | null,
   t: TFn
 ): CompatResult {
-  const ingredients = product.ingredientsData
-  if (!ingredients) return { status: 'loading' }
-
-  const d = scanDimensions || {}
-  const flags: { ingredient: string; message: string }[] = []
-  const flagSet = ingredients.ingredients_to_flag || {}
-
-  // Comedogenic — flag if oiliness or breakouts high
-  if ((((d.oiliness ?? 0) > 60) || ((d.breakouts ?? 0) > 50)) && (flagSet.comedogenic?.length ?? 0) > 0) {
-    const ing = flagSet.comedogenic![0]
-    flags.push({ ingredient: ing, message: t('foryou_flag_comedogenic', { ing }) })
-  }
-
-  // Irritating — flag if redness high
-  if (((d.redness ?? 0) > 55) && (flagSet.irritating?.length ?? 0) > 0) {
-    const ing = flagSet.irritating![0]
-    flags.push({ ingredient: ing, message: t('foryou_flag_irritating', { ing }) })
-  }
-
-  if (flags.length === 0) {
-    const targets = ingredients.concerns_targeted || []
-    const concern = (mainConcern || '').toLowerCase()
-    const isHelpful = concern.length > 0 && targets.some(c => {
-      const cl = c.toLowerCase()
-      return cl.includes(concern) || concern.includes(cl)
-    })
+  const r = checkProductCompatibility(product.ingredientsData, scanDimensions, mainConcern)
+  if (r.status === 'loading') return { status: 'loading' }
+  if (r.status === 'warning') {
     return {
-      status: 'good',
-      message: isHelpful
-        ? t('foryou_good_targets', { concern: mainConcern || '' })
-        : t('foryou_compatible'),
+      status: 'warning',
+      flags: r.flags.map(f => ({
+        ingredient: f.ingredient,
+        message: f.kind === 'comedogenic'
+          ? t('foryou_flag_comedogenic', { ing: f.ingredient })
+          : t('foryou_flag_irritating', { ing: f.ingredient }),
+      })),
     }
   }
-
-  return { status: 'warning', flags }
+  return {
+    status: 'good',
+    message: r.helpful
+      ? t('foryou_good_targets', { concern: r.helpfulConcern || '' })
+      : t('foryou_compatible'),
+  }
 }
 
 export default function ForYouEmptyState({
@@ -264,7 +252,7 @@ export default function ForYouEmptyState({
                       {result.flags.map((f, fi) => (
                         <p key={fi} className="text-xs text-amber-700 font-body leading-relaxed">{f.message}</p>
                       ))}
-                      <a href="#replacements" className="inline-block mt-1 text-xs text-skin-600 font-medium underline">
+                      <a href="#recommended-start" className="inline-block mt-1 text-xs text-skin-600 font-medium underline">
                         {t('foryou_find_replacement')}
                       </a>
                     </div>
