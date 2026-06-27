@@ -70,12 +70,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No image available to analyze' }, { status: 400 })
   }
 
-  // Cheap+fast model first, with a guaranteed-working fallback so users never
-  // get a missing score again. Haiku is ~5x cheaper and faster than Opus and is
-  // plenty for this structured "look at photo → output JSON scores" task. If the
-  // API key can't use Haiku (or it errors / returns unparseable output), we fall
-  // back to claude-opus-4-5, which is verified working with this key.
-  const MODELS = ['claude-haiku-4-5', 'claude-opus-4-5']
+  // Cheap+fast model first for this structured "look at photo → output JSON
+  // scores" task. Haiku is the fastest/cheapest vision model and keeps the daily
+  // check-in snappy. If Haiku errors or returns unparseable output, we fall back
+  // to Sonnet. (No Opus here — too slow/expensive for a daily-use endpoint.)
+  const MODELS = ['claude-haiku-4-5', 'claude-sonnet-4-6']
 
   const langName = aiLanguageName(lang)
   const langSystem = langName === 'English'

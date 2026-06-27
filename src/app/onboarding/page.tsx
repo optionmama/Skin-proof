@@ -97,7 +97,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-skin-50 flex flex-col">
+    <div className="min-h-screen bg-skin-50 flex flex-col overflow-y-auto">
       {/* Progress bar */}
       <div className="fixed top-0 inset-x-0 z-50 bg-skin-50/80 backdrop-blur-md px-6 pt-[calc(env(safe-area-inset-top)+1rem)] pb-3">
         <div className="flex items-center gap-3 max-w-lg mx-auto">
@@ -113,7 +113,7 @@ export default function OnboardingPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col max-w-lg mx-auto w-full px-6 pt-20 pb-8">
+      <div className="flex-1 flex flex-col max-w-lg mx-auto w-full px-6 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-[calc(env(safe-area-inset-bottom)+2rem)]">
 
         {/* WELCOME */}
         {step === 'welcome' && (
