@@ -189,6 +189,10 @@ export function recommendSeedProducts(input: SeedMatchInput, limit = 4): SeedRec
     // remain in the catalog as data but are excluded from the For You engine to
     // avoid presenting medical/treatment guidance to the user).
     .filter(product => !product.isRx)
+    // Sunscreen is a daily essential, NOT a treatment for any concern. It must
+    // never appear as a primary recommendation (it's surfaced separately via
+    // recommendDailyEssentials), so it's excluded from the main ranking here.
+    .filter(product => product.category !== 'sunscreen')
     .map(product => ({ product, score: baseScore(product, input) }))
     .sort((a, b) => b.score - a.score)
 
@@ -250,6 +254,22 @@ export function recommendSeedProducts(input: SeedMatchInput, limit = 4): SeedRec
  */
 export function matchSeedProducts(input: SeedMatchInput, limit = 4): SeedProduct[] {
   return recommendSeedProducts(input, limit).map(r => r.product)
+}
+
+/**
+ * Daily essentials (currently: sunscreen). These are shown in a SEPARATE
+ * "每日必備 / Daily essentials" section, never as a treatment for a concern —
+ * so we deliberately keep them out of recommendSeedProducts() and pick the best
+ * one(s) here by quality/age-fit. Age-appropriate, lower-irritation, trusted
+ * picks rank first.
+ */
+export function recommendDailyEssentials(input: SeedMatchInput, limit = 1): SeedProduct[] {
+  return SEED_PRODUCTS
+    .filter(p => !p.isRx && p.category === 'sunscreen')
+    .map(p => ({ p, score: baseScore({ ...p, concerns: [] }, { ...input, concerns: [] }) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(s => s.p)
 }
 
 /**

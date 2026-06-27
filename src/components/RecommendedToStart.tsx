@@ -5,7 +5,7 @@ import { ChevronRight, ArrowLeft, ShoppingCart, Sparkles, AlertTriangle, BookOpe
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { getGoogleShoppingUrl, getRegionFromTimezone } from '@/lib/utils'
-import { recommendSeedProducts, matchedConcern, type SeedProduct, type SeedAgeGroup, type SeedCategory } from '@/lib/seed-products'
+import { recommendSeedProducts, recommendDailyEssentials, matchedConcern, type SeedProduct, type SeedAgeGroup, type SeedCategory } from '@/lib/seed-products'
 
 type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string
 
@@ -349,6 +349,8 @@ export default function RecommendedToStart({
   const recs = recommendSeedProducts({ ageGroup, concerns: orderedConcerns }, 4)
   const reasonById = new Map(recs.map(r => [r.product.id, r.reasonConcern]))
   const products = recs.map(r => r.product)
+  // Sunscreen is shown here, separately — never as a treatment recommendation.
+  const dailyEssentials = recommendDailyEssentials({ ageGroup, concerns: orderedConcerns }, 1)
   const concernLabels = concerns.map(c => clabel(t, c))
 
   return (
@@ -385,6 +387,20 @@ export default function RecommendedToStart({
             scanConcerns={scanConcerns} t={t} onSelect={() => setSelected(product)} />
         ))}
       </div>
+
+      {dailyEssentials.length > 0 && (
+        <div className="space-y-3 pt-2">
+          <div>
+            <h3 className="font-display text-lg font-light text-charcoal-900">{t('foryou_daily_essentials_title')}</h3>
+            <p className="text-xs text-charcoal-500 font-body mt-0.5">{t('foryou_daily_essentials_sub')}</p>
+          </div>
+          {dailyEssentials.map(product => (
+            <ProductCard key={product.id} product={product} concerns={concerns}
+              reasonConcern={null}
+              scanConcerns={scanConcerns} t={t} onSelect={() => setSelected(product)} />
+          ))}
+        </div>
+      )}
 
       {selected && (
         <ProductDetail product={selected} concerns={concerns}

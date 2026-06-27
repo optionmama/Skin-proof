@@ -99,7 +99,7 @@ function ResultContent() {
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [comedogenicAlerts, setComedogenicAlerts] = useState<{ name: string; flag: string }[]>([])
-  const [routineProducts, setRoutineProducts] = useState<{ name: string; brand: string; status: 'good' | 'warning' | 'loading'; flag?: string; flagType?: string }[]>([])
+  const [routineProducts, setRoutineProducts] = useState<{ name: string; brand: string; status: 'good' | 'warning' | 'loading' | 'fallback'; flag?: string; flagType?: string }[]>([])
   const [noProducts, setNoProducts] = useState(false)
   const [checkinCount, setCheckinCount] = useState(1)
   // Observations rendered in the current locale. Stored observations are kept
@@ -210,7 +210,7 @@ function ResultContent() {
   const checkProducts = async (userId: string, mainConcern: MainConcern, dims: Record<string, number>) => {
     const { data: routines } = await supabase
       .from('user_routines')
-      .select('user_products(name, brand, ingredients_data)')
+      .select('user_products(id, name, brand, ingredients_data)')
       .eq('user_id', userId)
       .eq('is_active', true)
 
@@ -221,28 +221,62 @@ function ResultContent() {
 
     // Deduplicate by brand+name
     const seen = new Set<string>()
-    const products: { name: string; brand: string; status: 'good' | 'warning' | 'loading'; flag?: string; flagType?: string }[] = []
-    const alerts: { name: string; flag: string }[] = []
-
+    let items: { id: string; name: string; brand: string; ingredients: CompatibilityIngredients | null }[] = []
     for (const r of routines) {
-      const p = r.user_products as { name?: string; brand?: string; ingredients_data?: CompatibilityIngredients | null } | null
+      const p = r.user_products as { id?: string; name?: string; brand?: string; ingredients_data?: CompatibilityIngredients | null } | null
       if (!p?.name) continue
       const key = `${(p.brand||'').toLowerCase()}|${p.name.toLowerCase()}`
       if (seen.has(key)) continue
       seen.add(key)
+      items.push({ id: p.id || '', name: p.name, brand: p.brand || '', ingredients: p.ingredients_data ?? null })
+    }
 
-      // Shared verdict — identical to the For You page (lib/compatibility.ts).
-      const compat = checkProductCompatibility(p.ingredients_data ?? null, dims, mainConcern)
-      let flag: string | undefined
-      let flagType: string | undefined
+    type Row = { name: string; brand: string; status: 'good' | 'warning' | 'loading' | 'fallback'; flag?: string; flagType?: string }
+    // Map one product to a display row using the shared verdict (lib/compatibility.ts).
+    const toRow = (it: { name: string; brand: string; ingredients: CompatibilityIngredients | null }): Row => {
+      const compat = checkProductCompatibility(it.ingredients, dims, mainConcern)
       if (compat.status === 'warning') {
         const f = compat.flags[0]
-        flag = f.ingredient
-        flagType = f.kind === 'comedogenic' ? 'pores' : 'redness'
-        alerts.push({ name: p.name, flag })
+        return { name: it.name, brand: it.brand, status: 'warning', flag: f.ingredient, flagType: f.kind === 'comedogenic' ? 'pores' : 'redness' }
       }
-      products.push({ name: p.name, brand: p.brand || '', status: compat.status, flag, flagType })
+      return { name: it.name, brand: it.brand, status: compat.status }
     }
+
+    // Show verdicts for products we already have data for, and a spinner for the
+    // ones we still need to look up.
+    setRoutineProducts(items.map(toRow))
+
+    // If any product is missing ingredient data, trigger the lookup with a hard
+    // 8s timeout so the row can never spin forever (recurring "正在查詢成分" bug).
+    if (items.some(it => !it.ingredients)) {
+      try {
+        const lookup = fetch('/api/lookup-product-ingredients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ all: true }),
+        }).then(r => r.json())
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Ingredient check timeout')), 8000))
+        const res = await Promise.race([lookup, timeout]) as { results?: { id: string; ingredients_data: CompatibilityIngredients }[] }
+        if (res?.results?.length) {
+          items = items.map(it => {
+            const m = res.results!.find(r => r.id === it.id)
+            return m ? { ...it, ingredients: m.ingredients_data } : it
+          })
+        }
+      } catch {
+        // Timeout or network error — fall through; unresolved rows become 'fallback'.
+      }
+    }
+
+    const products: Row[] = items.map(it => {
+      const row = toRow(it)
+      // Still no data after the lookup → friendly fallback, never an infinite spinner.
+      return row.status === 'loading' ? { name: it.name, brand: it.brand, status: 'fallback' as const } : row
+    })
+    const alerts = products
+      .filter(p => p.status === 'warning' && p.flag)
+      .map(p => ({ name: p.name, flag: p.flag! }))
 
     setComedogenicAlerts(alerts)
     setRoutineProducts(products)
@@ -368,6 +402,10 @@ function ResultContent() {
                   ) : p.status === 'loading' ? (
                     <p className="text-xs text-charcoal-400 font-body mt-0.5">
                       {t('foryou_looking_up')}
+                    </p>
+                  ) : p.status === 'fallback' ? (
+                    <p className="text-xs text-charcoal-400 font-body mt-0.5">
+                      {t('result_ingredient_unavailable')}
                     </p>
                   ) : (
                     <p className="text-xs text-charcoal-400 font-body mt-0.5">
