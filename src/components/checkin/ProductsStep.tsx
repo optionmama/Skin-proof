@@ -439,9 +439,9 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
 
       {/* Edit product bottom sheet */}
       {editDraft && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditDraft(null)} />
-          <div className="relative w-full max-w-lg bg-white rounded-t-2xl px-5 pt-5 pb-8 space-y-4 animate-slide-up">
+          <div className="relative w-full max-w-lg bg-white rounded-t-2xl px-5 pt-5 pb-[calc(2rem+env(safe-area-inset-bottom))] space-y-4 animate-slide-up">
             <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto mb-2" />
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-stone-800">{t('products_edit_title')}</h3>
