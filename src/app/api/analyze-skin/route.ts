@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { aiLanguageInstruction, aiLanguageName } from '@/lib/i18n/ai-lang'
+import { callAI } from '@/lib/ai'
 
 export const maxDuration = 60
 
@@ -70,11 +71,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No image available to analyze' }, { status: 400 })
   }
 
-  // Cheap+fast model first for this structured "look at photo → output JSON
-  // scores" task. Haiku is the fastest/cheapest vision model and keeps the daily
-  // check-in snappy. If Haiku errors or returns unparseable output, we fall back
-  // to Sonnet. (No Opus here — too slow/expensive for a daily-use endpoint.)
-  const MODELS = ['claude-haiku-4-5', 'claude-sonnet-4-6']
+  // Vision model first for this structured "look at photo → output JSON scores"
+  // task. gpt-4o is the strong vision model; if it errors or returns
+  // unparseable output, we fall back to the cheaper/faster gpt-4o-mini (also
+  // vision-capable) so a daily check-in still gets a score.
+  const MODELS = ['gpt-4o', 'gpt-4o-mini']
 
   const langName = aiLanguageName(lang)
   const langSystem = langName === 'English'
@@ -82,18 +83,11 @@ export async function POST(request: NextRequest) {
     : ` The "visible_observations" strings MUST be written in ${langName}. All JSON keys and enum values stay in English. This language rule is mandatory.`
 
   const callModel = async (model: string) => {
-    return fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1024,
-        system: `You are a skin analysis assistant. Return ONLY valid JSON — no markdown, no explanation.${langSystem}`,
-        messages: [
+    return callAI({
+      model,
+      max_tokens: 1024,
+      system: `You are a skin analysis assistant. Return ONLY valid JSON — no markdown, no explanation.${langSystem}`,
+      messages: [
           {
             role: 'user',
             content: [
@@ -137,7 +131,6 @@ Rules:
             ],
           },
         ],
-      }),
     })
   }
 
@@ -148,11 +141,10 @@ Rules:
       try {
         const aiResponse = await callModel(model)
         if (!aiResponse.ok) {
-          console.error(`AI API error (${model}):`, await aiResponse.text())
+          console.error(`AI API error (${model}):`, aiResponse.errorText)
           continue
         }
-        const aiData = await aiResponse.json()
-        const rawText = aiData.content?.[0]?.text || '{}'
+        const rawText = aiResponse.text || '{}'
         analysis = JSON.parse(rawText.replace(/```json|```/g, '').trim())
         break
       } catch (e) {

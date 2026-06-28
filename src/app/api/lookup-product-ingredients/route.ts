@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { callAI } from '@/lib/ai'
 
 export const maxDuration = 60
 
@@ -81,24 +82,16 @@ your best estimate based on the brand and product name.`
     // Hard 8s abort so a slow model can never hang the lookup (and the UI spinner).
     const controller = new AbortController()
     const abort = setTimeout(() => controller.abort(), 8000)
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        // Fast model — this is a simple "name → ingredients JSON" lookup.
-        model: 'claude-haiku-4-5',
-        max_tokens: 800,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const res = await callAI({
+      // Fast/cheap model — this is a simple "name → ingredients JSON" lookup.
+      model: 'gpt-4o-mini',
+      max_tokens: 800,
+      messages: [{ role: 'user', content: prompt }],
       signal: controller.signal,
-    }).finally(() => clearTimeout(abort))
+    })
+    clearTimeout(abort)
     if (!res.ok) return null
-    const data = await res.json()
-    const raw = (data.content?.[0]?.text || '').replace(/```json|```/g, '').trim()
+    const raw = (res.text || '').replace(/```json|```/g, '').trim()
     // Robustly extract the first balanced JSON object (model may append prose)
     const start = raw.indexOf('{')
     const end = raw.lastIndexOf('}')

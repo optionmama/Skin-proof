@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { aiLanguageName } from '@/lib/i18n/ai-lang'
+import { callAI } from '@/lib/ai'
 
 export const maxDuration = 30
 
@@ -34,28 +35,19 @@ export async function POST(request: NextRequest) {
   const languageName = aiLanguageName(targetLang)
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 800,
-        messages: [{
-          role: 'user',
-          content: `Translate each string in this JSON array into ${languageName}. These are short, non-diagnostic skin observations. Preserve meaning and an observational (non-medical) tone. Keep ingredient and brand names in their original form. Return ONLY a JSON array of the translated strings in the same order, no other text.
+    const res = await callAI({
+      model: 'gpt-4o',
+      max_tokens: 800,
+      messages: [{
+        role: 'user',
+        content: `Translate each string in this JSON array into ${languageName}. These are short, non-diagnostic skin observations. Preserve meaning and an observational (non-medical) tone. Keep ingredient and brand names in their original form. Return ONLY a JSON array of the translated strings in the same order, no other text.
 
 ${JSON.stringify(texts)}`,
-        }],
-      }),
+      }],
     })
 
     if (!res.ok) return NextResponse.json({ texts })
-    const data = await res.json()
-    const raw = (data.content?.[0]?.text || '').replace(/```json|```/g, '').trim()
+    const raw = (res.text || '').replace(/```json|```/g, '').trim()
     const start = raw.indexOf('[')
     const end = raw.lastIndexOf(']')
     if (start === -1 || end === -1 || end <= start) return NextResponse.json({ texts })

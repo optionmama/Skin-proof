@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { aiLanguageInstruction } from '@/lib/i18n/ai-lang'
+import { callAI } from '@/lib/ai'
 
 export const maxDuration = 30
 
@@ -123,15 +124,8 @@ AI scan from ${scanDate}:
   let aiProducts: { name: string; brand: string; key_ingredient: string; why: string; price_range: string; suitable_for: string }[] = []
 
   try {
-    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
+    const aiResponse = await callAI({
+        model: 'gpt-4o',
         max_tokens: 800,
         messages: [{
           role: 'user',
@@ -174,12 +168,10 @@ Return JSON array only, no other text:
   }
 ]${aiLanguageInstruction(request.nextUrl.searchParams.get('lang'), '"why", "price_range", "available_at", and "suitable_for"')}`,
         }],
-      }),
     })
 
     if (aiResponse.ok) {
-      const data = await aiResponse.json()
-      const rawText = (data.content?.[0]?.text || '[]').replace(/```json|```/g, '').trim()
+      const rawText = (aiResponse.text || '[]').replace(/```json|```/g, '').trim()
       const s = rawText.indexOf('['), e = rawText.lastIndexOf(']')
       const raw = s !== -1 && e !== -1 && e > s ? rawText.slice(s, e + 1) : '[]'
       const parsed = JSON.parse(raw)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { aiLanguageInstruction } from '@/lib/i18n/ai-lang'
+import { callAI } from '@/lib/ai'
 
 export const maxDuration = 60
 
@@ -98,15 +99,10 @@ Return ONLY valid JSON, no other text:
 }${aiLanguageInstruction(reportLang, '"key_findings", "most_improved", "needs_attention", each "product_insights[].insight", "recommendations", and "next_goal"')}`
 
   try {
-    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-opus-4-5', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
-    })
+    const aiResponse = await callAI({ model: 'gpt-4o', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] })
 
     if (!aiResponse.ok) throw new Error('AI call failed')
-    const aiData = await aiResponse.json()
-    const rawText = aiData.content?.[0]?.text || '{}'
+    const rawText = aiResponse.text || '{}'
     const reportData = JSON.parse(rawText.replace(/```json|```/g, '').trim())
     // Tag the report with the language it was generated in so we can detect
     // stale-language cache hits on future requests.

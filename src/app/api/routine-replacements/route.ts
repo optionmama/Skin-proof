@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { aiLanguageInstruction } from '@/lib/i18n/ai-lang'
+import { callAI } from '@/lib/ai'
 
 export const maxDuration = 30
 
@@ -63,22 +64,13 @@ Return ONLY valid JSON, no other text:
 
   let products: Record<string, string>[] = []
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 700,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const res = await callAI({
+      model: 'gpt-4o',
+      max_tokens: 700,
+      messages: [{ role: 'user', content: prompt }],
     })
     if (res.ok) {
-      const data = await res.json()
-      const raw = (data.content?.[0]?.text || '[]').replace(/```json|```/g, '').trim()
+      const raw = (res.text || '[]').replace(/```json|```/g, '').trim()
       const start = raw.indexOf('[')
       const end = raw.lastIndexOf(']')
       const slice = start !== -1 && end !== -1 && end > start ? raw.slice(start, end + 1) : '[]'
