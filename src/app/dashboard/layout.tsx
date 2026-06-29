@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DashboardNav from '@/components/DashboardNav'
+import SectionTabs from '@/components/SectionTabs'
 
 export default async function DashboardLayout({
   children,
@@ -27,7 +28,10 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-skin-50 overflow-y-auto pt-[max(env(safe-area-inset-top),2.75rem)] pb-[calc(5rem+env(safe-area-inset-bottom))]">
-      <main className="max-w-lg mx-auto">{children}</main>
+      <main className="max-w-lg mx-auto">
+        <SectionTabs />
+        {children}
+      </main>
       <DashboardNav />
     </div>
   )

@@ -3,6 +3,8 @@ export const translations = {
     // Nav
     nav_home: 'Home', nav_daily_scan: 'Daily Scan', nav_diary: 'Diary',
     nav_progress: 'Progress', nav_for_you: 'For You', nav_profile: 'Profile',
+    nav_scan: 'Scan', nav_my_record: 'Progress',
+    sec_trend: 'Progress', sec_products: 'My Products',
     // Home
     home_greeting_morning: 'Good morning', home_greeting_afternoon: 'Good afternoon', home_greeting_evening: 'Good evening',
     home_checkin_prompt: "Ready for today's scan? 📸", home_checkin_done: "Today's check-in complete ✓",
@@ -469,6 +471,8 @@ export const translations = {
   'zh-TW': {
     nav_home: '首頁', nav_daily_scan: '每日掃描', nav_diary: '日記',
     nav_progress: '進度', nav_for_you: '為你推薦', nav_profile: '個人資料',
+    nav_scan: '今日掃描', nav_my_record: '我的紀錄',
+    sec_trend: '追蹤進度', sec_products: '我的保養品',
     home_greeting_morning: '早安', home_greeting_afternoon: '午安', home_greeting_evening: '晚安',
     home_checkin_prompt: '準備好今天的掃描了嗎？📸', home_checkin_done: '今日打卡完成 ✓',
     home_view_report: '查看今日報告 →', home_start_checkin: '開始每日掃描',
@@ -921,6 +925,8 @@ export const translations = {
   'zh-CN': {
     nav_home: '首页', nav_daily_scan: '每日扫描', nav_diary: '日记',
     nav_progress: '进度', nav_for_you: '为你推荐', nav_profile: '个人资料',
+    nav_scan: '今日扫描', nav_my_record: '我的记录',
+    sec_trend: '追踪进度', sec_products: '我的保养品',
     home_greeting_morning: '早安', home_greeting_afternoon: '午安', home_greeting_evening: '晚安',
     home_checkin_prompt: '准备好今天的扫描了吗？📸', home_checkin_done: '今日打卡完成 ✓',
     home_view_report: '查看今日报告 →', home_start_checkin: '开始每日扫描',

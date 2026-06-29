@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && isAuth) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/dashboard/scan', request.url))
   }
 
   return supabaseResponse

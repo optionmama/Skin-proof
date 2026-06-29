@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Camera, BookOpen, TrendingUp, Sparkles, User } from 'lucide-react'
+import { Camera, TrendingUp, Sparkles } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function DashboardNav() {
@@ -13,13 +13,15 @@ export default function DashboardNav() {
   const { t } = useLanguage()
   const [checkedInToday, setCheckedInToday] = useState(true)
 
+  // 3-tab structure. Each tab "owns" several routes (e.g. Scan owns the camera
+  // flow + result), and stays highlighted across all of them.
   const navItems = [
-    { href: '/dashboard',                 label: t('nav_home'),       icon: Home },
-    { href: '/checkin',                   label: t('nav_daily_scan'), icon: Camera, checkinTab: true },
-    { href: '/dashboard/diary',           label: t('nav_diary'),      icon: BookOpen },
-    { href: '/dashboard/progress',        label: t('nav_progress'),   icon: TrendingUp },
-    { href: '/dashboard/recommendations', label: t('nav_for_you'),    icon: Sparkles },
-    { href: '/dashboard/profile',         label: t('nav_profile'),    icon: User },
+    { href: '/dashboard/scan',            label: t('nav_scan'),      icon: Camera,
+      match: ['/dashboard/scan', '/dashboard/checkin', '/checkin'], scanTab: true },
+    { href: '/dashboard/recommendations', label: t('nav_for_you'),   icon: Sparkles,
+      match: ['/dashboard/recommendations'] },
+    { href: '/dashboard/progress',        label: t('nav_my_record'), icon: TrendingUp,
+      match: ['/dashboard/progress', '/dashboard/diary', '/dashboard/profile'] },
   ]
 
   useEffect(() => {
@@ -43,10 +45,8 @@ export default function DashboardNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-cream/95 backdrop-blur-md border-t border-skin-100 safe-area-pb">
       <div className="max-w-lg mx-auto px-2">
         <div className="flex items-center justify-around py-2">
-          {navItems.map(({ href, label, icon: Icon, checkinTab }) => {
-            const isActive = href === '/dashboard'
-              ? pathname === '/dashboard'
-              : pathname.startsWith(href)
+          {navItems.map(({ href, label, icon: Icon, match, scanTab }) => {
+            const isActive = match.some(m => pathname === m || pathname.startsWith(m + '/'))
 
             return (
               <Link key={href} href={href}
@@ -58,7 +58,7 @@ export default function DashboardNav() {
                 <div className="relative">
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8}
                     className={isActive ? 'text-skin-600' : ''} />
-                  {checkinTab && !checkedInToday && (
+                  {scanTab && !checkedInToday && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
                   )}
                 </div>
