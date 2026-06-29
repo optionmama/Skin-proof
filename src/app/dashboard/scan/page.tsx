@@ -187,10 +187,10 @@ export default async function ScanPage() {
         <h2 className="font-display text-xl font-light text-charcoal-900 mb-4">{t('scan_metrics')}</h2>
         <div className="space-y-4">
           {[
-            { label: t('dim_hydration'), value: latestPhoto.hydration_score, color: 'sage' },
-            { label: t('scan_metric_texture'), value: latestPhoto.texture_score, color: 'skin' },
-            { label: t('scan_metric_pigmentation'), value: latestPhoto.pigmentation_score, color: 'cream' },
-            { label: t('scan_metric_redness'), value: latestPhoto.redness_score ? 100 - latestPhoto.redness_score : undefined, color: 'red' },
+            { label: `💧 ${t('dim_hydration')}`, value: latestPhoto.hydration_score, color: 'sage' },
+            { label: `✨ ${t('scan_metric_texture')}`, value: latestPhoto.texture_score, color: 'skin' },
+            { label: `🎨 ${t('scan_metric_pigmentation')}`, value: latestPhoto.pigmentation_score, color: 'cream' },
+            { label: `🌿 ${t('scan_metric_redness')}`, value: latestPhoto.redness_score ? 100 - latestPhoto.redness_score : undefined, color: 'red' },
           ]
             .filter(m => m.value !== undefined && m.value !== null)
             .map(({ label, value, color }) => (

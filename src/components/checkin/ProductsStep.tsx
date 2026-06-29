@@ -315,7 +315,7 @@ export default function ProductsStep({ onComplete, onBack }: Props) {
           <div>
             <p className="text-sm font-medium text-amber-700">{t('products_no_routine_title')}</p>
             <p className="text-xs text-amber-600 mt-0.5">{t('products_no_routine_body')}</p>
-            <a href="/routine/setup" className="text-xs text-amber-700 underline mt-1 inline-block">{t('products_setup_routine')}</a>
+            <a href="/dashboard/diary/add" className="text-xs text-amber-700 underline mt-1 inline-block">{t('products_setup_routine')}</a>
           </div>
         </div>
       )}

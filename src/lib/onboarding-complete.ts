@@ -14,6 +14,6 @@ export async function redirectAfterOnboarding(router: { push: (url: string) => v
   if (profile?.routine_setup_completed_at) {
     router.push('/dashboard/scan')
   } else {
-    router.push('/routine/setup')
+    router.push('/dashboard/diary')
   }
 }

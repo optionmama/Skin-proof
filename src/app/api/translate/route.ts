@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       max_tokens: 800,
       messages: [{
         role: 'user',
-        content: `Translate each string in this JSON array into ${languageName}. These are short, non-diagnostic skin observations. Preserve meaning and an observational (non-medical) tone. Keep ingredient and brand names in their original form. Return ONLY a JSON array of the translated strings in the same order, no other text.
+        content: `Translate each string in this JSON array into ${languageName}. These are short, non-diagnostic skin observations. Render them the way a warm, professional native ${languageName} skincare advisor would naturally phrase them — fluent and conversational, NOT a word-for-word translation. Avoid English sentence structure and Title Case; use natural ${languageName} phrasing and punctuation. Preserve meaning and an observational (non-medical) tone. Keep ingredient and brand names in their original form. Return ONLY a JSON array of the translated strings in the same order, no other text.
 
 ${JSON.stringify(texts)}`,
       }],

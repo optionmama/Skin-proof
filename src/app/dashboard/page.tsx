@@ -240,7 +240,7 @@ export default async function DashboardPage() {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-xl font-light text-charcoal-900">{t('home_current_routine')}</h2>
-            <Link href="/routine/setup" className="text-xs text-skin-600 font-medium flex items-center gap-1">
+            <Link href="/dashboard/diary" className="text-xs text-skin-600 font-medium flex items-center gap-1">
               {t('home_edit')} <ChevronRight className="w-3 h-3" />
             </Link>
           </div>

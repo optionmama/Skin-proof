@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, BookOpen, Search, Package } from 'lucide-react'
+import { Plus, BookOpen, Search, Package, Trash2 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 type RoutineType = 'am' | 'pm' | 'both'
@@ -121,6 +121,17 @@ export default function DiaryPage() {
     setLoading(false)
   }
 
+  // Remove a product from the routine. This is the management capability that
+  // used to live only on the (now-retired) /routine/setup page — kept here so
+  // 我的保養品 is the single place to add AND remove products.
+  const removeProduct = async (productId: string) => {
+    if (!confirm(t('diary_remove_confirm'))) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('user_routines').delete().eq('user_id', user.id).eq('product_id', productId)
+    loadProducts()
+  }
+
   const filtered = products.filter(p => {
     const matchSearch = !search ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -203,9 +214,15 @@ export default function DiaryPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <p className="font-medium text-charcoal-900 text-sm leading-tight">{product.name}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${ROUTINE_COLOR[product.routine_type]}`}>
-                        {ROUTINE_LABEL[product.routine_type]}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROUTINE_COLOR[product.routine_type]}`}>
+                          {ROUTINE_LABEL[product.routine_type]}
+                        </span>
+                        <button onClick={() => removeProduct(product.product_id)} aria-label={t('diary_remove')}
+                          className="text-charcoal-300 hover:text-rose-400 transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                     {product.brand && <p className="text-xs text-charcoal-500 mb-1">{product.brand}</p>}
                     <div className="flex items-center gap-2 flex-wrap">
@@ -246,10 +263,10 @@ export default function DiaryPage() {
             </div>
           ))}
 
-          {/* Manage routine link */}
-          <Link href="/routine/setup"
+          {/* Add another product */}
+          <Link href="/dashboard/diary/add"
             className="block text-center text-xs text-skin-600 font-medium py-3 hover:text-skin-700">
-            {t('diary_manage')}
+            + {t('add_title')}
           </Link>
         </div>
       )}

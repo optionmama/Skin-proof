@@ -246,15 +246,14 @@ export default function OnboardingPage() {
             <p className="text-charcoal-500 text-sm mb-1 font-body">{t('onb_fitz_sub')}</p>
             <p className="text-xs text-charcoal-400 mb-6 font-body">{t('onb_fitz_skip')}</p>
             <div className="grid grid-cols-2 gap-2">
-              {FITZPATRICK.map(({ scale, label, color }) => (
+              {FITZPATRICK.map(({ scale, color }) => (
                 <button key={scale} onClick={() => setFitzpatrick(scale === fitzpatrick ? 0 : scale)}
                   className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                     fitzpatrick === scale ? 'border-skin-400 bg-skin-50' : 'border-skin-100 bg-white hover:border-skin-200'
                   }`}>
                   <div className="w-8 h-8 rounded-full shrink-0 border-2 border-white shadow-sm" style={{ backgroundColor: color }} />
                   <div className="text-left min-w-0">
-                    <p className="text-sm font-medium text-charcoal-900">{label}</p>
-                    <p className="text-xs text-charcoal-500 truncate font-body">{t(`onb_fitz_${scale}_d` as TranslationKey)}</p>
+                    <p className="text-sm font-medium text-charcoal-900">{t(`onb_fitz_${scale}_d` as TranslationKey)}</p>
                   </div>
                 </button>
               ))}

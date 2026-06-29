@@ -239,7 +239,7 @@ export default function ProfilePage() {
       <div className="max-w-lg mx-auto px-4 -mt-8 space-y-4 pb-8">
 
         {/* Skincare Routine */}
-        <Link href="/routine/setup"
+        <Link href="/dashboard/diary"
           className="flex items-center justify-between bg-white border border-skin-100 rounded-2xl px-5 py-4 hover:bg-skin-50 transition-colors">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
@@ -259,7 +259,7 @@ export default function ProfilePage() {
         <div className="bg-white border border-skin-100 rounded-2xl overflow-hidden">
           <div className="px-5 py-3 border-b border-skin-50 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-charcoal-700">{t('profile_skin_profile')}</h2>
-            <Link href="/onboarding" className="text-xs text-skin-600 hover:underline flex items-center gap-1">
+            <Link href="/dashboard/profile/edit" className="text-xs text-skin-600 hover:underline flex items-center gap-1">
               <Edit2 size={11} /> {t('general_edit')}
             </Link>
           </div>
@@ -284,7 +284,7 @@ export default function ProfilePage() {
               {skinProfile?.age_range ? (
                 <span className="text-charcoal-800 font-medium">{skinProfile.age_range}</span>
               ) : (
-                <Link href="/onboarding" className="text-skin-600 text-xs flex items-center gap-0.5 hover:underline">
+                <Link href="/dashboard/profile/edit" className="text-skin-600 text-xs flex items-center gap-0.5 hover:underline">
                   {t('profile_not_set')} <ChevronRight size={12} />
                 </Link>
               )}

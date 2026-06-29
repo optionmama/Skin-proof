@@ -85,7 +85,7 @@ export default function AddProductPage() {
       }).catch(() => {})
 
       setSaved(true)
-      setTimeout(() => router.push('/routine/setup'), 1200)
+      setTimeout(() => router.push('/dashboard/diary'), 1200)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('add_save_failed'))
       setSaving(false)
