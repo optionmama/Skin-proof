@@ -120,7 +120,7 @@ function BuildingCard({ t }: { t: TFn }) {
       </div>
       <h3 className="font-display text-xl font-medium text-charcoal-900 mt-3">{t('foryou_community_building_title')}</h3>
       <p className="text-sm text-charcoal-500 font-body leading-relaxed mt-1.5">
-        {t('foryou_community_building_body', { threshold: 75 })}
+        {t('foryou_community_building_body', { threshold: 80 })}
       </p>
       <div className="h-1.5 bg-skin-100 rounded-full mt-4 overflow-hidden">
         <div className="h-full w-[8%] bg-skin-400 rounded-full" />

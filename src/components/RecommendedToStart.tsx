@@ -145,6 +145,10 @@ function ProductCard({
   // Show "Recommended because your latest scan shows: X" only when the concern
   // this product was actually selected for is one of the scan's concerns.
   const scanConcern = reasonConcern && scanConcerns.includes(reasonConcern) ? reasonConcern : null
+  // Matched on a concern the user declared in onboarding (not in this scan) →
+  // still show an explicit reason, "because you care about X", so every card
+  // states why it's here.
+  const declaredConcern = reasonConcern && !scanConcerns.includes(reasonConcern) ? reasonConcern : null
   const chips = [
     concern ? clabel(t, concern) : cap(product.concerns[0] || ''),
     cap(product.concerns[1] || ''),
@@ -168,6 +172,11 @@ function ProductCard({
           {scanConcern && (
             <p className="text-[11px] text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2 py-1 mt-2 leading-snug">
               {t('foryou_why_scan', { concern: clabel(t, scanConcern) })}
+            </p>
+          )}
+          {!scanConcern && declaredConcern && (
+            <p className="text-[11px] text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2 py-1 mt-2 leading-snug">
+              {t('foryou_why_concern', { concern: clabel(t, declaredConcern) })}
             </p>
           )}
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -205,6 +214,7 @@ function ProductDetail({
   const concern = reasonConcern ?? matchedConcern(product, concerns)
   const concernLabel = concern ? clabel(t, concern) : cap(product.concerns[0] || '')
   const scanConcern = reasonConcern && scanConcerns.includes(reasonConcern) ? reasonConcern : null
+  const declaredConcern = reasonConcern && !scanConcerns.includes(reasonConcern) ? reasonConcern : null
 
   return (
     <div className="fixed inset-0 z-[60] bg-skin-50 overflow-y-auto">
@@ -252,6 +262,11 @@ function ProductDetail({
             {scanConcern && (
               <p className="text-xs text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2.5 py-1.5 mb-2.5 leading-snug">
                 {t('foryou_why_scan', { concern: clabel(t, scanConcern) })}
+              </p>
+            )}
+            {!scanConcern && declaredConcern && (
+              <p className="text-xs text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2.5 py-1.5 mb-2.5 leading-snug">
+                {t('foryou_why_concern', { concern: clabel(t, declaredConcern) })}
               </p>
             )}
             <KV label={t('foryou_detail_your_concern')} value={concernLabel} />

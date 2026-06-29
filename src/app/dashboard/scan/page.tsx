@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { AlertTriangle, Sparkles, TrendingUp, ChevronRight, Camera } from 'lucide-react'
 import { scoreToLabel } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
+import DetectedConcerns from '@/components/DetectedConcerns'
 
 function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
   const radius = (size - 12) / 2
@@ -108,7 +109,11 @@ export default async function ScanPage() {
     ? (latestPhoto.overall_skin_score || 0) - (previousPhoto.overall_skin_score || 0)
     : null
 
-  const { label: scoreLabel, color: scoreColor } = scoreToLabel(latestPhoto.overall_skin_score || 0)
+  const { color: scoreColor } = scoreToLabel(latestPhoto.overall_skin_score || 0)
+  // Localize the score label via i18n (the util returns English only); thresholds
+  // match the result page so the same score reads the same in both places.
+  const _score = latestPhoto.overall_skin_score || 0
+  const scoreLabel = _score >= 80 ? t('result_excellent') : _score >= 65 ? t('result_good') : _score >= 50 ? t('result_fair') : t('result_needs_care')
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
@@ -195,22 +200,15 @@ export default async function ScanPage() {
         </div>
       </div>
 
-      {/* Detected concerns */}
+      {/* Detected concerns — AI free-text, localized on display */}
       {latestPhoto.detected_concerns && latestPhoto.detected_concerns.length > 0 && (
-        <div className="bg-white rounded-2xl border border-skin-100 p-5 mb-4">
-          <h2 className="font-display text-xl font-light text-charcoal-900 mb-3">{t('scan_detected_concerns')}</h2>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {latestPhoto.detected_concerns.map(concern => (
-              <span key={concern} className="bg-skin-100 text-skin-700 text-sm px-3 py-1.5 rounded-full font-medium capitalize">
-                {concern.replace(/_/g, ' ')}
-              </span>
-            ))}
-          </div>
-        </div>
+        <DetectedConcerns observations={latestPhoto.detected_concerns} />
       )}
 
-      {/* Acne severity */}
-      {latestPhoto.acne_severity && latestPhoto.acne_severity !== 'none' && (
+      {/* Acne severity — only when acne is actually present. 'clear'/'none' mean
+          no acne, so the card must not show (it previously read "clear acne
+          detected", which was contradictory). */}
+      {['mild', 'moderate', 'severe'].includes(latestPhoto.acne_severity || '') && (
         <div className={`rounded-2xl border p-4 mb-4 ${
           latestPhoto.acne_severity === 'severe' ? 'bg-red-50 border-red-200' :
           latestPhoto.acne_severity === 'moderate' ? 'bg-amber-50 border-amber-200' :
@@ -264,12 +262,6 @@ export default async function ScanPage() {
               {t('scan_next_body')}
             </p>
             <div className="space-y-2.5">
-              <a
-                href="#full-analysis"
-                className="flex items-center justify-center gap-2 bg-white border border-skin-200 text-charcoal-800 py-3 rounded-xl font-medium hover:bg-skin-50 transition-colors text-sm"
-              >
-                📊 {t('scan_view_full')}
-              </a>
               <Link
                 href={href}
                 className="flex items-center justify-center gap-2 bg-skin-500 text-white py-3.5 rounded-xl font-medium hover:bg-skin-600 transition-colors text-sm"

@@ -18,5 +18,5 @@ export function aiLanguageName(lang?: string | null): string {
 export function aiLanguageInstruction(lang: string | null | undefined, fields: string): string {
   const name = aiLanguageName(lang)
   if (name === 'English') return ''
-  return `\n\nIMPORTANT — LANGUAGE: Write all natural-language text in these fields in ${name}: ${fields}. Keep every JSON key and any enum/category values exactly as specified in English (do not translate keys or enums). Keep ingredient and product brand names in their original form.`
+  return `\n\nIMPORTANT — LANGUAGE: Write all natural-language text in these fields in ${name}: ${fields}. Write the way a warm, professional native ${name} skincare advisor would actually speak — natural, fluent and conversational. Do NOT translate word-for-word from English: avoid English sentence structure, avoid Title Case / capitalising each word, and use natural ${name} phrasing and punctuation. Keep every JSON key and any enum/category values exactly as specified in English (do not translate keys or enums). Keep ingredient and product brand names in their original form.`
 }
