@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { BookOpen, TrendingUp, Loader2, Sparkles, AlertCircle, Users } from 'lucide-react'
+import { BookOpen, TrendingUp, Loader2, Sparkles, AlertCircle } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { checkProductCompatibility, type CompatibilityIngredients } from '@/lib/compatibility'
@@ -474,34 +474,7 @@ function ResultContent() {
         )}
       </div>
 
-      {/* ── Task 4: Community teaser ── */}
-      <div className="bg-cream-50 border border-cream-200 rounded-2xl p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-charcoal-500" />
-          <h3 className="text-sm font-semibold text-charcoal-800">{t('result_community_title')}</h3>
-        </div>
-        <p className="text-xs text-charcoal-600 font-body leading-relaxed mb-3">
-          {t('result_community_intro')}
-        </p>
-        <div className="space-y-2 mb-3">
-          <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2">
-            <span className="text-sm">🟡</span>
-            <span className="text-xs text-charcoal-700 font-body"><strong>{t('result_tier_75')}</strong> — {t('community_working_well')}</span>
-          </div>
-          <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2">
-            <span className="text-sm">🟢</span>
-            <span className="text-xs text-charcoal-700 font-body"><strong>{t('result_tier_80')}</strong> — {t('community_working_great')}</span>
-          </div>
-        </div>
-        <p className="text-xs text-charcoal-500 font-body mb-3">
-          {t('result_community_basis')}<br />
-          {t('result_community_real')}
-        </p>
-        <div className="inline-flex items-center gap-1.5 bg-white border border-cream-300 rounded-full px-3 py-1.5">
-          <span className="w-2 h-2 rounded-full bg-red-400" />
-          <span className="text-xs text-charcoal-600 font-body">{t('result_community_building_pill')}</span>
-        </div>
-      </div>
+      {/* Community Picks intentionally lives only on the For You page now, not here. */}
 
       {/* Come back tomorrow */}
       <p className="text-xs text-center text-charcoal-400 font-body">

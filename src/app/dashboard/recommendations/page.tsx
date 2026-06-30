@@ -25,7 +25,6 @@ export default async function RecommendationsPage({
   const params = await searchParams
   const fromScan = params.from === 'scan'
   const scanConcern = params.concern || ''
-  const scanDate = params.date || ''
 
   const supabase = await createClient()
   const t = await getT()
@@ -47,7 +46,7 @@ export default async function RecommendationsPage({
       .eq('is_active', true),
     supabase
       .from('skin_photos')
-      .select('ai_analysis_raw, overall_skin_score')
+      .select('ai_analysis_raw, overall_skin_score, created_at')
       .eq('user_id', user!.id)
       .not('overall_skin_score', 'is', null)
       .order('created_at', { ascending: false })
@@ -63,6 +62,12 @@ export default async function RecommendationsPage({
   const hasRecommendations = recommendations && recommendations.length > 0
 
   const scanRaw = latestScan?.ai_analysis_raw as Record<string, unknown> | null
+  // Date shown in the "based on your last scan" banner — the actual date of the
+  // latest analysed photo, NOT today (the old code read a `date` query param set
+  // to today, so it could show a future/wrong day vs the real last scan).
+  const scanDate = latestScan?.created_at
+    ? new Date(latestScan.created_at as string).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+    : ''
   const dimensions = (scanRaw?.dimensions as Record<string, number> | null) || null
   const mainConcern = (scanRaw?.main_concern as string) || scanConcern || null
 

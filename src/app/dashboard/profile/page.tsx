@@ -420,9 +420,9 @@ export default function ProfilePage() {
 
       {/* ── Panel overlay ── */}
       {panel && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center">
           <div className="absolute inset-0 bg-charcoal-900/40 backdrop-blur-sm" onClick={() => setPanel(null)} />
-          <div className="relative w-full max-w-lg bg-white rounded-t-2xl animate-slide-up">
+          <div className="relative w-full max-w-lg bg-white rounded-t-2xl animate-slide-up pb-[env(safe-area-inset-bottom)]">
 
             {/* Notifications panel */}
             {panel === 'notifications' && (

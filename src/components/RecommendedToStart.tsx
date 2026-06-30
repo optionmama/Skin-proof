@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronRight, ArrowLeft, ShoppingCart, Sparkles, AlertTriangle, BookOpen, Stethoscope } from 'lucide-react'
+import { ChevronRight, ArrowLeft, ShoppingCart, Sparkles, AlertTriangle, BookOpen, Stethoscope, Heart } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { getGoogleShoppingUrl, getRegionFromTimezone } from '@/lib/utils'
@@ -130,71 +130,31 @@ function KV({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ProductCard({
-  product, concerns, reasonConcern, scanConcerns, t, onSelect,
-}: {
+function ProductCard({ product, t, onSelect }: {
   product: SeedProduct
-  concerns: string[]
-  /** The specific scan concern this product was picked to address (per-card). */
-  reasonConcern: string | null
-  scanConcerns: string[]
   t: TFn
   onSelect: () => void
 }) {
-  const concern = matchedConcern(product, concerns)
-  // Show "Recommended because your latest scan shows: X" only when the concern
-  // this product was actually selected for is one of the scan's concerns.
-  const scanConcern = reasonConcern && scanConcerns.includes(reasonConcern) ? reasonConcern : null
-  // Matched on a concern the user declared in onboarding (not in this scan) →
-  // still show an explicit reason, "because you care about X", so every card
-  // states why it's here.
-  const declaredConcern = reasonConcern && !scanConcerns.includes(reasonConcern) ? reasonConcern : null
-  const chips = [
-    concern ? clabel(t, concern) : cap(product.concerns[0] || ''),
-    cap(product.concerns[1] || ''),
-    cap(product.ingredients[0] || ''),
-  ].filter(Boolean).slice(0, 3)
-
+  // The concern this product addresses is now shown as the group heading above
+  // the card, so the card itself stays clean: brand, name, price, one key-info
+  // line (ingredient + timeline), and the action.
   return (
     <div
       onClick={onSelect}
-      className="bg-white rounded-2xl border border-skin-100 p-4 cursor-pointer active:scale-[0.99] transition-transform"
+      className="bg-white rounded-2xl border border-skin-100 p-3.5 cursor-pointer active:scale-[0.99] transition-transform"
     >
-      <div className="flex gap-3.5">
-        <ProductGlyph variant={thumbVariant(product)} />
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-semibold text-charcoal-400 uppercase tracking-wider">{product.brand}</p>
-          <div className="flex items-start justify-between gap-2 mt-0.5">
-            <p className="font-display text-base font-medium text-charcoal-900 leading-tight">{product.name}</p>
-            <PriceTier product={product} t={t} />
-          </div>
-          <ProductBadge type={badgeType(product)} t={t} />
-          {scanConcern && (
-            <p className="text-[11px] text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2 py-1 mt-2 leading-snug">
-              {t('foryou_why_scan', { concern: clabel(t, scanConcern) })}
-            </p>
-          )}
-          {!scanConcern && declaredConcern && (
-            <p className="text-[11px] text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-2 py-1 mt-2 leading-snug">
-              {t('foryou_why_concern', { concern: clabel(t, declaredConcern) })}
-            </p>
-          )}
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {chips.map((chip, i) => (
-              <span key={i} className="text-[11px] text-charcoal-500 bg-skin-50 border border-skin-100 px-2 py-0.5 rounded-full">
-                {chip}
-              </span>
-            ))}
-          </div>
-          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-skin-50 text-xs">
-            <span className="text-charcoal-500">
-              ⏱ <strong className="text-charcoal-800 font-medium">{timelineLabel(product.timelineDays, t)}</strong>
-            </span>
-            <span className="text-skin-600 font-semibold">
-              {product.isRx ? t('foryou_learn_more') : t('foryou_view_buy')}
-            </span>
-          </div>
-        </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-[11px] font-semibold text-charcoal-400 uppercase tracking-wider truncate">{product.brand}</p>
+        <PriceTier product={product} t={t} />
+      </div>
+      <p className="font-display text-base font-medium text-charcoal-900 leading-tight mt-0.5">{product.name}</p>
+      <p className="text-[11px] text-charcoal-500 mt-1.5">
+        {t('foryou_detail_key_ingredient')} · {cap(product.ingredients[0] || '')}　|　{timelineLabel(product.timelineDays, t)}
+      </p>
+      <div className="flex justify-end mt-2">
+        <span className="text-skin-600 font-semibold text-xs">
+          {product.isRx ? t('foryou_learn_more') : t('foryou_view_buy')}
+        </span>
       </div>
     </div>
   )
@@ -351,33 +311,50 @@ export default function RecommendedToStart({
   const { t } = useLanguage()
   const [region, setRegion] = useState('Asia')
   const [showWhy, setShowWhy] = useState(false)
-  const [selected, setSelected] = useState<SeedProduct | null>(null)
+  const [selected, setSelected] = useState<{ product: SeedProduct; concern: string | null } | null>(null)
 
   useEffect(() => {
     setRegion(getRegionFromTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone))
   }, [])
 
-  // Prioritise the latest scan's concerns so the diverse picks (and their
-  // per-card reasons) lead with what the scan actually found, then fall back to
-  // the rest of the merged concern set.
-  const orderedConcerns = [...scanConcerns, ...concerns.filter(c => !scanConcerns.includes(c))]
-  const recs = recommendSeedProducts({ ageGroup, concerns: orderedConcerns }, 4)
-  const reasonById = new Map(recs.map(r => [r.product.id, r.reasonConcern]))
-  const products = recs.map(r => r.product)
-  const concernLabels = concerns.map(c => clabel(t, c))
+  // Two sections, each grouped by concern: concerns from today's scan first,
+  // then the concerns the user declared in onboarding. Each concern gets its own
+  // product(s); products are de-duplicated across the whole page so the same item
+  // never shows twice.
+  const usedIds = new Set<string>()
+  const buildGroups = (list: string[]) => {
+    const groups: { concern: string; products: SeedProduct[] }[] = []
+    for (const concern of list) {
+      const recs = recommendSeedProducts({ ageGroup, concerns: [concern] }, 3)
+      const products = recs.map(r => r.product).filter(p => !usedIds.has(p.id)).slice(0, 1)
+      if (products.length === 0) continue
+      products.forEach(p => usedIds.add(p.id))
+      groups.push({ concern, products })
+    }
+    return groups
+  }
+  const scanGroups = buildGroups(scanConcerns)
+  const declaredGroups = buildGroups(concerns.filter(c => !scanConcerns.includes(c)))
+
+  const renderGroup = (g: { concern: string; products: SeedProduct[] }, dot: string) => (
+    <div key={g.concern} className="mb-3.5">
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`w-2 h-2 rounded-full ${dot}`} />
+        <span className="text-sm font-medium text-skin-900">{clabel(t, g.concern)}</span>
+      </div>
+      <div className="space-y-2.5">
+        {g.products.map(p => (
+          <ProductCard key={p.id} product={p} t={t} onSelect={() => setSelected({ product: p, concern: g.concern })} />
+        ))}
+      </div>
+    </div>
+  )
+
+  if (scanGroups.length === 0 && declaredGroups.length === 0) return null
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-skin-500" />
-        <h2 className="font-display text-xl font-light text-charcoal-900">{t('foryou_recommended_start_title')}</h2>
-      </div>
-      <p className="text-xs text-charcoal-500 font-body -mt-2">
-        {concernLabels.length > 0
-          ? t('foryou_recommended_start_sub', { concerns: concernLabels.join(', ') })
-          : t('foryou_recommended_start_sub_default')}
-      </p>
-
+    <div className="space-y-5">
+      {/* Why these? — holds the explanation of the two sections (no inline subtitles). */}
       <div>
         <button
           onClick={() => setShowWhy(v => !v)}
@@ -393,17 +370,29 @@ export default function RecommendedToStart({
         )}
       </div>
 
-      <div className="space-y-3">
-        {products.map(product => (
-          <ProductCard key={product.id} product={product} concerns={concerns}
-            reasonConcern={reasonById.get(product.id) ?? null}
-            scanConcerns={scanConcerns} t={t} onSelect={() => setSelected(product)} />
-        ))}
-      </div>
+      {scanGroups.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-5 h-5 text-skin-500" />
+            <h2 className="font-display text-lg font-medium text-charcoal-900">{t('foryou_section_scan')}</h2>
+          </div>
+          {scanGroups.map(g => renderGroup(g, 'bg-cream-500'))}
+        </section>
+      )}
+
+      {declaredGroups.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <Heart className="w-5 h-5 text-skin-500" />
+            <h2 className="font-display text-lg font-medium text-charcoal-900">{t('foryou_section_concerns')}</h2>
+          </div>
+          {declaredGroups.map(g => renderGroup(g, 'bg-sage-400'))}
+        </section>
+      )}
 
       {selected && (
-        <ProductDetail product={selected} concerns={concerns}
-          reasonConcern={reasonById.get(selected.id) ?? null}
+        <ProductDetail product={selected.product} concerns={concerns}
+          reasonConcern={selected.concern}
           scanConcerns={scanConcerns} region={region} t={t} onClose={() => setSelected(null)} />
       )}
     </div>
