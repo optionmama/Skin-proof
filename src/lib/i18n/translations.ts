@@ -416,7 +416,7 @@ export const translations = {
     region_americas_desc: 'US · Canada · Latin America',
     region_europe_desc: 'UK · EU · Rest of Europe',
     region_australia_desc: 'Australia & New Zealand',
-    region_global_desc: 'International / online shipping',
+    region_global_desc: 'International',
     // ── ProductsStep edit sheet ──
     products_edit_title: 'Edit product',
     products_both: 'Both',
@@ -873,7 +873,7 @@ export const translations = {
     region_americas_desc: '美國 · 加拿大 · 拉丁美洲',
     region_europe_desc: '英國 · 歐盟 · 歐洲其他地區',
     region_australia_desc: '澳洲與紐西蘭',
-    region_global_desc: '國際 / 線上配送',
+    region_global_desc: '國際',
     // ── ProductsStep edit sheet ──
     products_edit_title: '編輯產品',
     products_both: '早晚',
@@ -1330,7 +1330,7 @@ export const translations = {
     region_americas_desc: '美国 · 加拿大 · 拉丁美洲',
     region_europe_desc: '英国 · 欧盟 · 欧洲其他地区',
     region_australia_desc: '澳洲与新西兰',
-    region_global_desc: '国际 / 在线配送',
+    region_global_desc: '国际',
     // ── ProductsStep edit sheet ──
     products_edit_title: '编辑产品',
     products_both: '早晚',

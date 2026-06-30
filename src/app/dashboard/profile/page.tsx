@@ -294,8 +294,8 @@ export default function ProfilePage() {
                 <span className="text-sm text-charcoal-500">{t('profile_concerns')}</span>
                 <div className="flex flex-wrap gap-1.5">
                   {skinProfile.primary_concerns.map(c => (
-                    <span key={c} className="text-xs bg-skin-50 text-skin-700 px-2 py-0.5 rounded-full border border-skin-200 capitalize">
-                      {c.replace(/_/g, ' ')}
+                    <span key={c} className="text-xs bg-skin-50 text-skin-700 px-2 py-0.5 rounded-full border border-skin-200">
+                      {t(`clabel_${c}` as TranslationKey)}
                     </span>
                   ))}
                 </div>
@@ -448,13 +448,8 @@ export default function ProfilePage() {
                         className="text-sm text-charcoal-800 border border-skin-200 rounded-lg px-2 py-1 focus:outline-none focus:border-skin-400" />
                     </div>
                   )}
-                  <div className="flex items-center justify-between px-4 py-3.5 bg-white">
-                    <div>
-                      <p className="text-sm font-medium text-charcoal-800">{t('profile_notif_weekly')}</p>
-                      <p className="text-xs text-charcoal-400 mt-0.5">{t('profile_notif_weekly_sub')}</p>
-                    </div>
-                    <Toggle checked={settings.notif_weekly_report} onChange={v => saveSettings({ notif_weekly_report: v })} />
-                  </div>
+                  {/* Weekly skin-report toggle hidden until push notifications ship (v1.1).
+                      The setting did nothing yet, so it was misleading. */}
                   <div className="flex items-center justify-between px-4 py-3.5 bg-white">
                     <div>
                       <p className="text-sm font-medium text-charcoal-800">{t('profile_notif_tips')}</p>

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Plus, BookOpen, Search, Package, Trash2 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n/translations'
 
 type RoutineType = 'am' | 'pm' | 'both'
 
@@ -227,8 +228,8 @@ export default function DiaryPage() {
                     {product.brand && <p className="text-xs text-charcoal-500 mb-1">{product.brand}</p>}
                     <div className="flex items-center gap-2 flex-wrap">
                       {product.category && (
-                        <span className="text-xs bg-skin-50 text-skin-600 border border-skin-200 px-2 py-0.5 rounded-full capitalize">
-                          {product.category}
+                        <span className="text-xs bg-skin-50 text-skin-600 border border-skin-200 px-2 py-0.5 rounded-full">
+                          {t(`cat_${product.category}` as TranslationKey)}
                         </span>
                       )}
                       {(product.daysInRoutine ?? 0) > 0 && (

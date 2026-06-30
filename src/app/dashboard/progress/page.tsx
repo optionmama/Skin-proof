@@ -248,9 +248,17 @@ export default function ProgressPage() {
               </p>
 
               {/* Compare view */}
-              {compareA && compareB && (
+              {compareA && compareB && (() => {
+                // Order the two photos by their actual date — earlier = before,
+                // later = after — so the labels and the score change are correct
+                // no matter which one the user tapped first.
+                const [before, after] = [compareA, compareB].sort(
+                  (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                )
+                const delta = (after.overall_skin_score ?? 0) - (before.overall_skin_score ?? 0)
+                return (
                 <div className="grid grid-cols-2 gap-2 mb-4">
-                  {[compareA, compareB].map((photo, i) => (
+                  {[before, after].map((photo, i) => (
                     <div key={photo.id} className="relative">
                       <img
                         src={getPhotoUrl(photo.storage_path)}
@@ -271,20 +279,17 @@ export default function ProgressPage() {
                     </div>
                   ))}
                   {/* Score delta */}
-                  {compareA.overall_skin_score && compareB.overall_skin_score && (
+                  {before.overall_skin_score && after.overall_skin_score && (
                     <div className="col-span-2 bg-skin-50 rounded-xl p-3 text-center">
                       <span className="text-sm text-charcoal-600 font-body">{t('progress_score_change_label')}</span>
-                      <span className={`text-sm font-semibold ${
-                        (compareB.overall_skin_score - compareA.overall_skin_score) >= 0
-                          ? 'text-sage-600' : 'text-skin-500'
-                      }`}>
-                        {compareB.overall_skin_score - compareA.overall_skin_score >= 0 ? '+' : ''}
-                        {compareB.overall_skin_score - compareA.overall_skin_score}
+                      <span className={`text-sm font-semibold ${delta >= 0 ? 'text-sage-600' : 'text-skin-500'}`}>
+                        {delta >= 0 ? '+' : ''}{delta}
                       </span>
                     </div>
                   )}
                 </div>
-              )}
+                )
+              })()}
 
               {/* Photo grid */}
               <div className="grid grid-cols-3 gap-2">
