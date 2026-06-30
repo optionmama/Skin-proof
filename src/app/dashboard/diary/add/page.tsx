@@ -9,10 +9,10 @@ import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 
 const CATEGORIES: { value: string; key: TranslationKey }[] = [
-  { value: 'Cleanser', key: 'cat_cleanser' }, { value: 'Toner', key: 'cat_toner' },
-  { value: 'Serum', key: 'cat_serum' }, { value: 'Moisturiser', key: 'cat_moisturizer' },
-  { value: 'Sunscreen', key: 'cat_sunscreen' }, { value: 'Eye Cream', key: 'cat_eye_cream' },
-  { value: 'Treatment', key: 'cat_treatment' }, { value: 'Other', key: 'cat_other' },
+  { value: 'cleanser', key: 'cat_cleanser' }, { value: 'toner', key: 'cat_toner' },
+  { value: 'serum', key: 'cat_serum' }, { value: 'moisturizer', key: 'cat_moisturizer' },
+  { value: 'sunscreen', key: 'cat_sunscreen' }, { value: 'eye_cream', key: 'cat_eye_cream' },
+  { value: 'treatment', key: 'cat_treatment' }, { value: 'other', key: 'cat_other' },
 ]
 
 export default function AddProductPage() {

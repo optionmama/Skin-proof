@@ -123,21 +123,30 @@ export default function ProfilePage() {
       if (!user) { router.push('/auth'); return }
       setUserId(user.id)
 
-      const [{ data: userData }, { data: skinData }, { count }, { data: settingsData }] = await Promise.all([
+      const [{ data: userData }, { data: skinData }, { data: routineRows }, { data: settingsData }] = await Promise.all([
         supabase.from('users').select('display_name, is_admin').eq('id', user.id).single(),
         supabase.from('skin_profiles')
           .select('skin_type, primary_concerns, known_allergies, fitzpatrick_scale, age_range')
           .eq('user_id', user.id).single(),
-        supabase.from('user_products')
-          .select('*', { count: 'exact', head: true })
+        // Count DISTINCT products actually in the active routine, deduped by
+        // brand+name (the exact same logic as the 我的保養品 diary list), so an
+        // AM & PM product counts once and the two pages always agree.
+        supabase.from('user_routines')
+          .select('user_products(brand, name)')
           .eq('user_id', user.id).eq('is_active', true),
         supabase.from('user_settings').select('*').eq('user_id', user.id).single(),
       ])
+      const seenProducts = new Set<string>()
+      for (const r of (routineRows ?? []) as Array<{ user_products: { brand?: string; name?: string } | null }>) {
+        const p = r.user_products
+        if (!p?.name) continue
+        seenProducts.add(`${(p.brand || '').toLowerCase()}|${p.name.toLowerCase()}`)
+      }
 
       setUserProfile({ display_name: userData?.display_name || null, email: user.email || null, is_admin: userData?.is_admin || false })
       setNewName(userData?.display_name || '')
       setSkinProfile(skinData)
-      setRoutineCount(count ?? 0)
+      setRoutineCount(seenProducts.size)
 
       if (settingsData) {
         const s = settingsData as UserSettings

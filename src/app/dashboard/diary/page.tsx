@@ -31,6 +31,18 @@ const ROUTINE_COLOR: Record<RoutineType, string> = {
   both: 'bg-sage-50 text-sage-700',
 }
 
+// Normalize a stored category (which may be capitalized / a spelling variant
+// from older save flows, e.g. "Serum", "Moisturiser", "Eye Cream") to the
+// canonical i18n key suffix, so the chip always shows the localized label and
+// never a raw "cat_Serum" key.
+const CAT_KEY: Record<string, string> = {
+  cleanser: 'cleanser', toner: 'toner', serum: 'serum',
+  moisturizer: 'moisturizer', moisturiser: 'moisturizer',
+  sunscreen: 'sunscreen', eye_cream: 'eye_cream', 'eye cream': 'eye_cream',
+  treatment: 'treatment', other: 'other',
+}
+const categoryKey = (cat: string | null) => CAT_KEY[(cat || '').toLowerCase().trim()] || 'other'
+
 export default function DiaryPage() {
   const supabase = createClient()
   const { t } = useLanguage()
@@ -229,7 +241,7 @@ export default function DiaryPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       {product.category && (
                         <span className="text-xs bg-skin-50 text-skin-600 border border-skin-200 px-2 py-0.5 rounded-full">
-                          {t(`cat_${product.category}` as TranslationKey)}
+                          {t(`cat_${categoryKey(product.category)}` as TranslationKey)}
                         </span>
                       )}
                       {(product.daysInRoutine ?? 0) > 0 && (
