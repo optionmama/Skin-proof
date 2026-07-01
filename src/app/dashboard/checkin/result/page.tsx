@@ -197,8 +197,11 @@ function ResultContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ photo_id: photoId, lang, acknowledged_disclaimer: true }),
         }).then(r => r.json())
+        // 20s (was 10s): a cold-start serverless function + image download +
+        // vision call can exceed 10s on the first scan, which falsely showed
+        // "Couldn't analyse" even though the server was still finishing.
         const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Analysis timeout')), 10000))
+          setTimeout(() => reject(new Error('Analysis timeout')), 20000))
         await Promise.race([analyze, timeout])
       } catch {
         // Fall through and re-read — the server may have finished just after.
