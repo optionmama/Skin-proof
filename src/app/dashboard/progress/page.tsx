@@ -267,7 +267,7 @@ export default function ProgressPage() {
                       />
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent rounded-b-xl p-2">
                         <p className="text-white text-xs font-body">
-                          {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
                         </p>
                         {photo.overall_skin_score && (
                           <p className="text-white text-sm font-medium">{photo.overall_skin_score}/100</p>
@@ -310,7 +310,7 @@ export default function ProgressPage() {
                       />
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
                         <p className="text-white text-[10px] font-body leading-none">
-                          {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
                         </p>
                         {photo.overall_skin_score ? (
                           <p className={`text-xs font-semibold ${scoreColor(photo.overall_skin_score)} brightness-150`}>

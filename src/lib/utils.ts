@@ -23,9 +23,16 @@ export function formatDate(date: string | Date): string {
 }
 
 export function formatShortDate(date: string | Date): string {
+  // Pin to UTC so a UTC-based checkin_date string (e.g. "2026-07-08", which
+  // new Date() parses as UTC midnight) renders as that same calendar day no
+  // matter the viewer's device timezone. Keeps the trend-chart day labels
+  // consistent with checkin_date and with the photo-timeline labels (also
+  // pinned to UTC). Without this, a device set behind UTC shifts the label back
+  // a day and photos/check-ins look split across two days.
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   }).format(new Date(date))
 }
 
