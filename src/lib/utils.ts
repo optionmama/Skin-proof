@@ -57,7 +57,7 @@ export function skinConcernLabel(concern: string): string {
     texture: 'Texture',
     sensitivity: 'Sensitivity',
     dullness: 'Dullness',
-    blackheads: 'Blackheads',
+    blackheads: 'Blackheads & Whiteheads',
   }
   return labels[concern] || concern
 }
@@ -127,21 +127,26 @@ export interface ScanAnalysis {
   dimensions?: Record<string, number> | null
 }
 
-// Keyword → canonical concern rules for free-text observations. Order doesn't
-// matter; every matching rule contributes its concern.
+// Keyword → canonical concern rules for free-text observations. Bilingual
+// (English + zh-TW/zh-CN) because observations are generated in the user's
+// language; without the Chinese terms, Chinese scans matched nothing and the
+// concern tags fell out of sync with the AI's written detail. Order doesn't
+// matter; every matching rule contributes its concern. NOTE: 粉刺/黑頭/閉口
+// (comedones) map to 'blackheads', NOT 'acne' — keep 痘/痤瘡 out of blackheads
+// and 粉刺 out of acne so the two stay distinct.
 const OBSERVATION_CONCERN_RULES: { re: RegExp; concern: string }[] = [
-  { re: /blackhead|whitehead|comedone/i,                         concern: 'blackheads' },
-  { re: /pore|clogg|congest/i,                                   concern: 'pores' },
-  { re: /pimple|acne|breakout|blemish|\bspot\b|zit|pustule|papule/i, concern: 'acne' },
-  { re: /textur|bumpy|rough|uneven|grainy|patchy/i,              concern: 'texture' },
-  { re: /oil|shine|shiny|sebum|greasy|t-?zone/i,                 concern: 'oiliness' },
-  { re: /dry|flak|dehydrat|tight|\bpatch/i,                      concern: 'dryness' },
-  { re: /red(?!uc)|irritat|inflam|rosace|blotch/i,               concern: 'redness' },
-  { re: /sensitiv/i,                                             concern: 'sensitivity' },
-  { re: /dark spot|hyperpigment|pigment|sun damage|melasma|\bmark/i, concern: 'hyperpigmentation' },
-  { re: /wrinkle|fine line|aging|ageing|sagg|firm|elasticity/i,  concern: 'wrinkles' },
-  { re: /dark circle|under-?eye/i,                               concern: 'dark_circles' },
-  { re: /dull|tired|lacklustre|lackluster/i,                     concern: 'dullness' },
+  { re: /blackhead|whitehead|comedone|粉刺|粉剌|黑頭|黑头|白頭|白头|閉口|闭口/i,          concern: 'blackheads' },
+  { re: /pore|clogg|congest|毛孔|粗大/i,                                              concern: 'pores' },
+  { re: /pimple|acne|breakout|blemish|\bspot\b|zit|pustule|papule|痘|痤瘡|痤疮|面皰|面疱|膿皰|脓疱|丘疹/i, concern: 'acne' },
+  { re: /textur|bumpy|rough|uneven|grainy|patchy|紋理|纹理|粗糙|不平|顆粒|颗粒|凹凸/i,      concern: 'texture' },
+  { re: /oil|shine|shiny|sebum|greasy|t-?zone|出油|油光|泛油|油膩|油腻|T字/i,             concern: 'oiliness' },
+  { re: /dry|flak|dehydrat|tight|\bpatch|乾燥|干燥|脫皮|脱皮|脫屑|脱屑|缺水|緊繃|紧绷/i,     concern: 'dryness' },
+  { re: /red(?!uc)|irritat|inflam|rosace|blotch|泛紅|泛红|發紅|发红|紅腫|红肿|血絲|血丝/i,   concern: 'redness' },
+  { re: /sensitiv|敏感|刺激/i,                                                        concern: 'sensitivity' },
+  { re: /dark spot|hyperpigment|pigment|sun damage|melasma|\bmark|色素|色斑|曬斑|晒斑|黑斑|痘印|色沉|斑點|斑点/i, concern: 'hyperpigmentation' },
+  { re: /wrinkle|fine line|aging|ageing|sagg|firm|elasticity|細紋|细纹|皺紋|皱纹|老化|紋路|纹路|法令/i, concern: 'wrinkles' },
+  { re: /dark circle|under-?eye|黑眼圈|眼周|眼袋/i,                                     concern: 'dark_circles' },
+  { re: /dull|tired|lacklustre|lackluster|暗沉|暗沈|蠟黃|蜡黄|無光澤|无光泽|氣色|气色/i,     concern: 'dullness' },
 ]
 
 /**
@@ -156,11 +161,27 @@ const OBSERVATION_CONCERN_RULES: { re: RegExp; concern: string }[] = [
  */
 export function deriveScanConcerns(scan: ScanAnalysis | null | undefined): string[] {
   if (!scan) return []
-  const found = new Set<string>()
 
+  // PRIMARY: the AI's free-text observations. These are what the scan page shows
+  // as the human-readable detail, so the concern tags (and the For You groups,
+  // which call this same fn) must SUMMARISE them — the tags are the headline of
+  // the detail. Deriving from the notes keeps top and bottom in lock-step and
+  // avoids the "scored acne high but wrote about fine lines" mismatch surfacing
+  // as a tag the detail never mentions.
+  const fromObs = new Set<string>()
+  for (const obs of scan.visible_observations || []) {
+    if (typeof obs !== 'string') continue
+    for (const rule of OBSERVATION_CONCERN_RULES) {
+      if (rule.re.test(obs)) fromObs.add(rule.concern)
+    }
+  }
+  if (fromObs.size > 0) return Array.from(fromObs)
+
+  // FALLBACK: notes yielded nothing usable (vague/empty text) → fall back to the
+  // structured scores + main_concern so the concern set is never empty.
+  const found = new Set<string>()
   const mc = mainConcernToSkinConcern(scan.main_concern)
   if (mc) found.add(mc)
-
   const d = scan.dimensions || {}
   const num = (k: string) => (typeof d[k] === 'number' ? d[k] : null)
   const redness = num('redness'); if (redness !== null && redness >= 50) found.add('redness')
@@ -169,14 +190,6 @@ export function deriveScanConcerns(scan: ScanAnalysis | null | undefined): strin
   const oiliness = num('oiliness'); if (oiliness !== null && oiliness >= 55) found.add('oiliness')
   const pores = num('pores'); if (pores !== null && pores >= 50) found.add('pores')
   const evenness = num('evenness'); if (evenness !== null && evenness <= 55) found.add('texture')
-
-  for (const obs of scan.visible_observations || []) {
-    if (typeof obs !== 'string') continue
-    for (const rule of OBSERVATION_CONCERN_RULES) {
-      if (rule.re.test(obs)) found.add(rule.concern)
-    }
-  }
-
   return Array.from(found)
 }
 

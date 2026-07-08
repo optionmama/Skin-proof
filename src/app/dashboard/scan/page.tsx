@@ -215,10 +215,11 @@ export default async function ScanPage() {
         <DetectedConcerns concernLabels={concernLabels} observations={latestPhoto.detected_concerns || []} />
       )}
 
-      {/* Acne severity — only when acne is actually present. 'clear'/'none' mean
-          no acne, so the card must not show (it previously read "clear acne
-          detected", which was contradictory). */}
-      {['mild', 'moderate', 'severe'].includes(latestPhoto.acne_severity || '') && (
+      {/* Acne severity — only when acne is an actual detected concern (i.e. the
+          AI's observations describe inflammatory acne, not just 粉刺/blackheads)
+          AND severity is present. Gating on scanConcerns keeps this card in sync
+          with the tags above, so we never show a 痘痘 card when 痘痘 isn't a tag. */}
+      {scanConcerns.includes('acne') && ['mild', 'moderate', 'severe'].includes(latestPhoto.acne_severity || '') && (
         <div className={`rounded-2xl border p-4 mb-4 ${
           latestPhoto.acne_severity === 'severe' ? 'bg-red-50 border-red-200' :
           latestPhoto.acne_severity === 'moderate' ? 'bg-amber-50 border-amber-200' :

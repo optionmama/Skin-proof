@@ -107,7 +107,7 @@ Return ONLY valid JSON with no other text:
   "overall_score": <integer 40-95, weighted average of dimensions below>,
   "dimensions": {
     "redness": <0-100, 0=no redness, 100=very red/inflamed>,
-    "breakouts": <0-100, 0=clear, 100=severe acne>,
+    "breakouts": <0-100, INFLAMMATORY acne only (red pimples/pustules/cysts); 0=none, 100=severe. Blackheads/whiteheads/clogged pores are NOT breakouts>,
     "hydration": <0-100, 0=very dry/flaky, 100=plump and dewy>,
     "oiliness": <0-100, 0=matte/dry, 100=very oily/shiny>,
     "pores": <0-100, 0=invisible, 100=very enlarged>,
@@ -127,6 +127,9 @@ Overall score formula:
 Rules:
 - Every photo must be evaluated independently — never return 72 or 75 by default
 - visible_observations must name specific things (e.g. "3 small pimples on forehead", "dry patches on cheeks", "T-zone appears oily")
+- CONSISTENCY: visible_observations MUST reflect the dimensions you scored WORST. If you score breakouts/redness/pores high, say so in the observations. Do NOT describe only minor issues (e.g. fine lines) while a dimension is scored high — the notes and the scores must agree.
+- Blackheads / whiteheads / clogged or congested pores / comedones ("粉刺", "黑頭", "閉口") are DISTINCT from acne: name them explicitly as blackheads/粉刺 in visible_observations, keep "breakouts" and "acne_severity" LOW for them (they belong to pores/blackheads, not acne). Reserve "acne"/"痘痘" wording for genuine inflammatory pimples.
+- acne_severity reflects INFLAMMATORY acne only; if the skin only has blackheads/comedones and no inflamed pimples, acne_severity = "clear"
 - If makeup detected, add "Makeup detected" to observations and score visible areas only
 - Score range MUST vary: a clear skin photo should score 80+, a breakout photo 45-60${aiLanguageInstruction(lang, '"visible_observations" (each observation string)')}`,
               },
