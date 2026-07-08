@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Camera, Droplets, Moon, Zap, CheckCircle2, Loader2 } from 'lucide-react'
@@ -36,6 +36,10 @@ export default function CheckinPage() {
   ]
   const [currentStep, setCurrentStep] = useState(0)
   const [photoId, setPhotoId] = useState<string | null>(null)
+  // Holds the in-flight photo upload+insert so handleSubmit can AWAIT it before
+  // creating the check-in. Without this, a fast user / slow network could submit
+  // before the photo row existed → checkin.photo_id = null → analysis never ran.
+  const uploadRef = useRef<Promise<string | null> | null>(null)
   const [habits, setHabits] = useState<HabitsData>({
     sleep_hours: 7, water_intake_ml: 1500, stress_level: 3, notes: '',
   })
@@ -48,18 +52,22 @@ export default function CheckinPage() {
     if (!scanAllowed) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    // Advance the UI immediately; upload + row insert happen in the background.
+    // Advance the UI immediately, but KEEP the upload promise so submit can await
+    // it — the photo row must exist before we link it to the check-in.
     setCurrentStep(1)
     const date = new Date().toISOString().split('T')[0]
     const path = `${user.id}/${date}/front-${Date.now()}.jpg`
-    const { error: uploadError } = await supabase.storage.from('skin-photos').upload(path, file)
-    if (!uploadError) {
+    uploadRef.current = (async () => {
+      const { error: uploadError } = await supabase.storage.from('skin-photos').upload(path, file)
+      if (uploadError) return null
       const { data: photo } = await supabase
         .from('skin_photos')
         .insert({ user_id: user.id, storage_path: path })
         .select('id').single()
-      if (photo) setPhotoId(photo.id)
-    }
+      const id = photo?.id ?? null
+      if (id) setPhotoId(id)
+      return id
+    })()
   }
 
   const handleProductsComplete = (selectedProducts: CheckinProduct[]) => {
@@ -75,12 +83,18 @@ export default function CheckinPage() {
 
       const today = new Date().toISOString().split('T')[0]
 
+      // Wait for the background photo upload to finish so we NEVER save a
+      // check-in with a null photo_id (which silently skips analysis). This is
+      // the root-cause fix for "無法分析你的照片" on slow mobile networks.
+      const resolvedPhotoId = (await uploadRef.current) ?? photoId
+      if (!resolvedPhotoId) throw new Error(t('checkin_submit_error'))
+
       const { data: checkin, error: checkinError } = await supabase
         .from('skin_checkins')
         .upsert({
           user_id: user.id,
           checkin_date: today,
-          photo_id: photoId,
+          photo_id: resolvedPhotoId,
           sleep_hours: habits.sleep_hours,
           water_intake_ml: habits.water_intake_ml,
           stress_level: habits.stress_level,
