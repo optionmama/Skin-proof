@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { AlertTriangle, Sparkles, TrendingUp, ChevronRight, Camera } from 'lucide-react'
-import { scoreToLabel } from '@/lib/utils'
+import { scoreToLabel, deriveScanConcerns, type ScanAnalysis } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
+import type { TranslationKey } from '@/lib/i18n/translations'
 import DetectedConcerns from '@/components/DetectedConcerns'
 
 function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
@@ -115,6 +116,14 @@ export default async function ScanPage() {
   const _score = latestPhoto.overall_skin_score || 0
   const scoreLabel = _score >= 80 ? t('result_excellent') : _score >= 65 ? t('result_good') : _score >= 50 ? t('result_fair') : t('result_needs_care')
 
+  // Canonical concern set from THIS scan — the SAME call the For You page makes
+  // (deriveScanConcerns on ai_analysis_raw), so both pages always name the same
+  // concerns (e.g. 泛紅 / 痘痘). Localized via clabel_* for the primary tags; the
+  // AI's free-text observations stay as supporting detail in the card.
+  const scanRaw = latestPhoto.ai_analysis_raw as ScanAnalysis | null
+  const scanConcerns = deriveScanConcerns(scanRaw)
+  const concernLabels = scanConcerns.map((c) => t(`clabel_${c}` as TranslationKey))
+
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
       {/* Header */}
@@ -200,9 +209,10 @@ export default async function ScanPage() {
         </div>
       </div>
 
-      {/* Detected concerns — AI free-text, localized on display */}
-      {latestPhoto.detected_concerns && latestPhoto.detected_concerns.length > 0 && (
-        <DetectedConcerns observations={latestPhoto.detected_concerns} />
+      {/* Detected concerns — canonical tags (identical set to For You) up top,
+          with the AI's specific free-text observations as supporting detail. */}
+      {(scanConcerns.length > 0 || (latestPhoto.detected_concerns && latestPhoto.detected_concerns.length > 0)) && (
+        <DetectedConcerns concernLabels={concernLabels} observations={latestPhoto.detected_concerns || []} />
       )}
 
       {/* Acne severity — only when acne is actually present. 'clear'/'none' mean
@@ -252,7 +262,9 @@ export default async function ScanPage() {
 
       {/* Scan → next steps CTA */}
       {(() => {
-        const mainConcern = latestPhoto.detected_concerns?.[0] || ''
+        // Pass the first CANONICAL concern (e.g. 'redness'), not the raw free-text
+        // observation — For You can clabel it correctly and it matches the tags above.
+        const mainConcern = scanConcerns[0] || ''
         const today = new Date().toISOString().split('T')[0]
         const href = `/dashboard/recommendations?from=scan&concern=${encodeURIComponent(mainConcern)}&date=${today}`
         return (
