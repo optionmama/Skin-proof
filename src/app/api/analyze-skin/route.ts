@@ -71,11 +71,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No image available to analyze' }, { status: 400 })
   }
 
-  // Vision model first for this structured "look at photo → output JSON scores"
-  // task. gpt-4o is the strong vision model; if it errors or returns
-  // unparseable output, we fall back to the cheaper/faster gpt-4o-mini (also
-  // vision-capable) so a daily check-in still gets a score.
-  const MODELS = ['gpt-4o', 'gpt-4o-mini']
+  // Vision model order for this structured "look at photo → output JSON scores"
+  // task. gpt-4o-mini is primary for SPEED (~2x faster than gpt-4o on a full
+  // photo) and still returns full, parseable score JSON; if it errors or returns
+  // unparseable output we fall back to the stronger gpt-4o so a daily check-in
+  // still gets a score. (Swap back to ['gpt-4o','gpt-4o-mini'] to favour accuracy
+  // over speed.)
+  const MODELS = ['gpt-4o-mini', 'gpt-4o']
 
   const langName = aiLanguageName(lang)
   const langSystem = langName === 'English'
