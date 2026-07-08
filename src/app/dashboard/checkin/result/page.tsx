@@ -188,25 +188,28 @@ function ResultContent() {
 
     let photoData = await fetchPhoto()
 
-    // Not analyzed yet → trigger analysis with a hard 10s timeout so the user is
-    // never left on an infinite spinner.
+    // Not analyzed yet → trigger analysis. The vision call takes ~6-14s; on
+    // mobile a single attempt can get cut off (backgrounding / network wobble)
+    // before the server writes, leaving the photo blank. So we RETRY up to 3x:
+    // each retry runs while the user is on this foreground page (connection stays
+    // alive), which lets the server actually finish. Only after all retries fail
+    // do we show the error + manual retry button.
     if (photoId && !photoData?.overall_skin_score) {
-      try {
-        const analyze = fetch('/api/analyze-skin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ photo_id: photoId, lang, acknowledged_disclaimer: true }),
-        }).then(r => r.json())
-        // 20s (was 10s): a cold-start serverless function + image download +
-        // vision call can exceed 10s on the first scan, which falsely showed
-        // "Couldn't analyse" even though the server was still finishing.
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Analysis timeout')), 20000))
-        await Promise.race([analyze, timeout])
-      } catch {
-        // Fall through and re-read — the server may have finished just after.
+      for (let attempt = 0; attempt < 3 && !photoData?.overall_skin_score; attempt++) {
+        try {
+          const analyze = fetch('/api/analyze-skin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photo_id: photoId, lang, acknowledged_disclaimer: true }),
+          }).then(r => r.json())
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Analysis timeout')), 25000))
+          await Promise.race([analyze, timeout])
+        } catch {
+          // Fall through and re-read — the server may have finished just after.
+        }
+        photoData = await fetchPhoto()
       }
-      photoData = await fetchPhoto()
     }
 
     if (photoData?.overall_skin_score) {
