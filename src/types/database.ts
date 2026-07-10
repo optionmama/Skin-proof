@@ -48,6 +48,8 @@ export interface SkinCheckin {
   id: string
   user_id: string
   checkin_date: string
+  /** The photo this check-in is linked to (skin_photos.id). */
+  photo_id?: string | null
   overall_feeling?: number
   hydration_level?: number
   oiliness_level?: number

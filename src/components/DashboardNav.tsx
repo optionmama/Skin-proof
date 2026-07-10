@@ -30,8 +30,10 @@ export default function DashboardNav() {
   // any server page needs it (very first request falls back to UTC, then heals).
   useEffect(() => {
     try {
+      // Written raw — '/' is legal in cookie values, and day.ts normalizes an
+      // encoded value defensively anyway.
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-      if (tz) document.cookie = `${TZ_COOKIE}=${encodeURIComponent(tz)}; path=/; max-age=31536000; SameSite=Lax`
+      if (tz) document.cookie = `${TZ_COOKIE}=${tz}; path=/; max-age=31536000; SameSite=Lax`
     } catch { /* older WebView without Intl tz — server falls back to UTC */ }
   }, [])
 

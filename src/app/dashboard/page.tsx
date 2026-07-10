@@ -2,8 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { TrendingUp, Sparkles, ChevronRight, ArrowRight } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
-import { dayKeyInTZ, TZ_COOKIE } from '@/lib/day'
+import { dayKeyInTZ, formatDayInTZ, hourInTZ, TZ_COOKIE } from '@/lib/day'
 import RoutineList from '@/components/RoutineList'
 import { getT } from '@/lib/i18n/server'
 
@@ -83,14 +82,16 @@ export default async function DashboardPage() {
   }).length
 
   const firstName = userData?.display_name?.split(' ')[0] || 'there'
-  const today = new Date()
-  const hour = today.getHours()
+  // Greeting + "today" in the USER's timezone (server local time is UTC).
+  const hour = hourInTZ(tz)
   const greeting = hour < 12 ? t('home_greeting_morning') : hour < 18 ? t('home_greeting_afternoon') : t('home_greeting_evening')
   const todayStr = dayKeyInTZ(tz) // the USER's day, not the server's UTC day
-  // Match by checkin_date OR by checked_in_at (handles both old and new check-in flows)
+  // Match by checkin_date OR by checked_in_at (handles both old and new
+  // check-in flows). checked_in_at is a UTC timestamp — convert it to the
+  // user's local day before comparing, or the fallback misfires near midnight.
   const todaysCheckin = recentCheckins?.find(c =>
     c.checkin_date === todayStr ||
-    (c.checked_in_at && c.checked_in_at.startsWith(todayStr))
+    (c.checked_in_at && dayKeyInTZ(tz, new Date(c.checked_in_at)) === todayStr)
   )
   const streakCount = recentCheckins?.length || 0
   const total = totalCheckins || 0
@@ -122,7 +123,9 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-charcoal-500 text-sm font-body">{formatDate(today)}</p>
+          <p className="text-charcoal-500 text-sm font-body">
+            {formatDayInTZ(new Date(), tz, 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
           <h1 className="font-display text-3xl font-light text-charcoal-900">
             {greeting}, <em className="text-skin-500">{firstName}</em>
           </h1>

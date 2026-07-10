@@ -77,7 +77,12 @@ export default function ProgressPage() {
 
   // Chart data — only uses fields that still exist in checkin
   const chartData = checkins.map(ci => {
-    const dayPhoto = photos.find(p => p.created_at.startsWith(ci.checkin_date))
+    // Match the check-in's photo by photo_id. The old date-prefix compare
+    // (UTC created_at vs the now-LOCAL checkin_date) loses the photo for
+    // morning scans east of UTC — kept only as a fallback for legacy rows
+    // that predate the photo_id link.
+    const dayPhoto = photos.find(p => p.id === ci.photo_id)
+      ?? photos.find(p => p.created_at.startsWith(ci.checkin_date))
     return {
       date: formatShortDate(ci.checkin_date),
       skinScore: dayPhoto?.overall_skin_score ?? null,
