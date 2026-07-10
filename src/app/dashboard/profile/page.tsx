@@ -122,10 +122,33 @@ export default function ProfilePage() {
 
   const changeReminderTime = async (time: string) => {
     await saveSettings({ notif_daily_scan_time: time })
-    if (settings.notif_daily_scan && (await notificationsAvailable())) {
-      await scheduleDailyReminder(time, t('notif_daily_title'), t('notif_daily_body'))
-    }
+    if (!settings.notif_daily_scan) return
+    // The toggle may have been ON from a previously saved setting, meaning the
+    // user never flipped it in THIS binary and permission was never requested —
+    // scheduling without permission is a silent no-op on iOS. Ensure it here too.
+    if (!(await notificationsAvailable())) { setNotifIssue('unavailable'); return }
+    if (!(await requestNotificationPermission())) { setNotifIssue('denied'); return }
+    setNotifIssue(null)
+    await scheduleDailyReminder(time, t('notif_daily_title'), t('notif_daily_body'))
   }
+
+  // When the notifications panel opens with the reminder already ON (saved
+  // long ago), make sure this binary can actually deliver it: surface the
+  // update-app / permission hints and (re)schedule if everything is in place.
+  useEffect(() => {
+    if (panel !== 'notifications' || !settings.notif_daily_scan) return
+    let cancelled = false
+    const ensure = async () => {
+      if (!(await notificationsAvailable())) { if (!cancelled) setNotifIssue('unavailable'); return }
+      if (!(await requestNotificationPermission())) { if (!cancelled) setNotifIssue('denied'); return }
+      if (cancelled) return
+      setNotifIssue(null)
+      await scheduleDailyReminder(settings.notif_daily_scan_time || '20:00', t('notif_daily_title'), t('notif_daily_body'))
+    }
+    ensure()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel])
   // Privacy actions
   const [confirmDeletePhotos, setConfirmDeletePhotos] = useState(false)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
