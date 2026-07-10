@@ -121,8 +121,8 @@ Return ONLY valid JSON with no other text:
   "acne_severity": <"clear"|"mild"|"moderate"|"severe">
 }
 
-Overall score formula:
-(hydration × 0.20) + ((100 - breakouts) × 0.25) + ((100 - redness) × 0.20) + ((100 - oiliness) × 0.15) + ((100 - pores) × 0.10) + (evenness × 0.10)
+Overall score formula (simple average of the six adjusted values):
+(hydration + (100 - breakouts) + (100 - redness) + (100 - oiliness) + (100 - pores) + evenness) / 6
 
 Rules:
 - Every photo must be evaluated independently — never return 72 or 75 by default
@@ -176,20 +176,23 @@ Rules:
       pores:     clamp(dims.pores),
       evenness:  clamp(dims.evenness),
     }
-    // Compute the overall score SERVER-SIDE from the dimensions with the fixed
-    // formula (the same one the prompt documents). The model's self-reported
-    // overall often fails its own arithmetic (user-verified: dimensions implying
-    // 71 shipped as 66 with gpt-4o-mini), so we never trust the model's math.
-    // The model's number is only used when it returned no usable dimensions.
+    // Compute the overall score SERVER-SIDE: the SIMPLE AVERAGE of the six
+    // displayed bar values. User decision 2026-07-10 (option B over the old
+    // dermatological weighting): the app's core promise is transparency, so
+    // anyone must be able to verify the overall from the six visible bars at
+    // a glance. Never trust the model's self-reported overall (gpt-4o-mini's
+    // arithmetic is unreliable); the model's number is only used when it
+    // returned no usable dimensions.
     const DIM_KEYS = ['redness', 'breakouts', 'hydration', 'oiliness', 'pores', 'evenness'] as const
     const dimsProvided = DIM_KEYS.every(k => typeof (dims as Record<string, unknown>)[k] === 'number')
-    const computedOverall =
-      safeDims.hydration * 0.20 +
-      (100 - safeDims.breakouts) * 0.25 +
-      (100 - safeDims.redness) * 0.20 +
-      (100 - safeDims.oiliness) * 0.15 +
-      (100 - safeDims.pores) * 0.10 +
-      safeDims.evenness * 0.10
+    const computedOverall = (
+      safeDims.hydration +
+      (100 - safeDims.breakouts) +
+      (100 - safeDims.redness) +
+      (100 - safeDims.oiliness) +
+      (100 - safeDims.pores) +
+      safeDims.evenness
+    ) / 6
     const safeAnalysis = {
       overall_score: dimsProvided
         ? clamp(Math.round(computedOverall), 40, 95)

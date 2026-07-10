@@ -226,17 +226,33 @@ export default async function ScanPage() {
       <div id="full-analysis" className="bg-white rounded-2xl border border-skin-100 p-5 mb-4 scroll-mt-4">
         <h2 className="font-display text-xl font-light text-charcoal-900 mb-4">{t('scan_metrics')}</h2>
         <div className="space-y-4">
-          {[
-            { label: `💧 ${t('dim_hydration')}`, value: latestPhoto.hydration_score, color: 'sage' },
-            { label: `✨ ${t('scan_metric_texture')}`, value: latestPhoto.texture_score, color: 'skin' },
-            { label: `🎨 ${t('scan_metric_pigmentation')}`, value: latestPhoto.pigmentation_score, color: 'cream' },
-            { label: `🌿 ${t('scan_metric_redness')}`, value: latestPhoto.redness_score ? 100 - latestPhoto.redness_score : undefined, color: 'red' },
-          ]
-            .filter(m => m.value !== undefined && m.value !== null)
-            .map(({ label, value, color }) => (
-              <MetricBar key={label} label={label} value={value!} color={color} />
-            ))
-          }
+          {(() => {
+            // The SAME six scored dimensions as the result page, in the same
+            // order — one consistent breakdown everywhere. (The old 4-metric
+            // list came from legacy columns that showed evenness TWICE — as
+            // Texture and Pigmentation — and omitted breakouts/oiliness/pores,
+            // so the overall score never matched the visible bars.) The legacy
+            // list is kept only as a fallback for old photos without raw dims.
+            const d = scanRaw?.dimensions
+            const metrics = d ? [
+              { label: `💧 ${t('dim_hydration')}`, value: d.hydration, color: 'sage' },
+              { label: `✨ ${t('dim_clarity')}`,   value: typeof d.breakouts === 'number' ? 100 - d.breakouts : undefined, color: 'skin' },
+              { label: `🌿 ${t('dim_calmness')}`,  value: typeof d.redness === 'number' ? 100 - d.redness : undefined, color: 'red' },
+              { label: `⚖️ ${t('dim_balance')}`,   value: typeof d.oiliness === 'number' ? 100 - d.oiliness : undefined, color: 'cream' },
+              { label: `🔍 ${t('dim_pores')}`,     value: typeof d.pores === 'number' ? 100 - d.pores : undefined, color: 'skin' },
+              { label: `🎨 ${t('dim_evenness')}`,  value: d.evenness, color: 'cream' },
+            ] : [
+              { label: `💧 ${t('dim_hydration')}`, value: latestPhoto.hydration_score, color: 'sage' },
+              { label: `✨ ${t('scan_metric_texture')}`, value: latestPhoto.texture_score, color: 'skin' },
+              { label: `🎨 ${t('scan_metric_pigmentation')}`, value: latestPhoto.pigmentation_score, color: 'cream' },
+              { label: `🌿 ${t('scan_metric_redness')}`, value: latestPhoto.redness_score ? 100 - latestPhoto.redness_score : undefined, color: 'red' },
+            ]
+            return metrics
+              .filter(m => m.value !== undefined && m.value !== null)
+              .map(({ label, value, color }) => (
+                <MetricBar key={label} label={label} value={value!} color={color} />
+              ))
+          })()}
         </div>
       </div>
 
