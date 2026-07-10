@@ -4,8 +4,10 @@ import { Sparkles, Package, ExternalLink, Star } from 'lucide-react'
 import type { Recommendation } from '@/types/database'
 import ForYouEmptyState, { type RoutineProduct } from '@/components/ForYouEmptyState'
 import RecommendedToStart from '@/components/RecommendedToStart'
+import { cookies } from 'next/headers'
 import { getT } from '@/lib/i18n/server'
 import { ageRangeToGroup, mainConcernToSkinConcern, deriveScanConcerns, type ScanAnalysis } from '@/lib/utils'
+import { formatDayInTZ, TZ_COOKIE } from '@/lib/day'
 
 function ConfidenceBadge({ communityScore, type }: { communityScore?: number; type?: string }) {
   if (type === 'community' || (communityScore && communityScore >= 60)) {
@@ -66,7 +68,7 @@ export default async function RecommendationsPage({
   // latest analysed photo, NOT today (the old code read a `date` query param set
   // to today, so it could show a future/wrong day vs the real last scan).
   const scanDate = latestScan?.created_at
-    ? new Date(latestScan.created_at as string).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+    ? formatDayInTZ(latestScan.created_at as string, (await cookies()).get(TZ_COOKIE)?.value)
     : ''
   const dimensions = (scanRaw?.dimensions as Record<string, number> | null) || null
   const mainConcern = (scanRaw?.main_concern as string) || scanConcern || null

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Camera, TrendingUp, Sparkles } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { localDayKey, TZ_COOKIE } from '@/lib/day'
 
 export default function DashboardNav() {
   const pathname = usePathname()
@@ -24,11 +25,21 @@ export default function DashboardNav() {
       match: ['/dashboard/progress', '/dashboard/diary', '/dashboard/profile'] },
   ]
 
+  // Publish the device timezone for server components (scan/home/For You date
+  // rendering). The nav is on every dashboard page, so the cookie exists before
+  // any server page needs it (very first request falls back to UTC, then heals).
+  useEffect(() => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+      if (tz) document.cookie = `${TZ_COOKIE}=${encodeURIComponent(tz)}; path=/; max-age=31536000; SameSite=Lax`
+    } catch { /* older WebView without Intl tz — server falls back to UTC */ }
+  }, [])
+
   useEffect(() => {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const today = new Date().toISOString().split('T')[0]
+      const today = localDayKey()
       const { data } = await supabase
         .from('skin_checkins')
         .select('id')

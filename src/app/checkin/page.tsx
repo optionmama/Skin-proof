@@ -11,6 +11,7 @@ import { useEntitlement } from '@/lib/entitlement/useEntitlement'
 import { isNativePlatform, captureNativePhoto, pickNativePhoto } from '@/lib/native/camera'
 import { downscaleImage } from '@/lib/image'
 import { setAnalysisPrewarm } from '@/lib/analysis-prewarm'
+import { localDayKey } from '@/lib/day'
 
 interface HabitsData {
   sleep_hours: number
@@ -57,7 +58,7 @@ export default function CheckinPage() {
     // Advance the UI immediately, but KEEP the upload promise so submit can await
     // it — the photo row must exist before we link it to the check-in.
     setCurrentStep(1)
-    const date = new Date().toISOString().split('T')[0]
+    const date = localDayKey() // user's LOCAL day, matching checkin_date
     const path = `${user.id}/${date}/front-${Date.now()}.jpg`
     uploadRef.current = (async () => {
       // Shrink on-device first (~1.8MB → ~200-400KB): faster upload, faster
@@ -99,7 +100,10 @@ export default function CheckinPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const today = new Date().toISOString().split('T')[0]
+      // The check-in belongs to the user's LOCAL calendar day (2026-07-10 fix:
+      // the UTC date meant e.g. a 5 AM Taipei check-in was recorded to
+      // yesterday and could overwrite yesterday's entry via the upsert below).
+      const today = localDayKey()
 
       // Wait for the background photo upload to finish so we NEVER save a
       // check-in with a null photo_id (which silently skips analysis). This is

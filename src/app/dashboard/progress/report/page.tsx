@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Loader2, RefreshCw } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
+import { localDayKey } from '@/lib/day'
 
 type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string
 
@@ -54,7 +55,9 @@ function ReportContent() {
       const res = await fetch('/api/skin-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ period, lang }),
+        // `today` = the DEVICE's local day — the server can't see the user's
+        // timezone and its own UTC day is the wrong day for part of every day.
+        body: JSON.stringify({ period, lang, today: localDayKey() }),
       })
       const data = await res.json()
       if (!res.ok) {

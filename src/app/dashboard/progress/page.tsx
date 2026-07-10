@@ -8,6 +8,7 @@ import {
 } from 'recharts'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
+import { localDayKey } from '@/lib/day'
 import type { SkinCheckin, SkinPhoto } from '@/types/database'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { PremiumGate } from '@/components/PremiumGate'
@@ -38,7 +39,7 @@ export default function ProgressPage() {
     const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
     const fromDate = new Date()
     fromDate.setDate(fromDate.getDate() - days)
-    const fromStr = fromDate.toISOString().split('T')[0]
+    const fromStr = localDayKey(fromDate) // window in the user's LOCAL days
 
     const [{ data: ci }, { data: ph }, { data: firstCi, count: total }] = await Promise.all([
       supabase.from('skin_checkins')
@@ -66,7 +67,7 @@ export default function ProgressPage() {
     if (firstDate) {
       const MS_DAY = 86_400_000
       const start = new Date(firstDate + 'T00:00:00')
-      const today = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00')
+      const today = new Date(localDayKey() + 'T00:00:00') // local midnight
       setDaysTracked(Math.max(0, Math.round((today.getTime() - start.getTime()) / MS_DAY)))
     } else {
       setDaysTracked(0)
@@ -267,7 +268,7 @@ export default function ProgressPage() {
                       />
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent rounded-b-xl p-2">
                         <p className="text-white text-xs font-body">
-                          {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                          {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
                         {photo.overall_skin_score && (
                           <p className="text-white text-sm font-medium">{photo.overall_skin_score}/100</p>
@@ -310,7 +311,7 @@ export default function ProgressPage() {
                       />
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
                         <p className="text-white text-[10px] font-body leading-none">
-                          {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                          {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
                         {photo.overall_skin_score ? (
                           <p className={`text-xs font-semibold ${scoreColor(photo.overall_skin_score)} brightness-150`}>

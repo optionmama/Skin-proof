@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { AlertTriangle, Sparkles, TrendingUp, ChevronRight, Camera } from 'lucide-react'
+import { cookies } from 'next/headers'
 import { scoreToLabel, deriveScanConcerns, type ScanAnalysis } from '@/lib/utils'
+import { formatDayInTZ, TZ_COOKIE } from '@/lib/day'
 import { getT } from '@/lib/i18n/server'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import DetectedConcerns from '@/components/DetectedConcerns'
@@ -58,6 +60,9 @@ function MetricBar({ label, value, color = 'skin' }: { label: string; value: num
 export default async function ScanPage() {
   const supabase = await createClient()
   const t = await getT()
+  // Device timezone published by DashboardNav — dates on this SERVER page must
+  // render in the USER's day, not the server's UTC day (2026-07-10 fix).
+  const tz = (await cookies()).get(TZ_COOKIE)?.value
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: latestPhoto } = await supabase
@@ -131,9 +136,7 @@ export default async function ScanPage() {
         <div>
           <h1 className="font-display text-3xl font-light text-charcoal-900">{t('scan_title')}</h1>
           <p className="text-charcoal-500 text-sm font-body">
-            {latestPhoto.ai_analyzed_at
-              ? new Date(latestPhoto.ai_analyzed_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-              : new Date(latestPhoto.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+            {formatDayInTZ(latestPhoto.ai_analyzed_at || latestPhoto.created_at, tz)}
           </p>
         </div>
         <Link href="/dashboard/checkin" className="flex items-center gap-1.5 text-sm text-skin-600 font-medium">
@@ -265,9 +268,10 @@ export default async function ScanPage() {
       {(() => {
         // Pass the first CANONICAL concern (e.g. 'redness'), not the raw free-text
         // observation — For You can clabel it correctly and it matches the tags above.
+        // (The old `date` param was the server's UTC day and is unused by For You —
+        // it derives the scan date from the latest photo itself — so it's dropped.)
         const mainConcern = scanConcerns[0] || ''
-        const today = new Date().toISOString().split('T')[0]
-        const href = `/dashboard/recommendations?from=scan&concern=${encodeURIComponent(mainConcern)}&date=${today}`
+        const href = `/dashboard/recommendations?from=scan&concern=${encodeURIComponent(mainConcern)}`
         return (
           <div className="bg-gradient-to-br from-skin-50 to-cream-50 border border-skin-200 rounded-2xl p-5 mb-4">
             <p className="font-display text-lg font-medium text-charcoal-900 mb-1">{t('scan_next_title')}</p>

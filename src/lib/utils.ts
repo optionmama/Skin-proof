@@ -23,17 +23,18 @@ export function formatDate(date: string | Date): string {
 }
 
 export function formatShortDate(date: string | Date): string {
-  // Pin to UTC so a UTC-based checkin_date string (e.g. "2026-07-08", which
-  // new Date() parses as UTC midnight) renders as that same calendar day no
-  // matter the viewer's device timezone. Keeps the trend-chart day labels
-  // consistent with checkin_date and with the photo-timeline labels (also
-  // pinned to UTC). Without this, a device set behind UTC shifts the label back
-  // a day and photos/check-ins look split across two days.
+  // A bare YYYY-MM-DD (checkin_date) is a LOCAL day key (2026-07-10 fix: all
+  // day keys are now the user's local day, not UTC — see src/lib/day.ts).
+  // Parse it as LOCAL midnight so it renders as that same calendar day;
+  // parsing it raw would treat it as UTC midnight and shift the label a day
+  // back on devices west of UTC.
+  const d = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? new Date(date + 'T00:00:00')
+    : new Date(date)
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(date))
+  }).format(d)
 }
 
 export function scoreToLabel(score: number): { label: string; color: string } {

@@ -10,12 +10,16 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { period, lang } = await request.json() as { period: 14 | 30 | 90; lang?: string }
+  const { period, lang, today: clientToday } = await request.json() as { period: 14 | 30 | 90; lang?: string; today?: string }
   if (![14, 30, 90].includes(period)) return NextResponse.json({ error: 'Invalid period' }, { status: 400 })
   const reportLang = lang ?? 'en'
 
-  // Check if a report was already generated today
-  const today = new Date().toISOString().split('T')[0]
+  // Check if a report was already generated today. "Today" is the USER'S local
+  // day, passed (validated) from the client — the server's UTC day is the wrong
+  // day for part of every day in non-UTC timezones (2026-07-10 fix).
+  const today = clientToday && /^\d{4}-\d{2}-\d{2}$/.test(clientToday)
+    ? clientToday
+    : new Date().toISOString().split('T')[0]
   const { data: existing } = await supabase
     .from('skin_reports')
     .select('id, report_data, generated_at')
@@ -31,16 +35,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ report: existing.report_data, cached: true })
   }
 
-  // Fetch data for the period
-  const fromDate = new Date()
-  fromDate.setDate(fromDate.getDate() - period)
-  const fromStr = fromDate.toISOString()
+  // Fetch data for the period — window anchored on the user's local `today`
+  // so checkin_date (a local day key) filters line up with what the user sees.
+  const fromDate = new Date(today + 'T00:00:00Z')
+  fromDate.setUTCDate(fromDate.getUTCDate() - period)
+  const fromDayKey = fromDate.toISOString().split('T')[0]
+  const fromStr = fromDayKey + 'T00:00:00'
 
   const [{ data: checkins }, { data: photos }, { data: routines }] = await Promise.all([
     supabase.from('skin_checkins')
       .select('checkin_date, sleep_hours, stress_level, water_intake_ml, notes')
       .eq('user_id', user.id)
-      .gte('checkin_date', fromDate.toISOString().split('T')[0])
+      .gte('checkin_date', fromDayKey)
       .order('checkin_date'),
     supabase.from('skin_photos')
       .select('overall_skin_score, main_concern, ai_analysis_raw, created_at')

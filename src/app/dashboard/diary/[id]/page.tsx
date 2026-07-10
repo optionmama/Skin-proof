@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Star, Calendar, DollarSign, Trash2, Edit2, CheckCircle2 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
+import { localDayKey } from '@/lib/day'
 
 const REACTION_COLORS: Record<string, string> = {
   none: 'text-sage-700 bg-sage-100',
@@ -76,11 +77,12 @@ export default function DiaryEntryPage() {
 
   const handleStopUsing = async () => {
     setStopping(true)
+    const stoppedDay = localDayKey() // user's local day (see src/lib/day.ts)
     await supabase
       .from('user_product_logs')
-      .update({ stopped_using_at: new Date().toISOString().split('T')[0] })
+      .update({ stopped_using_at: stoppedDay })
       .eq('id', id)
-    setLog((prev) => prev ? { ...prev, stopped_using_at: new Date().toISOString().split('T')[0] } : prev)
+    setLog((prev) => prev ? { ...prev, stopped_using_at: stoppedDay } : prev)
     setStopping(false)
   }
 

@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { TrendingUp, Sparkles, ChevronRight, ArrowRight } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { dayKeyInTZ, TZ_COOKIE } from '@/lib/day'
 import RoutineList from '@/components/RoutineList'
 import { getT } from '@/lib/i18n/server'
 
@@ -9,6 +11,7 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const t = await getT()
+  const tz = (await cookies()).get(TZ_COOKIE)?.value
 
   const [
     { data: userData },
@@ -83,7 +86,7 @@ export default async function DashboardPage() {
   const today = new Date()
   const hour = today.getHours()
   const greeting = hour < 12 ? t('home_greeting_morning') : hour < 18 ? t('home_greeting_afternoon') : t('home_greeting_evening')
-  const todayStr = today.toISOString().split('T')[0]
+  const todayStr = dayKeyInTZ(tz) // the USER's day, not the server's UTC day
   // Match by checkin_date OR by checked_in_at (handles both old and new check-in flows)
   const todaysCheckin = recentCheckins?.find(c =>
     c.checkin_date === todayStr ||
