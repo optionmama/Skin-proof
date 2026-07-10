@@ -378,10 +378,16 @@ function ResultContent() {
             <div className="flex-1 space-y-3">
               {Object.keys(dims).length > 0 && (
                 <>
+                  {/* ALL SIX scored dimensions. Pores + evenness used to be
+                      hidden, so the overall score looked lower than the
+                      average of the visible bars ("why is 65/90/70/60 not
+                      ~71?") — the hidden worst dimension was the answer. */}
                   <DimensionBar label={t('dim_hydration')} value={dims.hydration || 50} />
                   <DimensionBar label={t('dim_clarity')}   value={dims.breakouts || 50} inverted />
                   <DimensionBar label={t('dim_calmness')}  value={dims.redness   || 50} inverted />
                   <DimensionBar label={t('dim_balance')}   value={dims.oiliness  || 50} inverted />
+                  <DimensionBar label={t('dim_pores')}     value={dims.pores     || 50} inverted />
+                  <DimensionBar label={t('dim_evenness')}  value={dims.evenness  || 50} />
                 </>
               )}
             </div>

@@ -17,19 +17,49 @@ type Period = '14d' | '30d' | '90d'
 
 export default function ProgressPage() {
   const supabase = createClient()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [period, setPeriod] = useState<Period>('30d')
   const [checkins, setCheckins] = useState<SkinCheckin[]>([])
   const [photos, setPhotos] = useState<SkinPhoto[]>([])
   const [loading, setLoading] = useState(true)
   const [compareA, setCompareA] = useState<SkinPhoto | null>(null)
   const [compareB, setCompareB] = useState<SkinPhoto | null>(null)
+  // Photo currently being retro-analyzed from the compare view (old photos
+  // from the pre-fix era have no score, which left the comparison empty).
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null)
   // All-time signals (not windowed by the period tab) used for report unlocking
   // and the header counter, so those numbers stay stable and unambiguous.
   const [totalCheckins, setTotalCheckins] = useState(0)
   const [daysTracked, setDaysTracked] = useState(0)
 
   useEffect(() => { loadData() }, [period])
+
+  // Retro-analyze an old, un-scored photo (user-initiated, AWAITED on this
+  // mounted page — R20-compliant; sends photo_id only, like every analyze call).
+  // On success the fresh score is patched into the grid and the compare slots.
+  const analyzePhoto = async (photoId: string) => {
+    if (analyzingId) return
+    setAnalyzingId(photoId)
+    try {
+      const analyze = fetch('/api/analyze-skin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo_id: photoId, lang, acknowledged_disclaimer: true }),
+      }).then(r => r.json())
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Analysis timeout')), 30000))
+      await Promise.race([analyze, timeout])
+    } catch { /* re-read below picks up whatever landed */ }
+    const { data } = await supabase
+      .from('skin_photos').select('*').eq('id', photoId).single()
+    const fresh = data as SkinPhoto | null
+    if (fresh) {
+      setPhotos(prev => prev.map(p => (p.id === fresh.id ? fresh : p)))
+      setCompareA(prev => (prev?.id === fresh.id ? fresh : prev))
+      setCompareB(prev => (prev?.id === fresh.id ? fresh : prev))
+    }
+    setAnalyzingId(null)
+  }
 
   const loadData = async () => {
     setLoading(true)
@@ -275,8 +305,19 @@ export default function ProgressPage() {
                         <p className="text-white text-xs font-body">
                           {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
-                        {photo.overall_skin_score && (
+                        {photo.overall_skin_score ? (
                           <p className="text-white text-sm font-medium">{photo.overall_skin_score}/100</p>
+                        ) : (
+                          /* Old photo without a score (pre-fix failures) — the
+                             comparison needs both scores, so offer a one-tap
+                             retro-analysis right here. */
+                          <button
+                            onClick={() => analyzePhoto(photo.id)}
+                            disabled={analyzingId !== null}
+                            className="mt-0.5 bg-white/90 text-charcoal-800 text-xs font-medium px-2 py-1 rounded-full disabled:opacity-60"
+                          >
+                            {analyzingId === photo.id ? t('progress_analyzing') : t('progress_analyze_photo')}
+                          </button>
                         )}
                       </div>
                       <div className="absolute top-2 left-2 bg-white/90 rounded-full px-2 py-0.5 text-xs font-medium text-charcoal-700">

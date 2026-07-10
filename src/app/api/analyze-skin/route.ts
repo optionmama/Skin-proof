@@ -168,16 +168,33 @@ Rules:
     }
 
     const dims = analysis.dimensions || {}
+    const safeDims = {
+      redness:   clamp(dims.redness),
+      breakouts: clamp(dims.breakouts),
+      hydration: clamp(dims.hydration),
+      oiliness:  clamp(dims.oiliness),
+      pores:     clamp(dims.pores),
+      evenness:  clamp(dims.evenness),
+    }
+    // Compute the overall score SERVER-SIDE from the dimensions with the fixed
+    // formula (the same one the prompt documents). The model's self-reported
+    // overall often fails its own arithmetic (user-verified: dimensions implying
+    // 71 shipped as 66 with gpt-4o-mini), so we never trust the model's math.
+    // The model's number is only used when it returned no usable dimensions.
+    const DIM_KEYS = ['redness', 'breakouts', 'hydration', 'oiliness', 'pores', 'evenness'] as const
+    const dimsProvided = DIM_KEYS.every(k => typeof (dims as Record<string, unknown>)[k] === 'number')
+    const computedOverall =
+      safeDims.hydration * 0.20 +
+      (100 - safeDims.breakouts) * 0.25 +
+      (100 - safeDims.redness) * 0.20 +
+      (100 - safeDims.oiliness) * 0.15 +
+      (100 - safeDims.pores) * 0.10 +
+      safeDims.evenness * 0.10
     const safeAnalysis = {
-      overall_score: clamp(analysis.overall_score, 40, 95),
-      dimensions: {
-        redness:   clamp(dims.redness),
-        breakouts: clamp(dims.breakouts),
-        hydration: clamp(dims.hydration),
-        oiliness:  clamp(dims.oiliness),
-        pores:     clamp(dims.pores),
-        evenness:  clamp(dims.evenness),
-      },
+      overall_score: dimsProvided
+        ? clamp(Math.round(computedOverall), 40, 95)
+        : clamp(analysis.overall_score, 40, 95),
+      dimensions: safeDims,
       makeup_detected: Boolean(analysis.makeup_detected),
       visible_observations: Array.isArray(analysis.visible_observations)
         ? analysis.visible_observations.slice(0, 5)
