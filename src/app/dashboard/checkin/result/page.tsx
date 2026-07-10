@@ -422,10 +422,18 @@ function ResultContent() {
           </div>
 
           {sameDayRescan && (
-            <p className="text-xs text-charcoal-400 font-body leading-relaxed flex gap-1.5 mb-2">
-              <span className="shrink-0">ℹ️</span>
-              <span>{t('result_same_day_note')}</span>
-            </p>
+            /* Collapsed by default (user feedback: the full explanation was
+               too wordy next to the score) — one tappable question line,
+               details on demand. Native <details>, no JS needed. */
+            <details className="mb-2">
+              <summary className="text-xs text-charcoal-500 font-body cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-1.5">
+                <span className="shrink-0">ℹ️</span>
+                <span className="underline decoration-dotted underline-offset-2">{t('result_same_day_q')}</span>
+              </summary>
+              <p className="text-xs text-charcoal-400 font-body leading-relaxed mt-1.5 pl-6">
+                {t('result_same_day_note')}
+              </p>
+            </details>
           )}
 
           {analysis.makeup_detected && (
