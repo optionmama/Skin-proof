@@ -60,7 +60,7 @@ Return ONLY valid JSON, no other text:
   "why": "why this is a better alternative for today's skin",
   "price_range": "price",
   "available_at": "where to buy in ${region}"
-}]${aiLanguageInstruction(lang, '"why", "price_range", and "available_at"')}`
+}]${aiLanguageInstruction(lang, '"why", "key_ingredient", "price_range", and "available_at"')}`
 
   let products: Record<string, string>[] = []
   try {

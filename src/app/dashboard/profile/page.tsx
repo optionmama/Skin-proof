@@ -39,7 +39,7 @@ const REGIONS = [
 ] as const
 
 const DEFAULT_SETTINGS: UserSettings = {
-  notif_daily_scan: true, notif_daily_scan_time: '20:00', // Amy: default 8 PM
+  notif_daily_scan: true, notif_daily_scan_time: '21:00', // Amy: default 9 PM
   notif_weekly_report: true, notif_tips: false,
   dark_mode: false, language: 'en', region: 'Asia',
 }
@@ -117,7 +117,7 @@ export default function ProfilePage() {
     if (!(await requestNotificationPermission())) { setNotifIssue('denied'); return }
     setNotifIssue(null)
     await saveSettings({ notif_daily_scan: true })
-    await scheduleDailyReminder(settings.notif_daily_scan_time || '20:00', t('notif_daily_title'), t('notif_daily_body'))
+    await scheduleDailyReminder(settings.notif_daily_scan_time || '21:00', t('notif_daily_title'), t('notif_daily_body'))
   }
 
   const changeReminderTime = async (time: string) => {
@@ -143,7 +143,7 @@ export default function ProfilePage() {
       if (!(await requestNotificationPermission())) { if (!cancelled) setNotifIssue('denied'); return }
       if (cancelled) return
       setNotifIssue(null)
-      await scheduleDailyReminder(settings.notif_daily_scan_time || '20:00', t('notif_daily_title'), t('notif_daily_body'))
+      await scheduleDailyReminder(settings.notif_daily_scan_time || '21:00', t('notif_daily_title'), t('notif_daily_body'))
     }
     ensure()
     return () => { cancelled = true }

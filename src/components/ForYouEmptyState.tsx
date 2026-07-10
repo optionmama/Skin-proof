@@ -9,6 +9,7 @@ import type { TranslationKey } from '@/lib/i18n/translations'
 import { getGoogleShoppingUrl, getRegionFromTimezone } from '@/lib/utils'
 import { checkProductCompatibility } from '@/lib/compatibility'
 import { flagIngredientLabel } from '@/lib/ingredient-names'
+import { keyIngredientLabel } from '@/lib/key-ingredients'
 
 type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string
 
@@ -334,7 +335,7 @@ export default function ForYouEmptyState({
                         <p className="text-xs text-charcoal-500 mb-2">{product.brand}</p>
                         <div className="flex flex-wrap gap-1.5 mb-2">
                           <span className="bg-sage-50 text-sage-700 text-xs px-2 py-0.5 rounded-full border border-sage-200">
-                            ✓ {product.key_ingredient}
+                            ✓ {keyIngredientLabel(product.key_ingredient, lang)}
                           </span>
                           <span className="bg-skin-50 text-skin-600 text-xs px-2 py-0.5 rounded-full border border-skin-200 capitalize">
                             {product.category}
@@ -415,7 +416,7 @@ export default function ForYouEmptyState({
                       <p className="text-xs text-charcoal-500 mb-2">{product.brand}</p>
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         <span className="bg-sage-50 text-sage-700 text-xs px-2 py-0.5 rounded-full border border-sage-200">
-                          ✓ {product.key_ingredient}
+                          ✓ {keyIngredientLabel(product.key_ingredient, lang)}
                         </span>
                         <span className="bg-skin-50 text-skin-600 text-xs px-2 py-0.5 rounded-full border border-skin-200 capitalize">
                           {product.suitable_for}

@@ -11,6 +11,7 @@ import { checkProductCompatibility, type CompatibilityIngredients } from '@/lib/
 import { awaitAnalysisPrewarm } from '@/lib/analysis-prewarm'
 import { flagIngredientLabel } from '@/lib/ingredient-names'
 import { localDayKey } from '@/lib/day'
+import { notificationsAvailable, hasNotificationPermission, requestNotificationPermission, scheduleDailyReminder } from '@/lib/native/notifications'
 
 type MainConcern = 'redness' | 'breakouts' | 'dryness' | 'oiliness' | 'pores' | 'none'
 
@@ -109,6 +110,47 @@ function ResultContent() {
   // True when an earlier analyzed photo exists for the SAME local day — used
   // to show the "scores vary with lighting/angle" note on same-day rescans.
   const [sameDayRescan, setSameDayRescan] = useState(false)
+  // Daily-reminder invite card. Asked HERE (right after seeing a score) because
+  // that's the highest-motivation moment — and the iOS permission dialog can
+  // only ever be shown once, so it must be preceded by clear context.
+  const [notifInvite, setNotifInvite] = useState<'hidden' | 'show' | 'denied' | 'enabled'>('hidden')
+  const [notifTime, setNotifTime] = useState('21:00')
+
+  // Offer the invite only when it can actually work and isn't already active:
+  // requires a binary with the plugin; skipped if the reminder is already
+  // scheduled+permitted, or the user dismissed the card before.
+  const maybeOfferReminder = async (userId: string) => {
+    try {
+      if (typeof window !== 'undefined' && localStorage.getItem('sp_notif_invite_dismissed')) return
+      if (!(await notificationsAvailable())) return
+      const { data } = await supabase
+        .from('user_settings')
+        .select('notif_daily_scan, notif_daily_scan_time')
+        .eq('user_id', userId)
+        .maybeSingle()
+      const s = data as { notif_daily_scan?: boolean; notif_daily_scan_time?: string } | null
+      if (s?.notif_daily_scan_time) setNotifTime(s.notif_daily_scan_time)
+      if (s?.notif_daily_scan && (await hasNotificationPermission())) return
+      setNotifInvite('show')
+    } catch { /* the invite must never affect the result page */ }
+  }
+
+  const enableReminder = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    if (!(await requestNotificationPermission())) { setNotifInvite('denied'); return }
+    await supabase.from('user_settings').upsert(
+      { user_id: user.id, notif_daily_scan: true, notif_daily_scan_time: notifTime } as never,
+      { onConflict: 'user_id' }
+    )
+    await scheduleDailyReminder(notifTime, t('notif_daily_title'), t('notif_daily_body'))
+    setNotifInvite('enabled')
+  }
+
+  const dismissInvite = () => {
+    try { localStorage.setItem('sp_notif_invite_dismissed', '1') } catch { /* private mode */ }
+    setNotifInvite('hidden')
+  }
   // Observations rendered in the current locale. Stored observations are kept
   // in whatever language they were generated in; we translate per-locale and
   // cache so switching languages always matches the UI without re-hitting the API.
@@ -265,6 +307,8 @@ function ResultContent() {
           .limit(1)
         setSameDayRescan(((earlier as unknown[] | null)?.length ?? 0) > 0)
       }
+
+      maybeOfferReminder(user.id)
 
       const dimensions = (raw?.dimensions as Record<string, number>) || {}
       const concern = (photoData.main_concern as MainConcern)
@@ -469,6 +513,36 @@ function ResultContent() {
           </div>
         </div>
       </div>
+
+      {/* Daily-reminder invite — shown right after a score (highest-motivation
+          moment) until enabled or dismissed; never on binaries without the
+          notifications plugin. */}
+      {notifInvite !== 'hidden' && (
+        <div className="bg-white border border-skin-200 rounded-2xl p-4">
+          {notifInvite === 'enabled' ? (
+            <p className="text-sm text-sage-700 font-body">✅ {t('result_notif_done', { time: notifTime })}</p>
+          ) : (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium text-charcoal-900 text-sm">🔔 {t('result_notif_invite_title')}</p>
+                  <p className="text-xs text-charcoal-500 font-body mt-1">{t('result_notif_invite_body')}</p>
+                  {notifInvite === 'denied' && (
+                    <p className="text-xs text-amber-700 font-body mt-1">{t('profile_notif_denied')}</p>
+                  )}
+                </div>
+                <button onClick={dismissInvite} className="text-charcoal-300 hover:text-charcoal-500 p-1 shrink-0" aria-label="dismiss">
+                  ✕
+                </button>
+              </div>
+              <button onClick={enableReminder}
+                className="mt-3 w-full bg-skin-500 text-white py-2.5 rounded-xl text-sm font-medium active:scale-[0.99] transition-all">
+                {t('result_notif_invite_cta', { time: notifTime })}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── Task 3: Your routine today ── */}
       <div className="bg-white rounded-2xl border border-skin-100 overflow-hidden">

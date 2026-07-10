@@ -34,7 +34,7 @@ export default function DashboardNav() {
           .single()
         const s = data as { notif_daily_scan?: boolean; notif_daily_scan_time?: string } | null
         if (s?.notif_daily_scan) {
-          await scheduleDailyReminder(s.notif_daily_scan_time || '20:00', t('notif_daily_title'), t('notif_daily_body'))
+          await scheduleDailyReminder(s.notif_daily_scan_time || '21:00', t('notif_daily_title'), t('notif_daily_body'))
         }
       } catch { /* reminders must never break navigation */ }
     }

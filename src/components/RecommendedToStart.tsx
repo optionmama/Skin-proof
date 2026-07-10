@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronRight, ArrowLeft, ShoppingCart, Sparkles, AlertTriangle, BookOpen, Stethoscope, Heart } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { keyIngredientLabel } from '@/lib/key-ingredients'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { getGoogleShoppingUrl, getRegionFromTimezone } from '@/lib/utils'
 import { recommendSeedProducts, matchedConcern, type SeedProduct, type SeedAgeGroup, type SeedCategory } from '@/lib/seed-products'
@@ -130,9 +131,10 @@ function KV({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ProductCard({ product, t, onSelect }: {
+function ProductCard({ product, t, lang, onSelect }: {
   product: SeedProduct
   t: TFn
+  lang: string
   onSelect: () => void
 }) {
   // The concern this product addresses is now shown as the group heading above
@@ -149,7 +151,7 @@ function ProductCard({ product, t, onSelect }: {
       </div>
       <p className="font-display text-base font-medium text-charcoal-900 leading-tight mt-0.5">{product.name}</p>
       <p className="text-[11px] text-charcoal-500 mt-1.5">
-        {t('foryou_detail_key_ingredient')} · {cap(product.ingredients[0] || '')}　|　{timelineLabel(product.timelineDays, t)}
+        {t('foryou_detail_key_ingredient')} · {keyIngredientLabel(product.ingredients[0] || '', lang)}　|　{timelineLabel(product.timelineDays, t)}
       </p>
       <div className="flex justify-end mt-2">
         <span className="text-skin-600 font-semibold text-xs">
@@ -161,7 +163,7 @@ function ProductCard({ product, t, onSelect }: {
 }
 
 function ProductDetail({
-  product, concerns, reasonConcern, scanConcerns, region, t, onClose,
+  product, concerns, reasonConcern, scanConcerns, region, t, lang, onClose,
 }: {
   product: SeedProduct
   concerns: string[]
@@ -169,6 +171,7 @@ function ProductDetail({
   scanConcerns: string[]
   region: string
   t: TFn
+  lang: string
   onClose: () => void
 }) {
   const concern = reasonConcern ?? matchedConcern(product, concerns)
@@ -230,7 +233,7 @@ function ProductDetail({
               </p>
             )}
             <KV label={t('foryou_detail_your_concern')} value={concernLabel} />
-            <KV label={t('foryou_detail_key_ingredient')} value={cap(product.ingredients[0] || '')} />
+            <KV label={t('foryou_detail_key_ingredient')} value={keyIngredientLabel(product.ingredients[0] || '', lang)} />
             <KV label={t('foryou_detail_typical_results')} value={timelineLabel(product.timelineDays, t)} />
           </div>
 
@@ -308,7 +311,7 @@ export default function RecommendedToStart({
    *  "recommended because your scan shows X" line. Subset of `concerns`. */
   scanConcerns?: string[]
 }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [region, setRegion] = useState('Asia')
   const [showWhy, setShowWhy] = useState(false)
   const [selected, setSelected] = useState<{ product: SeedProduct; concern: string | null } | null>(null)
@@ -344,7 +347,7 @@ export default function RecommendedToStart({
       </div>
       <div className="space-y-2.5">
         {g.products.map(p => (
-          <ProductCard key={p.id} product={p} t={t} onSelect={() => setSelected({ product: p, concern: g.concern })} />
+          <ProductCard key={p.id} product={p} t={t} lang={lang} onSelect={() => setSelected({ product: p, concern: g.concern })} />
         ))}
       </div>
     </div>
@@ -391,7 +394,7 @@ export default function RecommendedToStart({
       )}
 
       {selected && (
-        <ProductDetail product={selected.product} concerns={concerns}
+        <ProductDetail product={selected.product} concerns={concerns} lang={lang}
           reasonConcern={selected.concern}
           scanConcerns={scanConcerns} region={region} t={t} onClose={() => setSelected(null)} />
       )}

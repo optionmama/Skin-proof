@@ -59,7 +59,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
  */
 export async function scheduleDailyReminder(time: string, title: string, body: string): Promise<boolean> {
   try {
-    const [h, m] = (time || '20:00').split(':').map(Number)
+    const [h, m] = (time || '21:00').split(':').map(Number)
     if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || h > 23 || m < 0 || m > 59) return false
     const { LocalNotifications } = await import('@capacitor/local-notifications')
     await LocalNotifications.cancel({ notifications: [{ id: REMINDER_ID }] }).catch(() => {})
