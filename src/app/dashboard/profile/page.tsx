@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { createClient } from '@/lib/supabase/client'
+import { notificationsAvailable, requestNotificationPermission, scheduleDailyReminder, cancelDailyReminder } from '@/lib/native/notifications'
 import {
   User, Shield, Bell, ChevronRight, LogOut, Edit2, Moon, Sun,
   ExternalLink, Globe, Trash2, Download, X, Check, Loader2, Sparkles,
@@ -38,7 +39,7 @@ const REGIONS = [
 ] as const
 
 const DEFAULT_SETTINGS: UserSettings = {
-  notif_daily_scan: true, notif_daily_scan_time: '08:00',
+  notif_daily_scan: true, notif_daily_scan_time: '20:00', // Amy: default 8 PM
   notif_weekly_report: true, notif_tips: false,
   dark_mode: false, language: 'en', region: 'Asia',
 }
@@ -99,6 +100,32 @@ export default function ProfilePage() {
 
   // Panel visibility
   const [panel, setPanel] = useState<'notifications' | 'language' | 'region' | 'privacy' | null>(null)
+  // Daily-reminder plumbing state: 'unavailable' = binary without the plugin
+  // (pre-v1.1 App Store build or plain web) → show the "update the app" hint;
+  // 'denied' = iOS notification permission refused → point at iOS Settings.
+  const [notifIssue, setNotifIssue] = useState<'unavailable' | 'denied' | null>(null)
+
+  // Turn the daily reminder on/off: permission + native schedule + settings row.
+  const toggleDailyReminder = async (on: boolean) => {
+    if (!on) {
+      await saveSettings({ notif_daily_scan: false })
+      await cancelDailyReminder()
+      setNotifIssue(null)
+      return
+    }
+    if (!(await notificationsAvailable())) { setNotifIssue('unavailable'); return }
+    if (!(await requestNotificationPermission())) { setNotifIssue('denied'); return }
+    setNotifIssue(null)
+    await saveSettings({ notif_daily_scan: true })
+    await scheduleDailyReminder(settings.notif_daily_scan_time || '20:00', t('notif_daily_title'), t('notif_daily_body'))
+  }
+
+  const changeReminderTime = async (time: string) => {
+    await saveSettings({ notif_daily_scan_time: time })
+    if (settings.notif_daily_scan && (await notificationsAvailable())) {
+      await scheduleDailyReminder(time, t('notif_daily_title'), t('notif_daily_body'))
+    }
+  }
   // Privacy actions
   const [confirmDeletePhotos, setConfirmDeletePhotos] = useState(false)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
@@ -447,13 +474,20 @@ export default function ProfilePage() {
                       <p className="text-sm font-medium text-charcoal-800">{t('profile_notif_daily')}</p>
                       <p className="text-xs text-charcoal-400 mt-0.5">{t('profile_notif_daily_sub')}</p>
                     </div>
-                    <Toggle checked={settings.notif_daily_scan} onChange={v => saveSettings({ notif_daily_scan: v })} />
+                    <Toggle checked={settings.notif_daily_scan} onChange={toggleDailyReminder} />
                   </div>
+                  {notifIssue && (
+                    <div className="px-4 py-2.5 bg-amber-50">
+                      <p className="text-xs text-amber-700 font-body">
+                        {notifIssue === 'unavailable' ? t('profile_notif_need_update') : t('profile_notif_denied')}
+                      </p>
+                    </div>
+                  )}
                   {settings.notif_daily_scan && (
                     <div className="flex items-center justify-between px-4 py-3.5 bg-white">
                       <p className="text-sm text-charcoal-700">{t('profile_notif_time')}</p>
                       <input type="time" value={settings.notif_daily_scan_time}
-                        onChange={e => saveSettings({ notif_daily_scan_time: e.target.value })}
+                        onChange={e => changeReminderTime(e.target.value)}
                         className="text-sm text-charcoal-800 border border-skin-200 rounded-lg px-2 py-1 focus:outline-none focus:border-skin-400" />
                     </div>
                   )}

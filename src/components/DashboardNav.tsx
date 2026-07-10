@@ -7,12 +7,40 @@ import { createClient } from '@/lib/supabase/client'
 import { Camera, TrendingUp, Sparkles } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { localDayKey, TZ_COOKIE } from '@/lib/day'
+import { notificationsAvailable, hasNotificationPermission, scheduleDailyReminder } from '@/lib/native/notifications'
 
 export default function DashboardNav() {
   const pathname = usePathname()
   const supabase = createClient()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [checkedInToday, setCheckedInToday] = useState(true)
+
+  // Re-sync the daily reminder with the saved settings on launch (and when the
+  // locale hydrates/changes, so the notification text matches the UI language).
+  // Never prompts for permission here — only reschedules if already granted.
+  // Guarded by notificationsAvailable(): a pre-v1.1 binary or plain web exits
+  // immediately and can never crash (the plugin isn't in that binary).
+  useEffect(() => {
+    const sync = async () => {
+      try {
+        if (!(await notificationsAvailable())) return
+        if (!(await hasNotificationPermission())) return
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data } = await supabase
+          .from('user_settings')
+          .select('notif_daily_scan, notif_daily_scan_time')
+          .eq('user_id', user.id)
+          .single()
+        const s = data as { notif_daily_scan?: boolean; notif_daily_scan_time?: string } | null
+        if (s?.notif_daily_scan) {
+          await scheduleDailyReminder(s.notif_daily_scan_time || '20:00', t('notif_daily_title'), t('notif_daily_body'))
+        }
+      } catch { /* reminders must never break navigation */ }
+    }
+    sync()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang])
 
   // 3-tab structure. Each tab "owns" several routes (e.g. Scan owns the camera
   // flow + result), and stays highlighted across all of them.
