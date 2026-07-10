@@ -48,7 +48,10 @@ function ReportContent() {
   // generated in (usually English) even after the UI switches.
   useEffect(() => { generateReport() }, [period, lang])
 
-  const generateReport = async () => {
+  // `force` (the 🔄 button) skips the server's generated-today cache, so a
+  // manual refresh always produces a FRESH report — without it the button
+  // just re-fetched the same cached one and looked broken.
+  const generateReport = async (force = false) => {
     setLoading(true)
     setError('')
     try {
@@ -57,7 +60,7 @@ function ReportContent() {
         headers: { 'Content-Type': 'application/json' },
         // `today` = the DEVICE's local day — the server can't see the user's
         // timezone and its own UTC day is the wrong day for part of every day.
-        body: JSON.stringify({ period, lang, today: localDayKey() }),
+        body: JSON.stringify({ period, lang, today: localDayKey(), force }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -101,7 +104,7 @@ function ReportContent() {
           <p className="text-xs text-charcoal-400 font-body">{t('report_ai_generated')}</p>
           <h1 className="font-display text-2xl font-light text-charcoal-900">{t('report_title', { n: period })}</h1>
         </div>
-        <button onClick={() => { setGenerating(true); generateReport() }} disabled={generating}
+        <button onClick={() => { setGenerating(true); generateReport(true) }} disabled={generating}
           className="p-2 text-charcoal-400 hover:text-skin-600 transition-colors">
           <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
         </button>

@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { period, lang, today: clientToday } = await request.json() as { period: 14 | 30 | 90; lang?: string; today?: string }
+  const { period, lang, today: clientToday, force } = await request.json() as { period: 14 | 30 | 90; lang?: string; today?: string; force?: boolean }
   if (![14, 30, 90].includes(period)) return NextResponse.json({ error: 'Invalid period' }, { status: 400 })
   const reportLang = lang ?? 'en'
 
@@ -29,9 +29,10 @@ export async function POST(request: NextRequest) {
     .single()
 
   // Reuse the cached report only if it's in the language the user is viewing in —
-  // otherwise regenerate so insights never stay in a stale language.
+  // otherwise regenerate so insights never stay in a stale language. `force`
+  // (the report page's 🔄 button) always regenerates.
   const cachedLang = (existing?.report_data as { language?: string } | null)?.language ?? 'en'
-  if (existing && cachedLang === reportLang) {
+  if (existing && cachedLang === reportLang && !force) {
     return NextResponse.json({ report: existing.report_data, cached: true })
   }
 
@@ -85,6 +86,18 @@ AI skin scores (${scores.length} photos analyzed):
 ${(photos || []).map(p => `- ${new Date(p.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric'})}: score ${p.overall_skin_score}, concern: ${p.main_concern || 'none'}`).join('\n')}
 
 User's current routine: ${routineProducts.join(', ') || 'not set'}
+
+TERMINOLOGY (mandatory when writing Chinese — use the app's canonical vocabulary):
+redness = 「泛紅」 (NEVER 紅腫, 發紅 or 紅斑); oiliness = 「出油」 or 「油光」; comedones = 「粉刺」 (NEVER 黑頭); inflammatory breakouts = 「痘痘」; hydration = 「保濕」; pores = 「毛孔」; evenness = 「膚色均勻」.
+
+RECOMMENDATIONS must be CONCRETE and tailored to the dimensions that actually need attention in THIS user's data — name the specific habit or ingredient, never vague filler. Playbook per concern:
+- 泛紅/redness: 加強保濕、修護肌膚屏障；避免過度清潔與去角質；選擇無香精的鎮靜成分（積雪草、燕麥、神經醯胺）
+- 出油/oiliness: 溫和清潔、切勿過度洗臉；改用清爽保濕；每週數次菸鹼醯胺或水楊酸
+- 乾燥/dryness: 使用神經醯胺或玻尿酸保濕；避免熱水洗臉；洗後 3 分鐘內鎖水
+- 痘痘/breakouts: 水楊酸或杜鵑花酸；避開厚重致粉刺產品；不要擠壓
+- 粉刺、毛孔/comedones & pores: 每週 1–3 次水楊酸；每天防曬
+- 膚色不均/uneven tone: 早上維他命C、白天確實防曬
+Only mention sleep or stress if this user's sleep/stress data above is actually poor.
 
 Return ONLY valid JSON, no other text:
 {
