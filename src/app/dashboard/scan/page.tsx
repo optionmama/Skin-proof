@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { AlertTriangle, Sparkles, TrendingUp, ChevronRight, Camera } from 'lucide-react'
 import { cookies } from 'next/headers'
 import { scoreToLabel, deriveScanConcerns, type ScanAnalysis } from '@/lib/utils'
-import { formatDayInTZ, TZ_COOKIE } from '@/lib/day'
+import { dayKeyInTZ, formatDayInTZ, TZ_COOKIE } from '@/lib/day'
 import { getT } from '@/lib/i18n/server'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import DetectedConcerns from '@/components/DetectedConcerns'
@@ -74,6 +74,17 @@ export default async function ScanPage() {
     .limit(1)
     .single()
 
+  // Has the user checked in TODAY (their LOCAL day)? Drives the prominent
+  // "scan today" banner below — opening the app onto yesterday's analysis with
+  // only the tiny tab dot as a nudge was too easy to miss.
+  const { data: todayCheckin } = await supabase
+    .from('skin_checkins')
+    .select('id')
+    .eq('user_id', user!.id)
+    .eq('checkin_date', dayKeyInTZ(tz))
+    .limit(1)
+    .maybeSingle()
+
   const { data: previousPhoto } = await supabase
     .from('skin_photos')
     .select('overall_skin_score, created_at')
@@ -131,6 +142,23 @@ export default async function ScanPage() {
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
+      {/* "You haven't scanned today" banner — only when today's (local-day)
+          check-in doesn't exist yet. The analysis below is yesterday's; without
+          this the only nudge was the small red dot on the tab. */}
+      {!todayCheckin && (
+        <Link href="/dashboard/checkin"
+          className="flex items-center gap-3 bg-gradient-to-r from-skin-500 to-skin-400 text-white rounded-2xl p-4 mb-4 active:scale-[0.99] transition-all">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+            <Camera className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-sm">{t('scan_today_pending')}</p>
+            <p className="text-xs text-white/85 font-body">{t('scan_today_pending_cta')}</p>
+          </div>
+          <ChevronRight className="w-5 h-5 shrink-0" />
+        </Link>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
