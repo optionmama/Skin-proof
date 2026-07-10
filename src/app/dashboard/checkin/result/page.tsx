@@ -8,6 +8,7 @@ import { BookOpen, TrendingUp, Loader2, Sparkles, AlertCircle } from 'lucide-rea
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { checkProductCompatibility, type CompatibilityIngredients } from '@/lib/compatibility'
+import { awaitAnalysisPrewarm } from '@/lib/analysis-prewarm'
 
 type MainConcern = 'redness' | 'breakouts' | 'dryness' | 'oiliness' | 'pores' | 'none'
 
@@ -187,6 +188,16 @@ function ResultContent() {
     }
 
     let photoData = await fetchPhoto()
+
+    // If the check-in page PRE-WARMED the analysis (started right after the
+    // photo upload, while the user was filling the habits/products steps),
+    // await that SAME in-flight request instead of firing a duplicate call.
+    // Ownership stays here (R20): we still verify the score landed below and
+    // fall through to the awaited retry loop if the pre-warm didn't finish.
+    if (photoId && !photoData?.overall_skin_score) {
+      await awaitAnalysisPrewarm(photoId)
+      photoData = await fetchPhoto()
+    }
 
     // Not analyzed yet → trigger analysis. The vision call takes ~6-14s; on
     // mobile a single attempt can get cut off (backgrounding / network wobble)

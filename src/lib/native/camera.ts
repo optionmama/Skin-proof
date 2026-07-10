@@ -32,6 +32,10 @@ export async function captureNativePhoto(): Promise<File | null> {
 
   const photo = await Camera.getPhoto({
     quality: 90,
+    // Cap the longest edge at capture time — full-res originals were ~1.8MB
+    // and slowed upload + analysis (2026-07-10 audit). 1080px is plenty for
+    // skin scoring; downscaleImage() in the check-in flow is the second net.
+    width: 1080,
     allowEditing: false,
     resultType: CameraResultType.Base64,
     source: CameraSource.Camera,
@@ -56,6 +60,7 @@ export async function pickNativePhoto(): Promise<File | null> {
 
   const photo = await Camera.getPhoto({
     quality: 90,
+    width: 1080, // same cap as the camera path — see note above
     allowEditing: false,
     resultType: CameraResultType.Base64,
     source: CameraSource.Photos,

@@ -9,6 +9,8 @@ import { useLanguage } from '@/lib/i18n/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
 import { useEntitlement } from '@/lib/entitlement/useEntitlement'
 import { isNativePlatform, captureNativePhoto, pickNativePhoto } from '@/lib/native/camera'
+import { downscaleImage } from '@/lib/image'
+import { setAnalysisPrewarm } from '@/lib/analysis-prewarm'
 
 interface HabitsData {
   sleep_hours: number
@@ -20,7 +22,7 @@ interface HabitsData {
 export default function CheckinPage() {
   const router = useRouter()
   const supabase = createClient()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   // Unlimited scans is an intended premium feature. Premium = no cap; the free
   // tier would limit daily scans here. No cap is enforced while the app is free
   // (everyone is_premium), so scanning is always allowed today.
@@ -58,14 +60,30 @@ export default function CheckinPage() {
     const date = new Date().toISOString().split('T')[0]
     const path = `${user.id}/${date}/front-${Date.now()}.jpg`
     uploadRef.current = (async () => {
-      const { error: uploadError } = await supabase.storage.from('skin-photos').upload(path, file)
+      // Shrink on-device first (~1.8MB → ~200-400KB): faster upload, faster
+      // server download, faster vision call. Falls back to the original file
+      // on any failure, so this can never block a check-in.
+      const upload = await downscaleImage(file)
+      const { error: uploadError } = await supabase.storage.from('skin-photos').upload(path, upload)
       if (uploadError) return null
       const { data: photo } = await supabase
         .from('skin_photos')
         .insert({ user_id: user.id, storage_path: path })
         .select('id').single()
       const id = photo?.id ?? null
-      if (id) setPhotoId(id)
+      if (id) {
+        setPhotoId(id)
+        // PRE-WARM the analysis while the user fills in the habits/products
+        // steps — this page stays mounted, so the call is held by a live
+        // component (R20-compliant). The result page AWAITS this same promise
+        // via analysis-prewarm and only runs its own (retryable) call if this
+        // one didn't land — so no duplicate analyze requests.
+        setAnalysisPrewarm(id, fetch('/api/analyze-skin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photo_id: id, lang, acknowledged_disclaimer: true }),
+        }).catch(() => undefined))
+      }
       return id
     })()
   }
