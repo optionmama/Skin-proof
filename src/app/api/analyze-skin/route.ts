@@ -128,8 +128,8 @@ Rules:
 - Every photo must be evaluated independently — never return 72 or 75 by default
 - visible_observations must name specific things (e.g. "3 small pimples on forehead", "dry patches on cheeks", "T-zone appears oily")
 - CONSISTENCY: visible_observations MUST reflect the dimensions you scored WORST. If you score breakouts/redness/pores high, say so in the observations. Do NOT describe only minor issues (e.g. fine lines) while a dimension is scored high — the notes and the scores must agree.
-- Blackheads / whiteheads / clogged or congested pores / comedones ("粉刺", "黑頭", "閉口") are DISTINCT from acne: name them explicitly as blackheads/粉刺 in visible_observations, keep "breakouts" and "acne_severity" LOW for them (they belong to pores/blackheads, not acne). Reserve "acne"/"痘痘" wording for genuine inflammatory pimples.
-- acne_severity reflects INFLAMMATORY acne only; if the skin only has blackheads/comedones and no inflamed pimples, acne_severity = "clear"
+- Comedones (clogged/congested pores, open or closed) are DISTINCT from acne. In visible_observations ALWAYS use the GENERIC word for them — "粉刺" in Chinese, "comedones" or "clogged pores" in English. NEVER write "黑頭"/"blackheads" or "白頭"/"whiteheads": a selfie cannot reliably distinguish open from closed comedones, so do not claim a subtype. Keep "breakouts" and "acne_severity" LOW for comedones (they are not acne). Reserve "acne"/"痘痘" wording for genuine inflammatory pimples.
+- acne_severity reflects INFLAMMATORY acne only; if the skin only has comedones and no inflamed pimples, acne_severity = "clear"
 - If makeup detected, add "Makeup detected" to observations and score visible areas only
 - Score range MUST vary: a clear skin photo should score 80+, a breakout photo 45-60${aiLanguageInstruction(lang, '"visible_observations" (each observation string)')}`,
               },
