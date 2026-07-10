@@ -8,6 +8,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { getGoogleShoppingUrl, getRegionFromTimezone } from '@/lib/utils'
 import { checkProductCompatibility } from '@/lib/compatibility'
+import { flagIngredientLabel } from '@/lib/ingredient-names'
 
 type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string
 
@@ -79,18 +80,21 @@ function checkCompatibility(
   product: RoutineProduct,
   scanDimensions: Record<string, number> | null,
   mainConcern: string | null,
-  t: TFn
+  t: TFn,
+  lang: string
 ): CompatResult {
   const r = checkProductCompatibility(product.ingredientsData, scanDimensions, mainConcern)
   if (r.status === 'loading') return { status: 'loading' }
   if (r.status === 'warning') {
     return {
       status: 'warning',
+      // flagIngredientLabel: show "香精 (Parfum)" instead of the raw INCI name
+      // ("Parfum" read like a typo to users) — display-only, check unchanged.
       flags: r.flags.map(f => ({
         ingredient: f.ingredient,
         message: f.kind === 'comedogenic'
-          ? t('foryou_flag_comedogenic', { ing: f.ingredient })
-          : t('foryou_flag_irritating', { ing: f.ingredient }),
+          ? t('foryou_flag_comedogenic', { ing: flagIngredientLabel(f.ingredient, lang) })
+          : t('foryou_flag_irritating', { ing: flagIngredientLabel(f.ingredient, lang) }),
       })),
     }
   }
@@ -178,8 +182,8 @@ export default function ForYouEmptyState({
 
   // Compute compatibility for each product
   const checked = useMemo(
-    () => products.map(p => ({ product: p, result: checkCompatibility(p, scanDimensions, effectiveConcern, t) })),
-    [products, scanDimensions, effectiveConcern, t]
+    () => products.map(p => ({ product: p, result: checkCompatibility(p, scanDimensions, effectiveConcern, t, lang) })),
+    [products, scanDimensions, effectiveConcern, t, lang]
   )
 
   const stillLoading = checked.some(c => c.result.status === 'loading')
@@ -292,6 +296,23 @@ export default function ForYouEmptyState({
         ) : !stillLoading && warningItems.length > 0 && (loadingReplacements || replacements === null || replacements.length > 0) ? (
           <div id="replacements">
             <h2 className="font-display text-xl font-light text-charcoal-900 mb-1">{t('foryou_found_issue')}</h2>
+            {/* Name the flagged product AND the reason right here — a bare
+                "we found an issue" heading over a list of products read like
+                just more recommendations (user feedback: 眼花繚亂). */}
+            {(() => {
+              const flagged = warningItems[0]
+              const fRes = flagged?.result as { status: 'warning'; flags: { ingredient: string; message: string }[] } | undefined
+              const reason = fRes?.flags?.[0]?.message
+              if (!flagged || !reason) return null
+              return (
+                <p className="text-xs text-amber-700 font-body font-medium mb-1">
+                  {t('foryou_issue_product', {
+                    product: `${flagged.product.brand ? flagged.product.brand + ' ' : ''}${flagged.product.name}`,
+                    reason,
+                  })}
+                </p>
+              )
+            })()}
             <p className="text-xs text-charcoal-500 font-body mb-4">
               {t('foryou_alternatives_sub')}
             </p>

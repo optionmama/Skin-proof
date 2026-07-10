@@ -9,6 +9,8 @@ import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { checkProductCompatibility, type CompatibilityIngredients } from '@/lib/compatibility'
 import { awaitAnalysisPrewarm } from '@/lib/analysis-prewarm'
+import { flagIngredientLabel } from '@/lib/ingredient-names'
+import { localDayKey } from '@/lib/day'
 
 type MainConcern = 'redness' | 'breakouts' | 'dryness' | 'oiliness' | 'pores' | 'none'
 
@@ -104,6 +106,9 @@ function ResultContent() {
   const [routineProducts, setRoutineProducts] = useState<{ name: string; brand: string; status: 'good' | 'warning' | 'loading' | 'fallback'; flag?: string; flagType?: string }[]>([])
   const [noProducts, setNoProducts] = useState(false)
   const [checkinCount, setCheckinCount] = useState(1)
+  // True when an earlier analyzed photo exists for the SAME local day — used
+  // to show the "scores vary with lighting/angle" note on same-day rescans.
+  const [sameDayRescan, setSameDayRescan] = useState(false)
   // Observations rendered in the current locale. Stored observations are kept
   // in whatever language they were generated in; we translate per-locale and
   // cache so switching languages always matches the UI without re-hitting the API.
@@ -179,7 +184,7 @@ function ResultContent() {
       .single()
     const photoId = checkin?.photo_id as string | undefined
 
-    const PHOTO_FIELDS = 'ai_analysis_raw, overall_skin_score, main_concern, visible_observations, makeup_detected'
+    const PHOTO_FIELDS = 'ai_analysis_raw, overall_skin_score, main_concern, visible_observations, makeup_detected, created_at'
     const fetchPhoto = async () => {
       if (!photoId) return null
       const { data } = await supabase.from('skin_photos').select(PHOTO_FIELDS)
@@ -238,6 +243,29 @@ function ResultContent() {
         makeup_detected: (photoData.makeup_detected as boolean) ?? Boolean(raw?.makeup_detected),
       })
       setLoading(false)
+      // A fresh score just landed — purge the client router cache so the Scan
+      // tab (a server page possibly prefetched BEFORE this analysis finished)
+      // re-fetches and shows THIS scan, not a stale snapshot.
+      router.refresh()
+
+      // Same-day rescan? Show the variance note (lighting/angle affect the AI
+      // reading) so a swing vs. the earlier scan today reads as expected
+      // behaviour, not a broken app. Day boundary = the photo's LOCAL day.
+      const takenAt = photoData.created_at as string | undefined
+      if (takenAt && photoId) {
+        const dayStart = new Date(localDayKey(new Date(takenAt)) + 'T00:00:00').toISOString()
+        const { data: earlier } = await supabase
+          .from('skin_photos')
+          .select('id')
+          .eq('user_id', user.id)
+          .not('overall_skin_score', 'is', null)
+          .gte('created_at', dayStart)
+          .lt('created_at', takenAt)
+          .neq('id', photoId)
+          .limit(1)
+        setSameDayRescan(((earlier as unknown[] | null)?.length ?? 0) > 0)
+      }
+
       const dimensions = (raw?.dimensions as Record<string, number>) || {}
       const concern = (photoData.main_concern as MainConcern)
         || (raw?.main_concern as MainConcern)
@@ -393,6 +421,13 @@ function ResultContent() {
             </div>
           </div>
 
+          {sameDayRescan && (
+            <p className="text-xs text-charcoal-400 font-body leading-relaxed flex gap-1.5 mb-2">
+              <span className="shrink-0">ℹ️</span>
+              <span>{t('result_same_day_note')}</span>
+            </p>
+          )}
+
           {analysis.makeup_detected && (
             <p className="text-xs text-charcoal-400 font-body italic">
               💄 {t('result_makeup')}
@@ -465,7 +500,7 @@ function ResultContent() {
                   </p>
                   {p.status === 'warning' ? (
                     <p className="text-xs text-amber-700 font-body mt-0.5">
-                      {t('result_flag_contains', { ing: p.flag || '', what: p.flagType === 'pores' ? t('result_flag_pores') : t('result_flag_redness') })}
+                      {t('result_flag_contains', { ing: flagIngredientLabel(p.flag || '', lang), what: p.flagType === 'pores' ? t('result_flag_pores') : t('result_flag_redness') })}
                     </p>
                   ) : p.status === 'loading' ? (
                     <p className="text-xs text-charcoal-400 font-body mt-0.5">

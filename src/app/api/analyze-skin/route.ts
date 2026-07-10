@@ -71,13 +71,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No image available to analyze' }, { status: 400 })
   }
 
-  // Vision model order for this structured "look at photo → output JSON scores"
-  // task. gpt-4o-mini is primary for SPEED (~2x faster than gpt-4o on a full
-  // photo) and still returns full, parseable score JSON; if it errors or returns
-  // unparseable output we fall back to the stronger gpt-4o so a daily check-in
-  // still gets a score. (Swap back to ['gpt-4o','gpt-4o-mini'] to favour accuracy
-  // over speed.)
-  const MODELS = ['gpt-4o-mini', 'gpt-4o']
+  // Vision model order. gpt-4o is PRIMARY for scoring CONSISTENCY — mini's
+  // dimension scores swung ±20-35 on the same face minutes apart (user-verified
+  // 2026-07-10: pores 70→35, redness 60→40), which breaks day-over-day tracking.
+  // Speed is acceptable now that photos are downscaled to 1080px AND the call is
+  // pre-warmed during the check-in steps. mini stays as the fallback so a scan
+  // still gets a score if gpt-4o errors. (Amy approved this switch 2026-07-10.)
+  const MODELS = ['gpt-4o', 'gpt-4o-mini']
 
   const langName = aiLanguageName(lang)
   const langSystem = langName === 'English'
@@ -123,6 +123,16 @@ Return ONLY valid JSON with no other text:
 
 Overall score formula (simple average of the six adjusted values):
 (hydration + (100 - breakouts) + (100 - redness) + (100 - oiliness) + (100 - pores) + evenness) / 6
+
+Calibration anchors — apply these bands CONSISTENTLY on every scan, so repeat
+scans of the same face under similar conditions land within ~5 points:
+- redness: 0-20 none visible; 25-45 mild localized flush (cheeks/nose); 50-70 clear diffuse redness; 75+ inflamed/widespread
+- breakouts: 0-10 none; 15-30 a few small blemishes; 40-60 several clear pimples; 70+ widespread
+- pores: 0-25 barely visible; 30-50 visible on nose/T-zone; 55-75 enlarged, visible on cheeks too; 80+ very enlarged
+- hydration: 80+ plump/dewy; 60-75 comfortable with minor dryness; 40-55 visible dry patches; below 40 flaky
+- oiliness: 0-25 matte; 30-50 slight T-zone shine; 55-75 shiny T-zone and cheeks; 80+ very greasy
+- evenness: 80+ uniform; 60-75 minor unevenness; 40-55 noticeable patchiness; below 40 severe
+Score only what is clearly visible — do not infer problems the photo cannot show. If lighting or angle makes a dimension hard to judge, stay in the middle of the band you can justify rather than guessing an extreme.
 
 Rules:
 - Every photo must be evaluated independently — never return 72 or 75 by default

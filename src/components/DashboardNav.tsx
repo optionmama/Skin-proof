@@ -62,7 +62,10 @@ export default function DashboardNav() {
             const isActive = match.some(m => pathname === m || pathname.startsWith(m + '/'))
 
             return (
-              <Link key={href} href={href}
+              // prefetch=false: tabs were prefetched while the user was mid-
+              // check-in, so tapping Scan later could show that STALE snapshot
+              // (old photo/score). Fetch fresh on tap instead.
+              <Link key={href} href={href} prefetch={false}
                 className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 min-w-[52px] ${
                   isActive
                     ? 'text-skin-600 bg-skin-50'
