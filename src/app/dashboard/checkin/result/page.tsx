@@ -535,6 +535,15 @@ function ResultContent() {
                   ✕
                 </button>
               </div>
+              {/* Let the user PICK the time before enabling (user feedback: a
+                  pre-filled stale time like 19:50 read as a bug — ask
+                  willingness first, time is theirs to choose). */}
+              <div className="flex items-center justify-between mt-3">
+                <p className="text-sm text-charcoal-700">{t('profile_notif_time')}</p>
+                <input type="time" value={notifTime}
+                  onChange={e => setNotifTime(e.target.value)}
+                  className="text-sm text-charcoal-800 border border-skin-200 rounded-lg px-2 py-1 focus:outline-none focus:border-skin-400" />
+              </div>
               <button onClick={enableReminder}
                 className="mt-3 w-full bg-skin-500 text-white py-2.5 rounded-xl text-sm font-medium active:scale-[0.99] transition-all">
                 {t('result_notif_invite_cta', { time: notifTime })}
