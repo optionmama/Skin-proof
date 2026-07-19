@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Loader2, RefreshCw } from 'lucide-react'
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n/translations'
 import { localDayKey } from '@/lib/day'
@@ -40,7 +40,6 @@ function ReportContent() {
   const [report, setReport] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [generating, setGenerating] = useState(false)
 
   // Regenerate when the period OR the active locale changes. The locale matters
   // because LanguageProvider hydrates from 'en' to the user's real locale after
@@ -48,9 +47,9 @@ function ReportContent() {
   // generated in (usually English) even after the UI switches.
   useEffect(() => { generateReport() }, [period, lang])
 
-  // `force` (the 🔄 button) skips the server's generated-today cache, so a
-  // manual refresh always produces a FRESH report — without it the button
-  // just re-fetched the same cached one and looked broken.
+  // No UI passes force anymore (the 🔄 button was removed — same-day reports
+  // must stay identical for fairness); the parameter is kept for potential
+  // internal/debug use only.
   const generateReport = async (force = false) => {
     setLoading(true)
     setError('')
@@ -76,7 +75,6 @@ function ReportContent() {
       setError(t('report_failed'))
     }
     setLoading(false)
-    setGenerating(false)
   }
 
   if (loading) return (
@@ -104,10 +102,11 @@ function ReportContent() {
           <p className="text-xs text-charcoal-400 font-body">{t('report_ai_generated')}</p>
           <h1 className="font-display text-2xl font-light text-charcoal-900">{t('report_title', { n: period })}</h1>
         </div>
-        <button onClick={() => { setGenerating(true); generateReport(true) }} disabled={generating}
-          className="p-2 text-charcoal-400 hover:text-skin-600 transition-colors">
-          <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-        </button>
+        {/* No manual regenerate button — FAIRNESS: the same day's report must
+            always be the same report (one generation per day, cached). A
+            refresh that produced different numbers each tap undermined trust
+            (user feedback). Reports naturally differ day to day; a language
+            switch still regenerates via the cache's language check. */}
       </div>
 
       {/* Overall */}

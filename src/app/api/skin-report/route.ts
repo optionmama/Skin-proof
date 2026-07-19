@@ -76,6 +76,17 @@ export async function POST(request: NextRequest) {
   const firstScore = scores[0] ?? null
   const lastScore = scores[scores.length - 1] ?? null
 
+  // The zh vocabulary glossary is injected ONLY for Chinese reports. Keeping it
+  // out of English prompts entirely is the structural fix for mixed-language
+  // output — the model kept quoting 「泛紅」/「油光」 inside English sentences as
+  // long as those characters existed anywhere in the prompt.
+  const zhGlossary = (reportLang === 'zh-TW' || reportLang === 'zh-CN')
+    ? `
+TERMINOLOGY (mandatory — use the app's canonical vocabulary):
+redness = 「泛紅」 (NEVER 紅腫, 發紅 or 紅斑); oiliness = 「出油」 or 「油光」; comedones = 「粉刺」 (NEVER 黑頭); inflammatory breakouts = 「痘痘」; hydration = 「保濕」; pores = 「毛孔」; evenness = 「膚色均勻」.
+`
+    : ''
+
   const prompt = `You are a skincare analyst. Analyze this user's skin data over the past ${period} days and generate a concise report.
 
 Skin check-in data (${checkins.length} check-ins over ${period} days):
@@ -86,9 +97,8 @@ AI skin scores (${scores.length} photos analyzed):
 ${(photos || []).map(p => `- ${new Date(p.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric'})}: score ${p.overall_skin_score}, concern: ${p.main_concern || 'none'}`).join('\n')}
 
 User's current routine: ${routineProducts.join(', ') || 'not set'}
-
-TERMINOLOGY (mandatory when writing Chinese — use the app's canonical vocabulary):
-redness = 「泛紅」 (NEVER 紅腫, 發紅 or 紅斑); oiliness = 「出油」 or 「油光」; comedones = 「粉刺」 (NEVER 黑頭); inflammatory breakouts = 「痘痘」; hydration = 「保濕」; pores = 「毛孔」; evenness = 「膚色均勻」.
+${zhGlossary}
+PRODUCT INSIGHTS: judge every product ONLY against its OWN intended purpose (infer it from the product name/category — e.g. a dark-spot/brightening serum is judged on brightening, a moisturizer on hydration, a cleanser on cleansing comfort). NEVER fault a product for not improving a concern it was never designed to treat. If a product's purpose is unrelated to this period's main skin changes, set correlation "neutral" and say so briefly (e.g. it targets dark spots, which is not this period's main change) — do not frame that as a shortcoming.
 
 RECOMMENDATIONS must be CONCRETE and tailored to the dimensions that actually need attention in THIS user's data — name the specific habit or ingredient, never vague filler. Content playbook per concern (GUIDANCE ONLY — always write the final text in the report language, never copy these lines verbatim):
 - redness: strengthen hydration and the skin barrier; avoid over-cleansing and exfoliating acids; choose fragrance-free calming ingredients (centella, oat, ceramides)
