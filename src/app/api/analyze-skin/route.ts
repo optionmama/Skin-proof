@@ -130,7 +130,7 @@ scans of the same face under similar conditions land within ~5 points:
 - breakouts: 0-10 none; 15-30 a few small blemishes; 40-60 several clear pimples; 70+ widespread
 - pores: 0-25 barely visible; 30-50 visible on nose/T-zone; 55-75 enlarged, visible on cheeks too; 80+ very enlarged
 - hydration: 80+ plump/dewy; 60-75 comfortable with minor dryness; 40-55 visible dry patches; below 40 flaky
-- oiliness: 0-25 matte; 30-50 slight T-zone shine; 55-75 shiny T-zone and cheeks; 80+ very greasy
+- oiliness: distinguish GREASY SHINE from a healthy dewy glow. An even, soft, water-like sheen across the face (dewy / "glass skin" radiance, common right after skincare or on well-hydrated skin) is NOT oiliness — score it 0-30 and let it show up as HIGHER hydration instead. Score above 40 ONLY for genuinely greasy shine: concentrated oily hotspots on the forehead/nose, visible sebum, thick reflective grease. Bands: 0-30 matte to healthy dew; 35-50 clearly greasy T-zone; 55-75 greasy shine on T-zone AND cheeks; 80+ heavily greasy. In visible_observations, describe a healthy sheen as glow/radiance, never as oil.
 - evenness: 80+ uniform; 60-75 minor unevenness; 40-55 noticeable patchiness; below 40 severe
 Score only what is clearly visible — do not infer problems the photo cannot show. If lighting or angle makes a dimension hard to judge, stay in the middle of the band you can justify rather than guessing an extreme.
 
