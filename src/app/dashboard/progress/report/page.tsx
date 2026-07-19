@@ -45,7 +45,21 @@ function ReportContent() {
   // because LanguageProvider hydrates from 'en' to the user's real locale after
   // mount — without `lang` here the report would stay in the language it first
   // generated in (usually English) even after the UI switches.
-  useEffect(() => { generateReport() }, [period, lang])
+  useEffect(() => {
+    // Skip the PRE-HYDRATION fetch: the context starts at 'en' and adopts the
+    // saved language a tick later. Fetching during that tick flashed an
+    // English report under a Chinese UI AND burned an extra AI generation
+    // (the server regenerates on cache-language mismatch, so the en fetch
+    // overwrote the zh cache, then the zh fetch regenerated again). When a
+    // saved language exists and differs from the current context value,
+    // hydration is pending — the lang change will re-run this effect.
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('skinproof_lang') : null
+      if (saved && saved !== lang) return
+    } catch { /* private mode — proceed with the current language */ }
+    generateReport()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period, lang])
 
   // No UI passes force anymore (the 🔄 button was removed — same-day reports
   // must stay identical for fairness); the parameter is kept for potential
