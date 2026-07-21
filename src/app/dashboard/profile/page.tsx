@@ -113,10 +113,16 @@ export default function ProfilePage() {
       setNotifIssue(null)
       return
     }
+    // SAVE THE PREFERENCE FIRST. The old order (permission gate before save)
+    // made the toggle feel dead: with iOS permission denied, tapping ON did
+    // nothing and the switch bounced back with no way to recover (user hit
+    // exactly this after the App Store reinstall reset her permission). Now
+    // the intent always persists; if permission is missing we show the hint,
+    // and the launch re-sync auto-schedules as soon as permission exists.
+    await saveSettings({ notif_daily_scan: true })
     if (!(await notificationsAvailable())) { setNotifIssue('unavailable'); return }
     if (!(await requestNotificationPermission())) { setNotifIssue('denied'); return }
     setNotifIssue(null)
-    await saveSettings({ notif_daily_scan: true })
     await scheduleDailyReminder(settings.notif_daily_scan_time || '21:00', t('notif_daily_title'), t('notif_daily_body'))
   }
 
