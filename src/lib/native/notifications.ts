@@ -68,8 +68,11 @@ export async function scheduleDailyReminder(time: string, title: string, body: s
         id: REMINDER_ID,
         title,
         body,
-        // `on: {hour, minute}` = repeating daily at that local time.
-        schedule: { on: { hour: h, minute: m }, allowWhileIdle: true },
+        // `on: {hour, minute}` + `repeats: true` = fire DAILY at that local
+        // time. Without repeats, iOS builds a one-time UNCalendarNotification-
+        // Trigger that fires at the next matching time and is then consumed —
+        // i.e. the reminder only ever fires once (user-reported 2026-07-22).
+        schedule: { on: { hour: h, minute: m }, repeats: true, allowWhileIdle: true },
       }],
     })
     return true
