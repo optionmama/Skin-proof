@@ -37,7 +37,7 @@ function ProductCard({ product, region }: { product: CommunityProduct; region?: 
         </div>
         <div className="text-right shrink-0">
           <p className="text-xs font-semibold text-charcoal-800">{product.user_count}</p>
-          <p className="text-xs text-charcoal-400">user{product.user_count !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-charcoal-400">{t('community_users_sub')}</p>
         </div>
       </div>
       <a
@@ -81,30 +81,14 @@ function Tier({
       </div>
 
       <div className="p-4">
-        {!data || data.products.length === 0 ? (
-          <div className="text-center py-5">
-            <Users className="w-8 h-8 text-charcoal-200 mx-auto mb-2" />
-            <p className="text-sm text-charcoal-500 font-body">
-              {data?.userCount === 0
-                ? t('community_no_users')
-                : `${data?.userCount ?? 0} · —`}
-            </p>
-            <p className="text-xs text-charcoal-400 font-body mt-1">
-              {t('community_be_early')}
-            </p>
-          </div>
-        ) : (
-          <>
-            <p className="text-xs text-charcoal-400 font-body mb-3">
-              Based on {data.userCount} user{data.userCount !== 1 ? 's' : ''} who reached {data.threshold}+
-            </p>
-            <div className="space-y-2">
-              {data.products.map((p, i) => (
-                <ProductCard key={i} product={p} region={region} />
-              ))}
-            </div>
-          </>
-        )}
+        <p className="text-xs text-charcoal-400 font-body mb-3">
+          {t('community_based_on', { n: data?.userCount ?? 0, threshold: data?.threshold ?? 0 })}
+        </p>
+        <div className="space-y-2">
+          {(data?.products ?? []).map((p, i) => (
+            <ProductCard key={i} product={p} region={region} />
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -163,7 +147,15 @@ export default function CommunityPicks({ region }: { region?: string }) {
       .finally(() => setLoading(false))
   }, [])
 
-  const isBuilding = !loading && (tier75?.userCount ?? 0) === 0 && (tier80?.userCount ?? 0) === 0
+  // A tier "reveals" its real product list only once ENOUGH high-scorers exist
+  // to be statistically meaningful (Amy's spec 2026-07-22: 80+ is the bar, show
+  // from 5 users) AND there are products that cleared the API's privacy floor.
+  // Until then we show the neutral building card — never a "nobody reached X"
+  // claim, which is already false the moment one user hits the score.
+  const REVEAL_MIN = 5
+  const tier80Ready = (tier80?.userCount ?? 0) >= REVEAL_MIN && (tier80?.products?.length ?? 0) > 0
+  const tier75Ready = (tier75?.userCount ?? 0) >= REVEAL_MIN && (tier75?.products?.length ?? 0) > 0
+  const showLists = !loading && (tier80Ready || tier75Ready)
 
   return (
     <div className="space-y-4">
@@ -179,13 +171,13 @@ export default function CommunityPicks({ region }: { region?: string }) {
         <div className="space-y-3">
           {[1, 2].map(i => <div key={i} className="h-28 skeleton rounded-2xl" />)}
         </div>
-      ) : isBuilding ? (
-        <BuildingCard t={t} />
-      ) : (
+      ) : showLists ? (
         <>
-          <Tier data={tier75} label={t('community_working_well')} badge="🟡" region={region} t={t} />
-          <Tier data={tier80} label={t('community_working_great')} badge="🟢" region={region} t={t} />
+          {tier75Ready && <Tier data={tier75} label={t('community_working_well')} badge="🟡" region={region} t={t} />}
+          {tier80Ready && <Tier data={tier80} label={t('community_working_great')} badge="🟢" region={region} t={t} />}
         </>
+      ) : (
+        <BuildingCard t={t} />
       )}
 
       <p className="text-xs text-center text-charcoal-400 font-body pt-1">

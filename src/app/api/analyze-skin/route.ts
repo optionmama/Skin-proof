@@ -113,7 +113,7 @@ Return ONLY valid JSON with no other text:
     "pores": <0-100, 0=invisible, 100=very enlarged>,
     "evenness": <0-100, 0=very uneven/patchy, 100=perfectly even>
   },
-  "makeup_detected": <true|false>,
+  "makeup_detected": <true ONLY with clear COLOR-COSMETICS evidence (foundation/BB coverage evening out the skin, lipstick, eyeliner, eyeshadow, mascara, drawn-on brows, blush). A bare face with natural shine, dewiness or glow is NOT makeup — return false. When unsure, return false>,
   "visible_observations": [<specific observation 1>, <specific observation 2>, <specific observation 3>],
   "main_concern": <"redness"|"breakouts"|"dryness"|"oiliness"|"pores"|"none">,
   "photo_quality_score": <0-100>,
@@ -140,7 +140,7 @@ Rules:
 - CONSISTENCY: visible_observations MUST reflect the dimensions you scored WORST. If you score breakouts/redness/pores high, say so in the observations. Do NOT describe only minor issues (e.g. fine lines) while a dimension is scored high — the notes and the scores must agree.
 - Comedones (clogged/congested pores, open or closed) are DISTINCT from acne. In visible_observations ALWAYS use the GENERIC word for them — "粉刺" in Chinese, "comedones" or "clogged pores" in English. NEVER write "黑頭"/"blackheads" or "白頭"/"whiteheads": a selfie cannot reliably distinguish open from closed comedones, so do not claim a subtype. Keep "breakouts" and "acne_severity" LOW for comedones (they are not acne). Reserve "acne"/"痘痘" wording for genuine inflammatory pimples.
 - acne_severity reflects INFLAMMATORY acne only; if the skin only has comedones and no inflamed pimples, acne_severity = "clear"
-- If makeup detected, add "Makeup detected" to observations and score visible areas only
+- MAKEUP: only set makeup_detected true with clear color-cosmetics evidence (see the field note above); a natural glow/dewy/shiny bare face is NOT makeup. Do NOT add a "makeup" line to visible_observations (the flag is shown separately). ALWAYS score the six dimensions on the ACTUAL skin you can see — never inflate redness/evenness/pores by assuming makeup is hiding them
 - Score range MUST vary: a clear skin photo should score 80+, a breakout photo 45-60${aiLanguageInstruction(lang, '"visible_observations" (each observation string)')}`,
               },
             ],

@@ -87,8 +87,12 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Sort by usage count, take top 5
+  // Privacy floor: only surface a product used by AT LEAST 2 high-scorers, so a
+  // listing can never point at a single identifiable person. Then sort by
+  // usage and take the top 5.
+  const MIN_PRODUCT_USERS = 2
   const products = Array.from(productMap.values())
+    .filter(p => p.user_count >= MIN_PRODUCT_USERS)
     .sort((a, b) => b.user_count - a.user_count)
     .slice(0, 5)
 
